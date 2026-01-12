@@ -1,0 +1,33 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.card:hover {
+    border-color: var(--text-secondary);
+    transform: translateY(-2px);
+    background: var(--bg-hover);
+}
+
+.icon {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
