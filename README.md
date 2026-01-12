@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UtilHub
 
-## Getting Started
+A comprehensive suite of **28+ developer utilities** built with Next.js. All tools run client-side for privacy and speed.
 
-First, run the development server:
+🔗 **Live Demo:** [utilhub-eta.vercel.app](https://utilhub-eta.vercel.app)
+
+## ✨ Features
+
+- 🌓 **Dark/Light Mode** - Toggle with persistence
+- 📱 **PWA Ready** - Installable on mobile/desktop
+- ⚡ **100% Client-Side** - No server processing, your data stays private
+- 🎨 **Monochrome Design** - Clean, distraction-free UI
+
+## 🛠️ Tools (28+)
+
+| Category | Tools |
+|----------|-------|
+| **Text & Code** | Markdown Viewer, JSON Formatter, XML Formatter, SQL Formatter, Code Beautifier |
+| **Data Formats** | YAML Converter, CSV Viewer, Base64 Encoder |
+| **Diagrams** | Mermaid Chart Renderer |
+| **Comparison** | Diff Checker |
+| **Converters** | URL Encoder, Timestamp Converter, Unit Converter |
+| **Security** | Hash Generator, Password Strength Checker, JWT Decoder |
+| **Validators** | JSON Schema Validator, Email/URL Validator, CSS Linter, HTML Validator |
+| **Utilities** | Regex Tester, Lorem Ipsum Generator, Cron Parser, Color Picker |
+| **Media** | Image Resizer, QR Code Generator/Scanner |
+| **API** | API Tester (Postman-like) |
+
+## 🚀 Getting Started
 
 ```bash
+# Clone
+git clone https://github.com/seshuthota/utilhub.git
+cd utilhub
+
+# Install
+npm install
+
+# Dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build
+npm run build
+
+# Test
+npm test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🧪 Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test        # Run tests
+npm run test    # Watch mode
+```
 
-## Learn More
+- **Vitest** + **React Testing Library**
+- 26 tests covering utility logic and components
 
-To learn more about Next.js, take a look at the following resources:
+## 📦 Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Framework:** Next.js 16
+- **Styling:** CSS Modules (Vanilla CSS)
+- **Icons:** Lucide React
+- **Testing:** Vitest, React Testing Library
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🏗️ Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── tools/           # All tool pages
+│   │   ├── markdown/
+│   │   ├── json/
+│   │   ├── yaml/
+│   │   └── ...
+│   ├── layout.js
+│   └── page.jsx         # Dashboard
+├── components/
+│   ├── common/          # Reusable components
+│   ├── layout/          # Sidebar, Layout
+│   ├── ThemeProvider.jsx
+│   └── ThemeToggle.jsx
+└── test/                # Test files
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
+
+---
+
+Built with ☕ by [@seshuthota](https://github.com/seshuthota)
