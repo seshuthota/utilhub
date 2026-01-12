@@ -160,6 +160,34 @@ const tools = [
     href: '/tools/beautify'
   },
   {
+    id: 'validate',
+    title: 'Email/URL Validator',
+    description: 'Validate email addresses and URLs.',
+    icon: ShieldCheck,
+    href: '/tools/validate'
+  },
+  {
+    id: 'api-tester',
+    title: 'API Tester',
+    description: 'Send HTTP requests and view responses.',
+    icon: LinkIcon,
+    href: '/tools/api-tester'
+  },
+  {
+    id: 'css-lint',
+    title: 'CSS Linter',
+    description: 'Check CSS for errors and best practices.',
+    icon: FileCode,
+    href: '/tools/css-lint'
+  },
+  {
+    id: 'html-lint',
+    title: 'HTML Validator',
+    description: 'Validate HTML and check accessibility.',
+    icon: FileText,
+    href: '/tools/html-lint'
+  },
+  {
     id: 'qrcode',
     title: 'QR Code Tool',
     description: 'Generate QR codes from text or scan them using your camera.',

@@ -9,6 +9,16 @@
   --font-mono: var(--font-geist-mono), monospace;
 }
 
+/* Light Mode */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-hover: #eeeeee;
+  --border-color: #dddddd;
+  --text-primary: #000000;
+  --text-secondary: #666666;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
