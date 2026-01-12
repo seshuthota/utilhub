@@ -9,6 +9,8 @@
     left: 0;
     top: 0;
     padding: 1.5rem;
+    z-index: 1000;
+    transition: transform 0.3s ease;
 }
 
 .logo {
@@ -54,4 +56,47 @@
     margin-top: auto;
     border-top: 1px solid var(--border-color);
     padding-top: 1rem;
+}
+
+/* Mobile toggle button */
+.mobileToggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* Overlay for mobile */
+.overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .mobileToggle {
+        display: flex;
+    }
+
+    .overlay {
+        display: block;
+    }
 }

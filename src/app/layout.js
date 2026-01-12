@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
 
@@ -16,7 +17,6 @@ export const metadata = {
   title: "UtilHub - Developer Tools",
   description: "A suite of developer utilities: JSON, YAML, Markdown, Base64, Hash, Regex, and more.",
   manifest: "/manifest.json",
-  themeColor: "#000000",
 };
 
 export default function RootLayout({ children }) {
@@ -26,6 +26,7 @@ export default function RootLayout({ children }) {
         <ClientLayout>
           {children}
         </ClientLayout>
+        <Analytics />
       </body>
     </html>
   );

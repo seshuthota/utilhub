@@ -20,13 +20,26 @@ vi.mock('lucide-react', () => ({
     Type: () => <div data-testid="icon-type" />,
     Link: () => <div data-testid="icon-link" />,
     Search: () => <div data-testid="icon-search" />,
+    Star: ({ fill }) => <div data-testid="icon-star" data-fill={fill} />,
+}));
+
+// Mock FavoritesProvider
+vi.mock('@/components/FavoritesProvider', () => ({
+    useFavorites: () => ({
+        favorites: [],
+        recentTools: [],
+        toggleFavorite: vi.fn(),
+        addRecent: vi.fn(),
+        isFavorite: () => false,
+    }),
+    FavoritesProvider: ({ children }) => <>{children}</>,
 }));
 
 // Mock Link since it's used in ToolCard
 vi.mock('next/link', () => {
     return {
         __esModule: true,
-        default: ({ children, href }) => <a href={href}>{children}</a>,
+        default: ({ children, href, onClick }) => <a href={href} onClick={onClick}>{children}</a>,
     };
 });
 
@@ -35,12 +48,24 @@ vi.mock('../app/page.module.css', () => ({
     default: {
         header: 'header',
         grid: 'grid',
-        card: 'card', // Mocking ToolCard styles too if imported there, but testing Home mainly
+        searchWrapper: 'searchWrapper',
+        searchIcon: 'searchIcon',
+        searchInput: 'searchInput',
+        noResults: 'noResults',
     }
 }));
 
-// We need to mock ToolCard imports CSS as well if we were testing ToolCard separately,
-// but for integration test of Home, we just need Home to render.
+vi.mock('@/components/common/ToolCard.module.css', () => ({
+    default: {
+        card: 'card',
+        cardHeader: 'cardHeader',
+        icon: 'icon',
+        favoriteBtn: 'favoriteBtn',
+        active: 'active',
+        title: 'title',
+        description: 'description',
+    }
+}));
 
 describe('Dashboard (Home) Page', () => {
     it('should render the dashboard header', () => {

@@ -1,0 +1,31 @@
+.layout {
+    display: flex;
+}
+
+.main {
+    margin-left: 250px;
+    flex: 1;
+    padding: 2rem;
+    min-height: 100vh;
+    position: relative;
+}
+
+.themeToggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+}
+
+@media (max-width: 768px) {
+    .main {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: 4rem;
+    }
+
+    .themeToggle {
+        right: auto;
+        left: 4rem;
+    }
+}

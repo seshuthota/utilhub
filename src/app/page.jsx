@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import ToolCard from '@/components/common/ToolCard';
 import { FileText, Braces, GitGraph, FileDiff, Database, Crop, QrCode, FileCode, refreshCcw, Image as ImageIcon, RefreshCcw, Clock, Shield, ShieldCheck, Type, Link as LinkIcon, Search } from 'lucide-react';
 import styles from './page.module.css';
@@ -197,13 +199,33 @@ const tools = [
 ];
 
 export default function Home() {
+  const [search, setSearch] = useState('');
+
+  const filteredTools = tools.filter(tool =>
+    tool.title.toLowerCase().includes(search.toLowerCase()) ||
+    tool.description.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div>
       <h1 className={styles.header}>Dashboard</h1>
+      <div className={styles.searchWrapper}>
+        <Search size={18} className={styles.searchIcon} />
+        <input
+          type="text"
+          placeholder="Search tools..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className={styles.searchInput}
+        />
+      </div>
       <div className={styles.grid}>
-        {tools.map(tool => (
+        {filteredTools.map(tool => (
           <ToolCard key={tool.id} {...tool} />
         ))}
+        {filteredTools.length === 0 && (
+          <p className={styles.noResults}>No tools found for "{search}"</p>
+        )}
       </div>
     </div>
   )

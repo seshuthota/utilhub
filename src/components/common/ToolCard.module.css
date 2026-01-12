@@ -15,9 +15,39 @@
     background: var(--bg-hover);
 }
 
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
 .icon {
-    margin-bottom: 1rem;
     color: var(--text-primary);
+}
+
+.favoriteBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.card:hover .favoriteBtn {
+    opacity: 1;
+}
+
+.favoriteBtn:hover {
+    color: var(--text-primary);
+}
+
+.favoriteBtn.active {
+    opacity: 1;
+    color: #ffd700;
 }
 
 .title {
