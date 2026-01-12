@@ -2,7 +2,7 @@
 
 A comprehensive suite of **28+ developer utilities** built with Next.js. All tools run client-side for privacy and speed.
 
-🔗 **Live Demo:** [utilhub-eta.vercel.app](https://utilhub-eta.vercel.app)
+🔗 **Live Demo:** [utilhub-three.vercel.app](https://utilhub-three.vercel.app)
 
 ## ✨ Features
 
