@@ -1,0 +1,121 @@
+.container {
+    height: calc(100vh - 4rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.header {
+    margin-bottom: 0;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.categories {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.catBtn {
+    padding: 0.5rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.catBtn:hover {
+    border-color: var(--text-primary);
+}
+
+.catBtn.active {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border-color: var(--text-primary);
+}
+
+.inputRow {
+    display: flex;
+    gap: 1rem;
+    max-width: 400px;
+}
+
+.valueInput {
+    flex: 1;
+    padding: 1rem;
+    font-size: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+
+.valueInput:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+}
+
+.unitSelect {
+    padding: 0 1.5rem;
+    font-size: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+}
+
+.resultRow {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    gap: 1rem;
+}
+
+.resultRow.highlight {
+    border-color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.resultValue {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.resultUnit {
+    color: var(--text-secondary);
+    font-weight: 500;
+    width: 50px;
+}
+
+.copyBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.copyBtn:hover {
+    opacity: 1;
+}
