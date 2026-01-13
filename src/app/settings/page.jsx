@@ -5,7 +5,6 @@ import { Monitor, Moon, Sun, Trash2, RotateCcw, Info, Github, Sparkles } from 'l
 import { useTheme } from '@/components/ThemeProvider';
 import { useFavorites } from '@/components/FavoritesProvider';
 import { useToast } from '@/components/Toast';
-import { setApiKey as setGroqApiKey, isConfigured as isAiConfigured } from '@/lib/ai';
 import styles from './page.module.css';
 import pkg from '../../../package.json';
 
@@ -103,35 +102,10 @@ export default function Settings() {
                 <div className={styles.card}>
                     <div className={styles.row}>
                         <div className={styles.label}>
-                            <span>Groq API Key</span>
-                            <p className={styles.description}>Required for AI Assist features. Get a free key at <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>console.groq.com</a></p>
+                            <span>AI Assist</span>
+                            <p className={styles.description}>Powered by Groq (Llama 3.3 70B). API key is configured server-side for security.</p>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <input
-                                type="password"
-                                placeholder={isAiConfigured() ? '••••••••••••••••' : 'Enter API key'}
-                                defaultValue=""
-                                onBlur={(e) => {
-                                    if (e.target.value) {
-                                        setGroqApiKey(e.target.value);
-                                        showToast('API key saved!', 'success');
-                                        e.target.value = '';
-                                    }
-                                }}
-                                style={{
-                                    padding: '0.5rem 0.75rem',
-                                    background: 'rgba(0,0,0,0.3)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '6px',
-                                    color: 'var(--foreground)',
-                                    width: '220px',
-                                    fontSize: '0.9rem'
-                                }}
-                            />
-                            {isAiConfigured() && (
-                                <span style={{ color: '#4ade80', fontSize: '0.8rem' }}>✓ Configured</span>
-                            )}
-                        </div>
+                        <span style={{ color: '#4ade80', fontSize: '0.85rem', fontWeight: 500 }}>✓ Active</span>
                     </div>
                 </div>
             </div>

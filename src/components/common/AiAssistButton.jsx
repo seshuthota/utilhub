@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Loader2, Settings } from 'lucide-react';
-import { generate, isConfigured } from '@/lib/ai';
+import { Sparkles, Loader2 } from 'lucide-react';
+import { generate } from '@/lib/ai';
 import { useToast } from '@/components/Toast';
 
 export default function AiAssistButton({ prompt, systemPrompt, onResult, disabled = false }) {
@@ -10,11 +10,6 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
     const { showToast } = useToast();
 
     const handleClick = async () => {
-        if (!isConfigured()) {
-            showToast('Add your Groq API key in Settings first', 'error');
-            return;
-        }
-
         setLoading(true);
         try {
             const result = await generate(prompt, systemPrompt);
@@ -28,13 +23,11 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
         }
     };
 
-    const configured = isConfigured();
-
     return (
         <button
             onClick={handleClick}
             disabled={disabled || loading}
-            title={configured ? 'AI Assist (Groq)' : 'Configure API key in Settings'}
+            title="AI Assist (Groq)"
             style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -42,12 +35,10 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
                 padding: '0.4rem 0.8rem',
                 background: loading
                     ? 'rgba(147, 51, 234, 0.2)'
-                    : configured
-                        ? 'linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3))'
-                        : 'rgba(255, 255, 255, 0.05)',
-                border: `1px solid ${configured ? 'rgba(147, 51, 234, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
+                    : 'linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3))',
+                border: '1px solid rgba(147, 51, 234, 0.4)',
                 borderRadius: '6px',
-                color: configured ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                color: '#fff',
                 cursor: loading ? 'wait' : 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: 500,
@@ -59,15 +50,10 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
                     <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                     Thinking...
                 </>
-            ) : configured ? (
+            ) : (
                 <>
                     <Sparkles size={16} />
                     AI Assist
-                </>
-            ) : (
-                <>
-                    <Settings size={16} />
-                    Setup AI
                 </>
             )}
         </button>
