@@ -1,27 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-json';
-import { Braces, Copy, Trash2, CheckCircle, AlertTriangle, Minimize, Maximize } from 'lucide-react';
-import styles from '../markdown/page.module.css'; // Reusing layout styles
+import { Braces, Copy, Trash2, Maximize, Minimize } from 'lucide-react';
+import CodeEditor from '@/components/common/CodeEditor';
+import { useToast } from '@/components/Toast';
+import styles from '../markdown/page.module.css';
 
 export default function JsonTool() {
     const [code, setCode] = useState('{"name":"UtilHub","type":"Project","active":true}');
     const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
+    const { showToast } = useToast();
 
     const formatJson = () => {
         try {
             const parsed = JSON.parse(code);
             setCode(JSON.stringify(parsed, null, 2));
             setError(null);
-            setSuccess('Formatted successfully');
-            setTimeout(() => setSuccess(null), 2000);
+            showToast('JSON formatted successfully', 'success');
         } catch (e) {
             setError(e.message);
-            setSuccess(null);
+            showToast('Invalid JSON', 'error');
         }
     };
 
@@ -30,17 +28,21 @@ export default function JsonTool() {
             const parsed = JSON.parse(code);
             setCode(JSON.stringify(parsed));
             setError(null);
-            setSuccess('Minified successfully');
-            setTimeout(() => setSuccess(null), 2000);
+            showToast('JSON minified successfully', 'success');
         } catch (e) {
             setError(e.message);
-            setSuccess(null);
+            showToast('Invalid JSON', 'error');
         }
     };
 
     const cleanJson = () => {
         setCode('');
         setError(null);
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(code);
+        showToast('Copied to clipboard', 'success');
     };
 
     return (
@@ -54,31 +56,29 @@ export default function JsonTool() {
                     <button className={styles.button} onClick={minifyJson} title="Minify">
                         <Minimize size={16} /> Minify
                     </button>
+                    <button className={styles.button} onClick={copyToClipboard} title="Copy">
+                        <Copy size={16} /> Copy
+                    </button>
                     <button className={styles.button} onClick={cleanJson} title="Clear">
                         <Trash2 size={16} /> Clear
                     </button>
                 </div>
             </header>
 
-            {error && <div style={{ color: '#ff4444', marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ff4444', borderRadius: '4px', background: 'rgba(255,0,0,0.1)' }}>Error: {error}</div>}
-            {success && <div style={{ color: '#00cc66', marginBottom: '1rem' }}>{success}</div>}
+            {error && <div className={styles.errorAlert}>Error: {error}</div>}
 
             <div className={styles.editorContainer}>
                 <div className={styles.pane}>
-                    <div className={styles.paneHeader}>JSON Editor</div>
-                    <div className={styles.editor}>
-                        <Editor
+                    <div className={styles.paneHeader}>
+                        <span>Input / Output</span>
+                        <span className={styles.languageBadge}>JSON</span>
+                    </div>
+                    <div className={styles.editorWrapper}>
+                        <CodeEditor
                             value={code}
-                            onValueChange={code => setCode(code)}
-                            highlight={code => Prism.highlight(code, Prism.languages.json, 'json')}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
-                            textareaClassName="focus:outline-none"
+                            onChange={code => setCode(code)}
+                            language="json"
+                            placeholder="Paste your JSON here..."
                         />
                     </div>
                 </div>

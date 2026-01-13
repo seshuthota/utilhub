@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
 import mermaid from 'mermaid';
 import { GitGraph, Download, Trash2, Maximize } from 'lucide-react';
+import CodeEditor from '@/components/common/CodeEditor';
 import styles from '../markdown/page.module.css';
 
 // Initialize mermaid
@@ -34,19 +33,15 @@ export default function MermaidTool() {
                 setError(null);
             } catch (e) {
                 console.error("Mermaid error:", e);
-                // Mermaid throws annoying errors that persist in the DOM sometimes.
-                // We just catch it.
                 setError("Invalid Syntax");
             }
         };
 
-        // Debounce slightly to prevent flashing on every keystroke
         const timeout = setTimeout(renderChart, 500);
         return () => clearTimeout(timeout);
     }, [code]);
 
     const handleDownload = () => {
-        // Simple SVG download logic could go here
         const blob = new Blob([svg], { type: 'image/svg+xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -61,7 +56,7 @@ export default function MermaidTool() {
                 <h1 className={styles.title}>Mermaid Chart</h1>
                 <div className={styles.actions}>
                     <button className={styles.button} onClick={handleDownload} title="Download SVG">
-                        <Download size={16} /> Download SVG
+                        <Download size={16} /> Download
                     </button>
                     <button className={styles.button} onClick={() => setCode('')} title="Clear">
                         <Trash2 size={16} /> Clear
@@ -69,24 +64,20 @@ export default function MermaidTool() {
                 </div>
             </header>
 
-            {error && <div style={{ color: '#ff4444', marginBottom: '1rem', padding: '0.5rem', border: '1px solid #ff4444', borderRadius: '4px' }}>{error} - Check console for details</div>}
+            {error && <div className={styles.errorAlert}>{error}</div>}
 
             <div className={styles.editorContainer}>
-                <div className={`${styles.pane} ${styles.editorPane}`}>
-                    <div className={styles.paneHeader}>Mermaid Syntax</div>
-                    <div className={styles.editor}>
-                        <Editor
+                <div className={styles.pane}>
+                    <div className={styles.paneHeader}>
+                        <span>Mermaid Syntax</span>
+                        <span className={styles.languageBadge}>Mermaid</span>
+                    </div>
+                    <div className={styles.editorWrapper}>
+                        <CodeEditor
                             value={code}
-                            onValueChange={code => setCode(code)}
-                            highlight={code => Prism.highlight(code, Prism.languages.markup || Prism.languages.extend('markup', {}), 'markup')} // No official mermaid prism, use markup or plain
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
-                            textareaClassName="focus:outline-none"
+                            onChange={setCode}
+                            language="markdown"
+                            placeholder="graph TD..."
                         />
                     </div>
                 </div>

@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import yaml from 'js-yaml';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-yaml';
-import 'prismjs/components/prism-json';
 import { FileText, ArrowRightLeft, Copy, Trash2, Braces } from 'lucide-react';
+import CodeEditor from '@/components/common/CodeEditor';
+import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
 
 export default function YamlTool() {
@@ -14,9 +12,10 @@ export default function YamlTool() {
     const [output, setOutput] = useState('');
     const [mode, setMode] = useState('yaml2json'); // yaml2json | json2yaml
     const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
     // Auto-convert
-    useState(() => {
+    useEffect(() => {
         convert(input, mode);
     }, [input, mode]);
 
@@ -46,6 +45,12 @@ export default function YamlTool() {
         setMode(newMode);
         setInput(output); // Swap output to input
         convert(output, newMode);
+        showToast(`Switched to ${newMode === 'yaml2json' ? 'YAML to JSON' : 'JSON to YAML'}`, 'success');
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(output);
+        showToast('Copied to clipboard', 'success');
     };
 
     return (
@@ -67,25 +72,15 @@ export default function YamlTool() {
             <div className={styles.split}>
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
-                        {mode === 'yaml2json' ? 'YAML Input' : 'JSON Input'}
+                        <span>{mode === 'yaml2json' ? 'YAML Input' : 'JSON Input'}</span>
+                        <span className={styles.languageBadge}>{mode === 'yaml2json' ? 'YAML' : 'JSON'}</span>
                     </div>
-                    <div className={styles.editor}>
-                        <Editor
+                    <div className={styles.editorWrapper}>
+                        <CodeEditor
                             value={input}
-                            onValueChange={(val) => { setInput(val); convert(val, mode); }}
-                            highlight={code => Prism.highlight(
-                                code,
-                                mode === 'yaml2json' ? Prism.languages.yaml : Prism.languages.json,
-                                mode === 'yaml2json' ? 'yaml' : 'json'
-                            )}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
-                            textareaClassName="focus:outline-none"
+                            onChange={(val) => setInput(val)}
+                            language={mode === 'yaml2json' ? 'yaml' : 'json'}
+                            placeholder="Type here..."
                         />
                     </div>
                 </div>
@@ -93,20 +88,17 @@ export default function YamlTool() {
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
                         {mode === 'yaml2json' ? 'JSON Output' : 'YAML Output'}
-                        <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(output)}>
+                        <button className={styles.copyBtn} onClick={handleCopy}>
                             <Copy size={14} />
                         </button>
                     </div>
-                    <div className={styles.preview}>
-                        <pre className={styles.pre}>
-                            <code dangerouslySetInnerHTML={{
-                                __html: Prism.highlight(
-                                    output,
-                                    mode === 'yaml2json' ? Prism.languages.json : Prism.languages.yaml,
-                                    mode === 'yaml2json' ? 'json' : 'yaml'
-                                )
-                            }} />
-                        </pre>
+                    <div className={styles.editorWrapper}>
+                        <CodeEditor
+                            value={output}
+                            onChange={() => { }} // Read-only mostly
+                            language={mode === 'yaml2json' ? 'json' : 'yaml'}
+                            readOnly={true}
+                        />
                     </div>
                 </div>
             </div>

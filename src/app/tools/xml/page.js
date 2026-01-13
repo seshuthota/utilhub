@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-xml-doc';
 import xmlFormat from 'xml-formatter';
 import { FileCode, Copy, Trash2, Zap, Minimize } from 'lucide-react';
+import CodeEditor from '@/components/common/CodeEditor';
+import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
 export default function XmlTool() {
     const [code, setCode] = useState('<root><child id="1">Hello World</child></root>');
     const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
     const handleFormat = () => {
         try {
@@ -22,8 +22,10 @@ export default function XmlTool() {
             });
             setCode(formatted);
             setError(null);
+            showToast('XML formatted successfully', 'success');
         } catch (e) {
             setError("Invalid XML: " + e.message);
+            showToast('Invalid XML', 'error');
         }
     };
 
@@ -32,9 +34,16 @@ export default function XmlTool() {
             const minified = xmlFormat(code, { indentation: '', lineSeparator: '' });
             setCode(minified);
             setError(null);
+            showToast('XML minified successfully', 'success');
         } catch (e) {
             setError("Invalid XML: " + e.message);
+            showToast('Invalid XML', 'error');
         }
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code);
+        showToast('Copied to clipboard', 'success');
     };
 
     return (
@@ -48,7 +57,7 @@ export default function XmlTool() {
                     <button className={styles.button} onClick={handleMinify} title="Minify XML">
                         <Minimize size={16} /> Minify
                     </button>
-                    <button className={styles.button} onClick={() => navigator.clipboard.writeText(code)} title="Copy">
+                    <button className={styles.button} onClick={handleCopy} title="Copy">
                         <Copy size={16} /> Copy
                     </button>
                     <button className={styles.button} onClick={() => setCode('')} title="Clear">
@@ -57,24 +66,20 @@ export default function XmlTool() {
                 </div>
             </header>
 
-            {error && <div style={{ color: '#ff4444', marginBottom: '1rem' }}>{error}</div>}
+            {error && <div className={styles.errorAlert}>{error}</div>}
 
             <div className={styles.editorContainer}>
-                <div className={`${styles.pane} ${styles.editorPane}`}>
-                    <div className={styles.paneHeader}>XML Content</div>
-                    <div className={styles.editor}>
-                        <Editor
+                <div className={styles.pane}>
+                    <div className={styles.paneHeader}>
+                        <span>XML Content</span>
+                        <span className={styles.languageBadge}>XML</span>
+                    </div>
+                    <div className={styles.editorWrapper}>
+                        <CodeEditor
                             value={code}
-                            onValueChange={setCode}
-                            highlight={code => Prism.highlight(code, Prism.languages.xml || Prism.languages.markup, 'xml')}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
-                            textareaClassName="focus:outline-none"
+                            onChange={setCode}
+                            language="markup"
+                            placeholder="<root>...</root>"
                         />
                     </div>
                 </div>

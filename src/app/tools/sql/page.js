@@ -1,29 +1,37 @@
 'use client';
 
 import { useState } from 'react';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-sql';
+import { Database, Zap, Trash2, Copy } from 'lucide-react';
 import { format } from 'sql-formatter';
-import { Database, Copy, Trash2, Zap } from 'lucide-react';
-import styles from '../markdown/page.module.css'; // Reuse split pane styles
+import CodeEditor from '@/components/common/CodeEditor';
+import { useToast } from '@/components/Toast';
+import styles from '../markdown/page.module.css';
 
 export default function SqlTool() {
-    const [code, setCode] = useState('SELECT * FROM users WHERE id = 1');
+    const [code, setCode] = useState('SELECT * FROM users WHERE active = true;');
     const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
-    const handleFormat = () => {
+    const formatSql = () => {
         try {
-            const formatted = format(code, { language: 'sql', tabWidth: 2, keywordCase: 'upper' });
+            const formatted = format(code);
             setCode(formatted);
             setError(null);
+            showToast('SQL formatted successfully', 'success');
         } catch (e) {
             setError(e.message);
+            showToast('Invalid SQL', 'error');
         }
     };
 
-    const handleCopy = () => {
+    const cleanSql = () => {
+        setCode('');
+        setError(null);
+    };
+
+    const copyToClipboard = () => {
         navigator.clipboard.writeText(code);
+        showToast('Copied to clipboard', 'success');
     };
 
     return (
@@ -31,36 +39,32 @@ export default function SqlTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>SQL Formatter</h1>
                 <div className={styles.actions}>
-                    <button className={styles.button} onClick={handleFormat} title="Format SQL">
+                    <button className={styles.button} onClick={formatSql} title="Format">
                         <Zap size={16} /> Format
                     </button>
-                    <button className={styles.button} onClick={handleCopy} title="Copy">
+                    <button className={styles.button} onClick={copyToClipboard} title="Copy">
                         <Copy size={16} /> Copy
                     </button>
-                    <button className={styles.button} onClick={() => setCode('')} title="Clear">
+                    <button className={styles.button} onClick={cleanSql} title="Clear">
                         <Trash2 size={16} /> Clear
                     </button>
                 </div>
             </header>
 
-            {error && <div style={{ color: '#ff4444', marginBottom: '1rem' }}>{error}</div>}
+            {error && <div className={styles.errorAlert}>Error: {error}</div>}
 
             <div className={styles.editorContainer}>
-                <div className={`${styles.pane} ${styles.editorPane}`}>
-                    <div className={styles.paneHeader}>SQL Query</div>
-                    <div className={styles.editor}>
-                        <Editor
+                <div className={styles.pane}>
+                    <div className={styles.paneHeader}>
+                        <span>Query Editor</span>
+                        <span className={styles.languageBadge}>SQL</span>
+                    </div>
+                    <div className={styles.editorWrapper}>
+                        <CodeEditor
                             value={code}
-                            onValueChange={setCode}
-                            highlight={code => Prism.highlight(code, Prism.languages.sql, 'sql')}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
-                            textareaClassName="focus:outline-none"
+                            onChange={setCode}
+                            language="sql"
+                            placeholder="SELECT * FROM table..."
                         />
                     </div>
                 </div>
