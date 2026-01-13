@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from 'react';
 import { Search, Flag, AlertTriangle, RefreshCw } from 'lucide-react';
+import AiAssistButton from '@/components/common/AiAssistButton';
 import styles from './page.module.css';
 
 export default function RegexTool() {
     const [pattern, setPattern] = useState('\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b');
     const [flags, setFlags] = useState('gm');
     const [text, setText] = useState('Contact us at support@utilhub.com or hello@example.org for more info.');
+    const [aiPrompt, setAiPrompt] = useState('');
 
     const result = useMemo(() => {
         try {
@@ -19,6 +21,18 @@ export default function RegexTool() {
             return { matches: [], error: e.message };
         }
     }, [pattern, flags, text]);
+
+    const handleAiResult = (response) => {
+        // Extract regex from AI response (look for patterns between / /)
+        const regexMatch = response.match(/\/(.+?)\/([gimsuvy]*)?/);
+        if (regexMatch) {
+            setPattern(regexMatch[1]);
+            if (regexMatch[2]) setFlags(regexMatch[2]);
+        } else {
+            // If no regex format, try to use the whole response as pattern
+            setPattern(response.trim());
+        }
+    };
 
     const highlightText = () => {
         if (result.error || !pattern) return text;
@@ -53,6 +67,39 @@ export default function RegexTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Regex Tester</h1>
             </header>
+
+            {/* AI Assist Section */}
+            <div className={styles.aiSection} style={{
+                marginBottom: '1.5rem',
+                padding: '1rem',
+                background: 'rgba(147, 51, 234, 0.1)',
+                borderRadius: '8px',
+                border: '1px solid rgba(147, 51, 234, 0.2)'
+            }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="Describe what you want to match (e.g., 'phone numbers', 'URLs', 'dates')"
+                        style={{
+                            flex: 1,
+                            padding: '0.6rem 1rem',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                    <AiAssistButton
+                        prompt={`Generate a JavaScript regex pattern to match: ${aiPrompt}. Return ONLY the regex in /pattern/flags format, nothing else.`}
+                        systemPrompt="You are a regex expert. Return only the regex pattern in /pattern/flags format. No explanations."
+                        onResult={handleAiResult}
+                        disabled={!aiPrompt.trim()}
+                    />
+                </div>
+            </div>
 
             <div className={styles.grid}>
                 <div className={styles.controls}>
