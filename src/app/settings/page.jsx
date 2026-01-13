@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Monitor, Moon, Sun, Trash2, RotateCcw, Info, Github } from 'lucide-react';
+import { Monitor, Moon, Sun, Trash2, RotateCcw, Info, Github, Sparkles } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useFavorites } from '@/components/FavoritesProvider';
 import { useToast } from '@/components/Toast';
+import { setApiKey as setGroqApiKey, isConfigured as isAiConfigured } from '@/lib/ai';
 import styles from './page.module.css';
 import pkg from '../../../package.json';
 
@@ -89,6 +90,48 @@ export default function Settings() {
                             <Trash2 size={16} />
                             <span>Clear Data</span>
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className={styles.section}>
+                <h2 className={styles.sectionTitle}>
+                    <Sparkles size={20} />
+                    <span>AI Configuration</span>
+                </h2>
+
+                <div className={styles.card}>
+                    <div className={styles.row}>
+                        <div className={styles.label}>
+                            <span>Groq API Key</span>
+                            <p className={styles.description}>Required for AI Assist features. Get a free key at <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>console.groq.com</a></p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                                type="password"
+                                placeholder={isAiConfigured() ? '••••••••••••••••' : 'Enter API key'}
+                                defaultValue=""
+                                onBlur={(e) => {
+                                    if (e.target.value) {
+                                        setGroqApiKey(e.target.value);
+                                        showToast('API key saved!', 'success');
+                                        e.target.value = '';
+                                    }
+                                }}
+                                style={{
+                                    padding: '0.5rem 0.75rem',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '6px',
+                                    color: 'var(--foreground)',
+                                    width: '220px',
+                                    fontSize: '0.9rem'
+                                }}
+                            />
+                            {isAiConfigured() && (
+                                <span style={{ color: '#4ade80', fontSize: '0.8rem' }}>✓ Configured</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

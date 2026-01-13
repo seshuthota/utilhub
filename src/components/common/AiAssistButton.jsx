@@ -1,25 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
-import { generate, onProgressUpdate, isWebGPUSupported, isEngineReady } from '@/lib/webllm';
+import { useState } from 'react';
+import { Sparkles, Loader2, Settings } from 'lucide-react';
+import { generate, isConfigured } from '@/lib/ai';
 import { useToast } from '@/components/Toast';
 
 export default function AiAssistButton({ prompt, systemPrompt, onResult, disabled = false }) {
     const [loading, setLoading] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [supported, setSupported] = useState(true);
     const { showToast } = useToast();
 
-    useEffect(() => {
-        setSupported(isWebGPUSupported());
-        const unsubscribe = onProgressUpdate(setProgress);
-        return unsubscribe;
-    }, []);
-
     const handleClick = async () => {
-        if (!supported) {
-            showToast('WebGPU not supported in this browser', 'error');
+        if (!isConfigured()) {
+            showToast('Add your Groq API key in Settings first', 'error');
             return;
         }
 
@@ -30,50 +22,32 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
             showToast('AI response generated!', 'success');
         } catch (error) {
             console.error('AI generation error:', error);
-            showToast('AI generation failed', 'error');
+            showToast(error.message || 'AI generation failed', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    if (!supported) {
-        return (
-            <button
-                disabled
-                title="WebGPU required (Chrome 113+)"
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.4rem 0.8rem',
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '6px',
-                    color: 'rgba(255, 255, 255, 0.4)',
-                    cursor: 'not-allowed',
-                    fontSize: '0.85rem',
-                }}
-            >
-                <AlertCircle size={16} />
-                AI (WebGPU needed)
-            </button>
-        );
-    }
+    const configured = isConfigured();
 
     return (
         <button
             onClick={handleClick}
             disabled={disabled || loading}
-            title={loading && progress < 100 ? `Loading model: ${progress}%` : 'AI Assist'}
+            title={configured ? 'AI Assist (Groq)' : 'Configure API key in Settings'}
             style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.4rem 0.8rem',
-                background: loading ? 'rgba(147, 51, 234, 0.2)' : 'linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3))',
-                border: '1px solid rgba(147, 51, 234, 0.4)',
+                background: loading
+                    ? 'rgba(147, 51, 234, 0.2)'
+                    : configured
+                        ? 'linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3))'
+                        : 'rgba(255, 255, 255, 0.05)',
+                border: `1px solid ${configured ? 'rgba(147, 51, 234, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
                 borderRadius: '6px',
-                color: '#fff',
+                color: configured ? '#fff' : 'rgba(255, 255, 255, 0.5)',
                 cursor: loading ? 'wait' : 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: 500,
@@ -82,13 +56,18 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
         >
             {loading ? (
                 <>
-                    <Loader2 size={16} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
-                    {progress < 100 ? `${progress}%` : 'Thinking...'}
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    Thinking...
                 </>
-            ) : (
+            ) : configured ? (
                 <>
                     <Sparkles size={16} />
                     AI Assist
+                </>
+            ) : (
+                <>
+                    <Settings size={16} />
+                    Setup AI
                 </>
             )}
         </button>
