@@ -41,10 +41,17 @@ export function FavoritesProvider({ children }) {
         });
     }, []);
 
+    const clearData = useCallback(() => {
+        setFavorites([]);
+        setRecentTools([]);
+        localStorage.removeItem('utilhub-favorites');
+        localStorage.removeItem('utilhub-recent');
+    }, []);
+
     const isFavorite = useCallback((toolId) => favorites.includes(toolId), [favorites]);
 
     return (
-        <FavoritesContext.Provider value={{ favorites, recentTools, toggleFavorite, addRecent, isFavorite }}>
+        <FavoritesContext.Provider value={{ favorites, recentTools, toggleFavorite, addRecent, isFavorite, clearData }}>
             {children}
         </FavoritesContext.Provider>
     );

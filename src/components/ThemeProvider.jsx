@@ -20,15 +20,19 @@ export function ThemeProvider({ children }) {
 
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
+        setThemeMode(newTheme);
+    };
+
+    const setThemeMode = (newTheme) => {
         setTheme(newTheme);
         localStorage.setItem('theme', newTheme);
         document.documentElement.setAttribute('data-theme', newTheme);
-    };
+    }
 
     if (!mounted) return null;
 
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme, setTheme: setThemeMode }}>
             {children}
         </ThemeContext.Provider>
     );

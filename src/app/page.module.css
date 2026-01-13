@@ -1,54 +1,67 @@
-.header {
-  font-size: 2rem;
-  margin-bottom: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 4rem;
+}
+
+.hero {
+  padding: 4rem 1rem 3rem;
+  text-align: center;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 1rem;
+  line-height: 1.1;
+  background: linear-gradient(to bottom right, var(--text-primary) 50%, var(--text-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroHighlight {
+  color: var(--accent-primary);
+  -webkit-text-fill-color: var(--accent-primary);
+  text-shadow: 0 0 30px var(--accent-glow);
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  margin-bottom: 2.5rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  padding: 0 1rem;
 }
 
-.searchWrapper {
-  position: relative;
-  margin-bottom: 2rem;
-  max-width: 400px;
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+
+  .hero {
+    padding: 2rem 1rem;
+  }
 }
 
-.searchIcon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-secondary);
-  pointer-events: none;
-}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 
-.searchInput {
-  width: 100%;
-  padding: 0.875rem 1rem 0.875rem 3rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: var(--text-secondary);
-}
-
-.searchInput::placeholder {
-  color: var(--text-secondary);
-}
-
-.noResults {
-  color: var(--text-secondary);
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 2rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
