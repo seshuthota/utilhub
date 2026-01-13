@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { Database, Zap, Trash2, Copy } from 'lucide-react';
 import { format } from 'sql-formatter';
 import CodeEditor from '@/components/common/CodeEditor';
+import ShareButton from '@/components/common/ShareButton';
+import { useUrlState } from '@/hooks/useUrlState';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
 export default function SqlTool() {
-    const [code, setCode] = useState('SELECT * FROM users WHERE active = true;');
+    const [code, setCode] = useUrlState('code', 'SELECT * FROM users WHERE active = true;');
     const [error, setError] = useState(null);
     const { showToast } = useToast();
 
@@ -39,7 +41,8 @@ export default function SqlTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>SQL Formatter</h1>
                 <div className={styles.actions}>
-                    <button className={styles.button} onClick={formatSql} title="Format">
+                    <ShareButton />
+                    <button className={styles.button} onClick={formatSql} title="Format (Cmd/Ctrl + Enter)">
                         <Zap size={16} /> Format
                     </button>
                     <button className={styles.button} onClick={copyToClipboard} title="Copy">
@@ -65,6 +68,7 @@ export default function SqlTool() {
                             onChange={setCode}
                             language="sql"
                             placeholder="SELECT * FROM table..."
+                            onRun={formatSql}
                         />
                     </div>
                 </div>

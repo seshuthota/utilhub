@@ -11,7 +11,7 @@ import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-markup'; // xml/html
 import styles from './CodeEditor.module.css';
 
-export default function CodeEditor({ value, onChange, language, placeholder, readOnly = false }) {
+export default function CodeEditor({ value, onChange, language, placeholder, readOnly = false, onRun }) {
 
     const highlight = (code) => {
         if (!language || !Prism.languages[language]) {
@@ -20,8 +20,17 @@ export default function CodeEditor({ value, onChange, language, placeholder, rea
         return Prism.highlight(code, Prism.languages[language], language);
     };
 
+    const handleKeyDown = (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            if (onRun) {
+                e.preventDefault();
+                onRun();
+            }
+        }
+    };
+
     return (
-        <div className={styles.container}>
+        <div className={styles.container} onKeyDown={handleKeyDown}>
             <Editor
                 value={value}
                 onValueChange={onChange}

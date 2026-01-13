@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { GitGraph, Download, Trash2, Maximize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
+import ShareButton from '@/components/common/ShareButton';
+import { useUrlState } from '@/hooks/useUrlState';
 import styles from '../markdown/page.module.css';
 
 // Initialize mermaid
@@ -20,7 +22,7 @@ const defaultChart = `graph TD
     D --> B`;
 
 export default function MermaidTool() {
-    const [code, setCode] = useState(defaultChart);
+    const [code, setCode] = useUrlState('code', defaultChart);
     const [svg, setSvg] = useState('');
     const [error, setError] = useState(null);
 
@@ -55,7 +57,8 @@ export default function MermaidTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Mermaid Chart</h1>
                 <div className={styles.actions}>
-                    <button className={styles.button} onClick={handleDownload} title="Download SVG">
+                    <ShareButton />
+                    <button className={styles.button} onClick={handleDownload} title="Download SVG (Cmd/Ctrl + Enter)">
                         <Download size={16} /> Download
                     </button>
                     <button className={styles.button} onClick={() => setCode('')} title="Clear">
@@ -78,6 +81,7 @@ export default function MermaidTool() {
                             onChange={setCode}
                             language="markdown"
                             placeholder="graph TD..."
+                            onRun={handleDownload}
                         />
                     </div>
                 </div>

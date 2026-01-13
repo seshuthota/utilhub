@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { Braces, Copy, Trash2, Maximize, Minimize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
+import ShareButton from '@/components/common/ShareButton';
+import { useUrlState } from '@/hooks/useUrlState';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
 export default function JsonTool() {
-    const [code, setCode] = useState('{"name":"UtilHub","type":"Project","active":true}');
+    const [code, setCode] = useUrlState('code', '{"name":"UtilHub","type":"Project","active":true}');
     const [error, setError] = useState(null);
     const { showToast } = useToast();
 
@@ -50,7 +52,8 @@ export default function JsonTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>JSON Formatter</h1>
                 <div className={styles.actions}>
-                    <button className={styles.button} onClick={formatJson} title="Prettify">
+                    <ShareButton />
+                    <button className={styles.button} onClick={formatJson} title="Format (Cmd/Ctrl + Enter)">
                         <Maximize size={16} /> Format
                     </button>
                     <button className={styles.button} onClick={minifyJson} title="Minify">
@@ -79,6 +82,7 @@ export default function JsonTool() {
                             onChange={code => setCode(code)}
                             language="json"
                             placeholder="Paste your JSON here..."
+                            onRun={formatJson}
                         />
                     </div>
                 </div>

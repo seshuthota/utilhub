@@ -51,8 +51,8 @@ export default function XmlTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>XML Formatter</h1>
                 <div className={styles.actions}>
-                    <button className={styles.button} onClick={handleFormat} title="Format XML">
-                        <Zap size={16} /> Format
+                    <button className={styles.button} onClick={handleFormat} title="Format (Cmd/Ctrl + Enter)">
+                        <Braces size={16} /> Format
                     </button>
                     <button className={styles.button} onClick={handleMinify} title="Minify XML">
                         <Minimize size={16} /> Minify
@@ -80,6 +80,7 @@ export default function XmlTool() {
                             onChange={setCode}
                             language="markup"
                             placeholder="<root>...</root>"
+                            onRun={handleFormat}
                         />
                     </div>
                 </div>
