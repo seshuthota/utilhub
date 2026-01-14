@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import xmlFormat from 'xml-formatter';
-import { FileCode, Copy, Trash2, Zap, Minimize } from 'lucide-react';
+
+import { FileCode, Copy, Trash2, Zap, Minimize, Braces } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
