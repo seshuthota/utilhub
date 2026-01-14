@@ -4,14 +4,30 @@ import { useState } from 'react';
 import { Braces, Copy, Trash2, Maximize, Minimize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
+import AiAssistButton from '@/components/common/AiAssistButton';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
 export default function JsonTool() {
     const [code, setCode] = useUrlState('code', '{"name":"UtilHub","type":"Project","active":true}');
+    const [aiPrompt, setAiPrompt] = useState('');
     const [error, setError] = useState(null);
     const { showToast } = useToast();
+
+    const handleAiResult = (response) => {
+        // AI should return valid JSON
+        const cleaned = response.trim().replace(/^```json\n?|```javascript\n?|```\n?|```$/g, '');
+        try {
+            // Validate it's actual JSON
+            const parsed = JSON.parse(cleaned);
+            setCode(JSON.stringify(parsed, null, 2));
+            setError(null);
+        } catch (e) {
+            // If not JSON, just set the text (maybe AI returned an explanation)
+            setCode(cleaned);
+        }
+    };
 
     const formatJson = () => {
         try {
@@ -67,6 +83,39 @@ export default function JsonTool() {
                     </button>
                 </div>
             </header>
+
+            {/* AI Assist Section */}
+            <div style={{
+                marginBottom: '1.5rem',
+                padding: '1rem',
+                background: 'rgba(147, 51, 234, 0.1)',
+                borderRadius: '8px',
+                border: '1px solid rgba(147, 51, 234, 0.2)'
+            }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="e.g., 'fix this broken JSON', 'convert this list to JSON', 'generate 5 user objects'"
+                        style={{
+                            flex: 1,
+                            padding: '0.6rem 1rem',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                    <AiAssistButton
+                        prompt={`Perform the following task on JSON/data: "${aiPrompt}". ${code ? `Current input: ${code}` : ''}. Return ONLY the valid JSON result.`}
+                        systemPrompt="You are a JSON assistant. Return ONLY the valid JSON data. No text before or after. If repairing JSON, fix syntax errors like missing commas or quotes."
+                        onResult={handleAiResult}
+                        disabled={!aiPrompt.trim()}
+                    />
+                </div>
+            </div>
 
             {error && <div className={styles.errorAlert}>Error: {error}</div>}
 

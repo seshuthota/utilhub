@@ -4,10 +4,12 @@ import { useState, useMemo } from 'react';
 import cronstrue from 'cronstrue';
 import cronParser from 'cron-parser';
 import { Clock, Calendar, AlertTriangle } from 'lucide-react';
+import AiAssistButton from '@/components/common/AiAssistButton';
 import styles from './page.module.css';
 
 export default function CronTool() {
     const [expression, setExpression] = useState('*/5 * * * *');
+    const [aiPrompt, setAiPrompt] = useState('');
 
     const result = useMemo(() => {
         try {
@@ -27,6 +29,18 @@ export default function CronTool() {
         }
     }, [expression]);
 
+    const handleAiResult = (response) => {
+        // AI should return JUST the cron expression
+        const cleaned = response.trim().replace(/^`+|`+$/g, '');
+        // Validate before setting
+        try {
+            cronParser.parse(cleaned);
+            setExpression(cleaned);
+        } catch (e) {
+            console.error('AI returned invalid cron:', cleaned);
+        }
+    };
+
     const presets = [
         { label: 'Every minute', value: '* * * * *' },
         { label: 'Every 5 minutes', value: '*/5 * * * *' },
@@ -41,6 +55,39 @@ export default function CronTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Cron Expression Parser</h1>
             </header>
+
+            {/* AI Assist Section */}
+            <div className={styles.aiSection} style={{
+                marginBottom: '1.5rem',
+                padding: '1rem',
+                background: 'rgba(147, 51, 234, 0.1)',
+                borderRadius: '8px',
+                border: '1px solid rgba(147, 51, 234, 0.2)'
+            }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="Describe when to run (e.g., 'every Monday at 3 PM', 'first day of month')"
+                        style={{
+                            flex: 1,
+                            padding: '0.6rem 1rem',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                    <AiAssistButton
+                        prompt={`Generate a standard crontab expression for: "${aiPrompt}". Return ONLY the expression (5 fields). Example for "daily at 3am": "0 3 * * *"`}
+                        systemPrompt="You are a cron expression generator. Return ONLY the 5-field cron expression. No text before or after."
+                        onResult={handleAiResult}
+                        disabled={!aiPrompt.trim()}
+                    />
+                </div>
+            </div>
 
             <div className={styles.grid}>
                 <div className={styles.inputPanel}>

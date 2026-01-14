@@ -5,6 +5,7 @@ import mermaid from 'mermaid';
 import { GitGraph, Download, Trash2, Maximize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
+import AiAssistButton from '@/components/common/AiAssistButton';
 import { useUrlState } from '@/hooks/useUrlState';
 import styles from '../markdown/page.module.css';
 
@@ -23,8 +24,15 @@ const defaultChart = `graph TD
 
 export default function MermaidTool() {
     const [code, setCode] = useUrlState('code', defaultChart);
+    const [aiPrompt, setAiPrompt] = useState('');
     const [svg, setSvg] = useState('');
     const [error, setError] = useState(null);
+
+    const handleAiResult = (response) => {
+        // Clean markdown code blocks if AI included them
+        const cleaned = response.trim().replace(/^```mermaid\n?|```\n?|```$/g, '');
+        setCode(cleaned);
+    };
 
     useEffect(() => {
         const renderChart = async () => {
@@ -66,6 +74,39 @@ export default function MermaidTool() {
                     </button>
                 </div>
             </header>
+
+            {/* AI Assist Section */}
+            <div style={{
+                marginBottom: '1.5rem',
+                padding: '1rem',
+                background: 'rgba(147, 51, 234, 0.1)',
+                borderRadius: '8px',
+                border: '1px solid rgba(147, 51, 234, 0.2)'
+            }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="e.g., 'a sequence diagram for user login', 'a flowchart for order processing'"
+                        style={{
+                            flex: 1,
+                            padding: '0.6rem 1rem',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                    <AiAssistButton
+                        prompt={`Generate Mermaid chart syntax for: "${aiPrompt}". Return ONLY the mermaid code. Example for a graph: "graph TD; A-->B;"`}
+                        systemPrompt="You are a Mermaid chart expert. Return ONLY the valid Mermaid diagram syntax. No text before or after. Support flowchart, sequence, class, state, entity relationship, and gantt diagrams."
+                        onResult={handleAiResult}
+                        disabled={!aiPrompt.trim()}
+                    />
+                </div>
+            </div>
 
             {error && <div className={styles.errorAlert}>{error}</div>}
 

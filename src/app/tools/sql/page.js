@@ -3,6 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { Database, Zap, Trash2, Copy, Play, Table, History, RotateCcw } from 'lucide-react';
+
+
 import { format } from 'sql-formatter';
 import alasql from 'alasql';
 import CodeEditor from '@/components/common/CodeEditor';

@@ -6,6 +6,7 @@ import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-json';
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import AiAssistButton from '@/components/common/AiAssistButton';
 import styles from './page.module.css';
 
 const ajv = new Ajv({ allErrors: true });
@@ -27,6 +28,17 @@ const defaultData = `{
 export default function JsonSchemaTool() {
     const [schema, setSchema] = useState(defaultSchema);
     const [data, setData] = useState(defaultData);
+    const [aiPrompt, setAiPrompt] = useState('');
+
+    const handleAiResult = (response) => {
+        const cleaned = response.trim().replace(/^```json\n?|```javascript\n?|```\n?|```$/g, '');
+        try {
+            const parsed = JSON.parse(cleaned);
+            setSchema(JSON.stringify(parsed, null, 2));
+        } catch (e) {
+            setSchema(cleaned);
+        }
+    };
 
     const result = useMemo(() => {
         try {
@@ -64,6 +76,39 @@ export default function JsonSchemaTool() {
                     )}
                 </div>
             </header>
+
+            {/* AI Assist Section */}
+            <div style={{
+                marginBottom: '1.5rem',
+                padding: '1rem',
+                background: 'rgba(147, 51, 234, 0.1)',
+                borderRadius: '8px',
+                border: '1px solid rgba(147, 51, 234, 0.2)'
+            }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        placeholder="e.g., 'generate schema from this data', 'add a required email field', 'make age optional'"
+                        style={{
+                            flex: 1,
+                            padding: '0.6rem 1rem',
+                            background: 'rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '6px',
+                            color: 'var(--foreground)',
+                            fontSize: '0.9rem'
+                        }}
+                    />
+                    <AiAssistButton
+                        prompt={`Perform the following task on JSON Schema: "${aiPrompt}". ${data ? `Data to infer from: ${data}` : ''}. ${schema ? `Current schema: ${schema}` : ''}. Return ONLY the valid JSON Schema result.`}
+                        systemPrompt="You are a JSON Schema expert. Return ONLY the valid JSON Schema object. No text before or after."
+                        onResult={handleAiResult}
+                        disabled={!aiPrompt.trim()}
+                    />
+                </div>
+            </div>
 
             <div className={styles.grid}>
                 <div className={styles.pane}>

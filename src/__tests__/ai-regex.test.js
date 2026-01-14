@@ -22,6 +22,7 @@ function testRegex(name, pattern, flags, shouldMatch, shouldNotMatch) {
 
     // Test strings that SHOULD match
     for (const str of shouldMatch) {
+        regex.lastIndex = 0; // Reset for 'g' flag
         const matches = regex.test(str);
         if (matches) {
             results.push(`   ✅ Matched: "${str}"`);
@@ -33,6 +34,7 @@ function testRegex(name, pattern, flags, shouldMatch, shouldNotMatch) {
 
     // Test strings that should NOT match
     for (const str of shouldNotMatch) {
+        regex.lastIndex = 0; // Reset for 'g' flag
         const matches = regex.test(str);
         if (!matches) {
             results.push(`   ✅ Correctly rejected: "${str}"`);
@@ -56,11 +58,8 @@ const ipv6Tests = () => {
     console.log('IPv6 ADDRESS REGEX TESTS');
     console.log('='.repeat(50));
 
-    // AI-generated pattern (the one from the user)
-    const aiGeneratedIPv6 = `^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$|^::1$|^(([a-fA-F0-9]{1,4}:){1,6}:)?([a-fA-F0-9]{1,4}|:)$|^(([a-fA-F0-9]{1,4}:){1,6})(:[a-fA-F0-9]{1,4}){0,2}$|^(([a-fA-F0-9]{1,4}:){1,3})(:[a-fA-F0-9]{1,4}){0,3}$|^(([a-fA-F0-9]{1,4}:){1,4})(:[a-fA-F0-9]{1,4}){0,2}$|^(([a-fA-F0-9]{1,4}:){1,5})(:[a-fA-F0-9]{1,4}){0,1}$|^(([a-fA-F0-9]{1,4}:){1,6})(:[a-fA-F0-9]{1,4}){0,1}$|^`;
-
-    // A simpler, more reliable IPv6 pattern
-    const betterIPv6 = `^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^::1$|^([0-9a-fA-F]{1,4}:){1,7}:$|^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$|^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$|^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$|^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$|^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$|^[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}$|^:(:[0-9a-fA-F]{1,4}){1,7}$`;
+    // The improved, reliable IPv6 pattern
+    const betterIPv6 = `^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$`;
 
     const validIPv6 = [
         '2001:0db8:85a3:0000:0000:8a2e:0370:7334', // Full form
@@ -69,7 +68,7 @@ const ipv6Tests = () => {
         '::',                                        // All zeros
         'fe80::1',                                   // Link-local
         '2001:db8::1',                               // Short compressed
-        '::ffff:192.0.2.1',                          // IPv4-mapped (edge case)
+        '::ffff:192.0.2.1',                          // IPv4-mapped
         'fe80::',                                    // Ends with ::
     ];
 
@@ -84,25 +83,16 @@ const ipv6Tests = () => {
         '2001:db8:::1',                  // Triple colon in middle
     ];
 
-    console.log('\n--- Testing AI-Generated Pattern ---');
-    const aiResult = testRegex(
-        'AI-Generated IPv6',
-        aiGeneratedIPv6,
-        'm',
-        validIPv6.slice(0, 4), // Test subset
-        invalidIPv6.slice(0, 3)
-    );
-
-    console.log('\n--- Testing Improved Pattern ---');
-    const betterResult = testRegex(
-        'Improved IPv6',
+    console.log('\n--- Testing Robust IPv6 Pattern ---');
+    const result = testRegex(
+        'Robust IPv6',
         betterIPv6,
         'm',
-        validIPv6.slice(0, 5),
-        invalidIPv6.slice(0, 4)
+        validIPv6,
+        invalidIPv6
     );
 
-    return [aiResult, betterResult];
+    return [result];
 };
 
 // =====================
@@ -113,13 +103,14 @@ const emailTests = () => {
     console.log('EMAIL ADDRESS REGEX TESTS');
     console.log('='.repeat(50));
 
-    const emailPattern = `[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}`;
+    // Standard robust email pattern
+    const emailPattern = `^[a-zA-Z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`;
 
     const validEmails = [
         'test@example.com',
         'user.name@domain.org',
         'user+tag@example.co.uk',
-        'first.last@subdomain.example.com',
+        'a@b.cd',
     ];
 
     const invalidEmails = [
@@ -127,6 +118,8 @@ const emailTests = () => {
         '@missing-local.com',
         'missing-at-sign.com',
         'spaces in@email.com',
+        'double@@at.com',
+        'email@with-dash-.com',
     ];
 
     return testRegex('Email Addresses', emailPattern, 'gi', validEmails, invalidEmails);
@@ -140,7 +133,7 @@ const phoneTests = () => {
     console.log('PHONE NUMBER REGEX TESTS');
     console.log('='.repeat(50));
 
-    const phonePattern = `\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}`;
+    const phonePattern = `^\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}$`;
 
     const validPhones = [
         '(123) 456-7890',
@@ -155,20 +148,22 @@ const phoneTests = () => {
         '12345678901234',     // Too many digits
         'abc-def-ghij',       // Letters
         '12-34-5678',         // Wrong digit groups
+        '123 456 789',        // Missing last digit
     ];
 
     return testRegex('Phone Numbers (US)', phonePattern, 'gi', validPhones, invalidPhones);
 };
 
 // =====================
-// IP ADDRESS (v4) TESTS
+// IPv4 ADDRESS (v4) TESTS
 // =====================
 const ipv4Tests = () => {
     console.log('\n' + '='.repeat(50));
     console.log('IPv4 ADDRESS REGEX TESTS');
     console.log('='.repeat(50));
 
-    const ipv4Pattern = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}`;
+    // Disallows leading zeros in multi-digit numbers
+    const ipv4Pattern = `^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$`;
 
     const validIPv4 = [
         '192.168.1.1',
@@ -183,6 +178,7 @@ const ipv4Tests = () => {
         '192.168.1',          // Missing octet
         '192.168.1.1.1',      // Too many octets
         'abc.def.ghi.jkl',    // Letters
+        '192.168.01.1',       // Leading zero (rejected by this regex)
     ];
 
     return testRegex('IPv4 Addresses', ipv4Pattern, 'g', validIPv4, invalidIPv4);
@@ -196,19 +192,23 @@ const urlTests = () => {
     console.log('URL REGEX TESTS');
     console.log('='.repeat(50));
 
-    const urlPattern = `https?:\\/\\/[\\w.-]+(?:\\.[\\w.-]+)+[\\w\\-._~:/?#[\\]@!$&'()*+,;=%]*`;
+    const urlPattern = `^https?:\\/\\/[\\w.-]+(?:\\.[\\w.-]*)*(?::\\d+)?(?:[\\/\\?#][\\w\\-._~:/?#[\\]@!$&'()*+,;=%]*)?$`;
 
     const validUrls = [
         'https://example.com',
         'http://www.example.org/path',
         'https://sub.domain.com/path?query=1',
         'http://localhost:3000',
+        'https://example.com:8080/path/to/resource#fragment',
+        'http://internal-server',
     ];
 
     const invalidUrls = [
         'not-a-url',
         'ftp://example.com',   // Wrong protocol
         'example.com',         // Missing protocol
+        'http://',             // Empty host
+        'https:// spaces.com', // Space in host
     ];
 
     return testRegex('URLs (HTTP/HTTPS)', urlPattern, 'gi', validUrls, invalidUrls);
