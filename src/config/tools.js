@@ -1,7 +1,8 @@
 import {
     FileText, Braces, GitGraph, FileDiff, Database, FileCode,
     ImageIcon, RefreshCcw, Clock, Shield, ShieldCheck, Type,
-    LinkIcon, Search, QrCode
+
+    LinkIcon, Search, QrCode, Palette
 } from 'lucide-react';
 
 export const tools = [
@@ -117,6 +118,14 @@ export const tools = [
         icon: Search,
         href: '/tools/regex'
     },
+
+    {
+        id: 'color',
+        title: 'Color Converter',
+        description: 'Convert Hex, RGB, HSL, and CMYK colors.',
+        icon: Palette,
+        href: '/tools/color'
+    },
     {
         id: 'jwt',
         title: 'JWT Decoder',
@@ -144,13 +153,6 @@ export const tools = [
         description: 'Convert bytes, CSS units, and time.',
         icon: RefreshCcw,
         href: '/tools/units'
-    },
-    {
-        id: 'color',
-        title: 'Color Picker',
-        description: 'Pick colors and convert between HEX, RGB, HSL.',
-        icon: Braces,
-        href: '/tools/color'
     },
     {
         id: 'beautify',

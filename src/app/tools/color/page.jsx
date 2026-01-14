@@ -1,114 +1,226 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Copy, Palette } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Copy, RefreshCw, Palette, Pipette } from 'lucide-react';
+import { useToast } from '@/components/Toast';
+import {
+    hexToRgb, rgbToHex, rgbToHsl, hslToRgb, rgbToCmyk, cmykToRgb,
+    getContrastColor, getRandomColor
+} from '@/utils/color';
 import styles from './page.module.css';
 
-export default function ColorTool() {
-    const [color, setColor] = useState('#3498db');
+export default function ColorConverter() {
+    const [hex, setHex] = useState('#6366f1');
+    const [rgb, setRgb] = useState({ r: 99, g: 102, b: 241 });
+    const [hsl, setHsl] = useState({ h: 239, s: 84, l: 67 });
+    const [cmyk, setCmyk] = useState({ c: 59, m: 58, y: 0, k: 5 });
 
-    const parsed = useMemo(() => {
-        // Parse hex to RGB
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16) || 0;
-        const g = parseInt(hex.substring(2, 4), 16) || 0;
-        const b = parseInt(hex.substring(4, 6), 16) || 0;
+    // Track source of change to prevent loops
+    const [lastSource, setLastSource] = useState('init');
 
-        // RGB to HSL
-        const rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
-        const max = Math.max(rNorm, gNorm, bNorm), min = Math.min(rNorm, gNorm, bNorm);
-        let h = 0, s = 0, l = (max + min) / 2;
+    const { showToast } = useToast();
 
-        if (max !== min) {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break;
-                case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break;
-                case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break;
-            }
+    // Generators
+    const generateRandom = () => {
+        const newHex = getRandomColor();
+        updateFromHex(newHex);
+        showToast('Random color generated!', 'success');
+    };
+
+    // Update handlers
+    const updateFromHex = (newHex) => {
+        setHex(newHex);
+        setLastSource('hex');
+
+        const newRgb = hexToRgb(newHex);
+        if (newRgb) {
+            setRgb(newRgb);
+            setHsl(rgbToHsl(newRgb.r, newRgb.g, newRgb.b));
+            setCmyk(rgbToCmyk(newRgb.r, newRgb.g, newRgb.b));
         }
+    };
 
-        return {
-            hex: color.toUpperCase(),
-            rgb: `rgb(${r}, ${g}, ${b})`,
-            hsl: `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`,
-            r, g, b,
-            h: Math.round(h * 360),
-            s: Math.round(s * 100),
-            l: Math.round(l * 100),
-        };
-    }, [color]);
+    const updateFromRgb = (field, value) => {
+        const newRgb = { ...rgb, [field]: Number(value) };
+        setRgb(newRgb);
+        setLastSource('rgb');
+
+        setHex(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
+        setHsl(rgbToHsl(newRgb.r, newRgb.g, newRgb.b));
+        setCmyk(rgbToCmyk(newRgb.r, newRgb.g, newRgb.b));
+    };
+
+    const updateFromHsl = (field, value) => {
+        const newHsl = { ...hsl, [field]: Number(value) };
+        setHsl(newHsl);
+        setLastSource('hsl');
+
+        const newRgb = hslToRgb(newHsl.h, newHsl.s, newHsl.l);
+        setRgb(newRgb);
+        setHex(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
+        setCmyk(rgbToCmyk(newRgb.r, newRgb.g, newRgb.b));
+    };
+
+    const updateFromCmyk = (field, value) => {
+        const newCmyk = { ...cmyk, [field]: Number(value) };
+        setCmyk(newCmyk);
+        setLastSource('cmyk');
+
+        const newRgb = cmykToRgb(newCmyk.c, newCmyk.m, newCmyk.y, newCmyk.k);
+        setRgb(newRgb);
+        setHex(rgbToHex(newRgb.r, newRgb.g, newRgb.b));
+        setHsl(rgbToHsl(newRgb.r, newRgb.g, newRgb.b));
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        showToast(`Copied: ${text}`, 'success');
+    };
+
+    const contrastColor = getContrastColor(hex);
 
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Color Picker</h1>
+                <h1 className={styles.title}>
+                    <Palette size={24} /> Color Converter
+                </h1>
+                <div className={styles.actions}>
+                    <button className={styles.button} onClick={generateRandom}>
+                        <RefreshCw size={16} /> Randomize
+                    </button>
+                </div>
             </header>
 
             <div className={styles.grid}>
-                <div className={styles.pickerPanel}>
-                    <div
-                        className={styles.preview}
-                        style={{ backgroundColor: color }}
-                    />
-                    <input
-                        type="color"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        className={styles.colorInput}
-                    />
-                    <input
-                        type="text"
-                        value={color}
-                        onChange={(e) => setColor(e.target.value)}
-                        className={styles.hexInput}
-                        placeholder="#000000"
-                    />
+                {/* Inputs Column */}
+                <div className={styles.inputColumn}>
+
+                    {/* HEX */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span>HEX</span>
+                            <button className={styles.copyButton} onClick={() => copyToClipboard(hex)}>
+                                <Copy size={14} />
+                            </button>
+                        </div>
+                        <div className={styles.hexInputWrapper}>
+                            <span className={styles.hash}>#</span>
+                            <input
+                                className={styles.input}
+                                value={hex.replace('#', '')}
+                                onChange={(e) => updateFromHex('#' + e.target.value)}
+                                maxLength={6}
+                            />
+                        </div>
+                    </div>
+
+                    {/* RGB */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span>RGB</span>
+                            <button className={styles.copyButton} onClick={() => copyToClipboard(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`)}>
+                                <Copy size={14} />
+                            </button>
+                        </div>
+                        <div className={styles.rgbGrid}>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>R</label>
+                                <input type="number" className={styles.input} value={rgb.r} onChange={(e) => updateFromRgb('r', e.target.value)} min={0} max={255} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>G</label>
+                                <input type="number" className={styles.input} value={rgb.g} onChange={(e) => updateFromRgb('g', e.target.value)} min={0} max={255} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>B</label>
+                                <input type="number" className={styles.input} value={rgb.b} onChange={(e) => updateFromRgb('b', e.target.value)} min={0} max={255} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* HSL */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span>HSL</span>
+                            <button className={styles.copyButton} onClick={() => copyToClipboard(`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`)}>
+                                <Copy size={14} />
+                            </button>
+                        </div>
+                        <div className={styles.hslGrid}>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>H</label>
+                                <input type="number" className={styles.input} value={hsl.h} onChange={(e) => updateFromHsl('h', e.target.value)} min={0} max={360} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>S%</label>
+                                <input type="number" className={styles.input} value={hsl.s} onChange={(e) => updateFromHsl('s', e.target.value)} min={0} max={100} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>L%</label>
+                                <input type="number" className={styles.input} value={hsl.l} onChange={(e) => updateFromHsl('l', e.target.value)} min={0} max={100} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CMYK */}
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <span>CMYK</span>
+                            <button className={styles.copyButton} onClick={() => copyToClipboard(`cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`)}>
+                                <Copy size={14} />
+                            </button>
+                        </div>
+                        <div className={styles.cmykGrid}>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>C%</label>
+                                <input type="number" className={styles.input} value={cmyk.c} onChange={(e) => updateFromCmyk('c', e.target.value)} min={0} max={100} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>M%</label>
+                                <input type="number" className={styles.input} value={cmyk.m} onChange={(e) => updateFromCmyk('m', e.target.value)} min={0} max={100} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>Y%</label>
+                                <input type="number" className={styles.input} value={cmyk.y} onChange={(e) => updateFromCmyk('y', e.target.value)} min={0} max={100} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>K%</label>
+                                <input type="number" className={styles.input} value={cmyk.k} onChange={(e) => updateFromCmyk('k', e.target.value)} min={0} max={100} />
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div className={styles.infoPanel}>
-                    <FormatRow label="HEX" value={parsed.hex} />
-                    <FormatRow label="RGB" value={parsed.rgb} />
-                    <FormatRow label="HSL" value={parsed.hsl} />
+                {/* Preview Column */}
+                <div className={styles.previewColumn}>
+                    <div className={styles.previewBox} style={{ backgroundColor: hex, color: contrastColor }}>
+                        <span className={styles.contrastText}>Aa</span>
+                        <div className={styles.contrastBadge}>
+                            Contrast Safe
+                        </div>
+                    </div>
 
-                    <div className={styles.sliders}>
-                        <SliderRow label="R" value={parsed.r} max={255} color="#ff0000" />
-                        <SliderRow label="G" value={parsed.g} max={255} color="#00ff00" />
-                        <SliderRow label="B" value={parsed.b} max={255} color="#0000ff" />
+                    <div className={styles.card}>
+                        <div className={styles.cardTitle}>
+                            <Pipette size={16} /> Color Picker
+                        </div>
+                        <div className={styles.pickerWrapper} style={{ backgroundColor: hex }}>
+                            <input
+                                type="color"
+                                className={styles.colorPicker}
+                                value={hex}
+                                onChange={(e) => updateFromHex(e.target.value)}
+                            />
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', textAlign: 'center' }}>
+                            Click the box to open system picker
+                        </p>
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function FormatRow({ label, value }) {
-    return (
-        <div className={styles.formatRow}>
-            <span className={styles.label}>{label}</span>
-            <span className={styles.value}>{value}</span>
-            <button
-                className={styles.copyBtn}
-                onClick={() => navigator.clipboard.writeText(value)}
-            >
-                <Copy size={14} />
-            </button>
-        </div>
-    );
-}
-
-function SliderRow({ label, value, max, color }) {
-    return (
-        <div className={styles.sliderRow}>
-            <span className={styles.sliderLabel}>{label}</span>
-            <div className={styles.sliderTrack}>
-                <div
-                    className={styles.sliderFill}
-                    style={{ width: `${(value / max) * 100}%`, backgroundColor: color }}
-                />
-            </div>
-            <span className={styles.sliderValue}>{value}</span>
         </div>
     );
 }
