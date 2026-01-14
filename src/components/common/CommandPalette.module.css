@@ -155,16 +155,6 @@
     font-size: 0.7rem;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
 @keyframes slideDown {
     from {
         transform: translateY(-20px);

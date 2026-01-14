@@ -26,25 +26,54 @@
     font-size: 0.9rem;
 }
 
+.aiSection {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(147, 51, 234, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(147, 51, 234, 0.2);
+}
+
+.aiInputRow {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.aiInput {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.aiInput:focus {
+    outline: none;
+    border-color: rgba(147, 51, 234, 0.5);
+}
+
 .valid {
-    color: #00C851;
-    background: #00C85120;
+    color: var(--success-color);
+    background: var(--success-bg);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .invalid {
-    color: #ff4444;
-    background: #ff444420;
+    color: var(--error-color);
+    background: var(--error-bg);
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
 .parseError {
-    color: #ffbb33;
-    background: #ffbb3320;
+    color: var(--warning-color);
+    background: var(--warning-bg);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -88,8 +117,8 @@
 }
 
 .errorPanel {
-    background: #ff444410;
-    border: 1px solid #ff4444;
+    background: var(--error-bg);
+    border: 1px solid var(--error-color);
     border-radius: 8px;
     padding: 1rem;
     max-height: 150px;
@@ -98,7 +127,7 @@
 
 .errorPanel h3 {
     font-size: 0.9rem;
-    color: #ff4444;
+    color: var(--error-color);
     margin-bottom: 0.5rem;
 }
 

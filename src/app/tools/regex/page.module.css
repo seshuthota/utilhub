@@ -105,7 +105,7 @@
 }
 
 .badge {
-    background: var(--primary);
+    background: var(--accent-primary);
     color: white;
     padding: 2px 6px;
     border-radius: 10px;
@@ -203,14 +203,14 @@
 }
 
 .highlight {
-    background-color: rgba(255, 255, 0, 0.3);
+    background-color: var(--highlight-color);
     border-radius: 2px;
     box-shadow: 0 0 0 1px rgba(255, 255, 0, 0.5);
 }
 
 [data-theme="dark"] .highlight {
-    background-color: rgba(255, 215, 0, 0.25);
-    color: #ffd700;
+    background-color: var(--highlight-color);
+    color: var(--favorite-color);
 }
 
 .card {
@@ -307,8 +307,8 @@
 }
 
 .error {
-    color: #ff4444;
-    background: rgba(255, 68, 68, 0.1);
+    color: var(--error-color);
+    background: var(--error-bg);
     padding: 0.75rem;
     border-radius: 6px;
     display: flex;
@@ -318,8 +318,8 @@
 }
 
 .warning {
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    background: var(--warning-bg);
     padding: 0.75rem;
     border-radius: 6px;
     display: flex;

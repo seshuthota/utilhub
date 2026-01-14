@@ -71,6 +71,7 @@ export default function CommandPalette({ isOpen, onClose }) {
                         type="text"
                         className={styles.input}
                         placeholder="Search tools..."
+                        aria-label="Search tools"
                         value={query}
                         onChange={(e) => {
                             setQuery(e.target.value);

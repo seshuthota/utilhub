@@ -12,6 +12,16 @@
   /* Modern Blue */
   --accent-glow: rgba(59, 130, 246, 0.5);
 
+  /* Semantic Colors */
+  --success-color: #00C851;
+  --success-bg: rgba(0, 200, 81, 0.1);
+  --error-color: #ff4444;
+  --error-bg: rgba(255, 68, 68, 0.1);
+  --warning-color: #ffbb33;
+  --warning-bg: rgba(255, 187, 51, 0.1);
+  --highlight-color: rgba(255, 215, 0, 0.25);
+  --favorite-color: #ffd700;
+
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 
@@ -91,6 +101,16 @@
 
   --accent-primary: #2563eb;
   --accent-glow: rgba(37, 99, 235, 0.3);
+
+  /* Semantic Colors */
+  --success-color: #059669;
+  --success-bg: rgba(5, 150, 105, 0.1);
+  --error-color: #dc2626;
+  --error-bg: rgba(220, 38, 38, 0.1);
+  --warning-color: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.1);
+  --highlight-color: rgba(234, 179, 8, 0.3);
+  --favorite-color: #eab308;
 }
 
 /* Matrix Theme */
@@ -105,6 +125,16 @@
 
   --accent-primary: #00ff41;
   --accent-glow: rgba(0, 255, 65, 0.3);
+
+  /* Semantic Colors */
+  --success-color: #00ff41;
+  --success-bg: rgba(0, 255, 65, 0.15);
+  --error-color: #ff0000;
+  --error-bg: rgba(255, 0, 0, 0.15);
+  --warning-color: #ffff00;
+  --warning-bg: rgba(255, 255, 0, 0.15);
+  --highlight-color: rgba(0, 255, 65, 0.3);
+  --favorite-color: #00ff41;
 
   --font-sans: 'Courier New', monospace;
   --font-mono: 'Courier New', monospace;
@@ -123,6 +153,16 @@
   --accent-primary: #fcee0a;
   --accent-glow: rgba(252, 238, 10, 0.5);
 
+  /* Semantic Colors */
+  --success-color: #00f3ff;
+  --success-bg: rgba(0, 243, 255, 0.15);
+  --error-color: #ff0055;
+  --error-bg: rgba(255, 0, 85, 0.15);
+  --warning-color: #fcee0a;
+  --warning-bg: rgba(252, 238, 10, 0.15);
+  --highlight-color: rgba(255, 0, 204, 0.3);
+  --favorite-color: #fcee0a;
+
   --font-sans: 'Orbitron', system-ui, sans-serif;
 }
 
@@ -138,12 +178,25 @@
 
   --accent-primary: #ff79c6;
   --accent-glow: rgba(255, 121, 198, 0.3);
+
+  /* Semantic Colors */
+  --success-color: #50fa7b;
+  --success-bg: rgba(80, 250, 123, 0.15);
+  --error-color: #ff5555;
+  --error-bg: rgba(255, 85, 85, 0.15);
+  --warning-color: #f1fa8c;
+  --warning-bg: rgba(241, 250, 140, 0.15);
+  --highlight-color: rgba(189, 147, 249, 0.3);
+  --favorite-color: #f1fa8c;
 }
 
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  /* Firefox scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-primary);
 }
 
 html,

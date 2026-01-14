@@ -19,12 +19,12 @@
 }
 
 .success {
-    background: #00C851;
+    background: var(--success-color);
     color: #000;
 }
 
 .error {
-    background: #ff4444;
+    background: var(--error-color);
     color: #fff;
 }
 

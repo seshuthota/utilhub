@@ -77,13 +77,12 @@
 }
 
 .favoriteBtn:hover {
-    color: #fbbf24;
-    /* Amber-400 */
+    color: var(--favorite-color);
     transform: scale(1.2);
 }
 
 .favoriteBtn.active {
-    color: #fbbf24;
+    color: var(--favorite-color);
 }
 
 /* Optional: Add a subtle gradient overlay on hover */

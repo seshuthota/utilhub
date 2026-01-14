@@ -78,28 +78,14 @@ export default function JsonSchemaTool() {
             </header>
 
             {/* AI Assist Section */}
-            <div style={{
-                marginBottom: '1.5rem',
-                padding: '1rem',
-                background: 'rgba(147, 51, 234, 0.1)',
-                borderRadius: '8px',
-                border: '1px solid rgba(147, 51, 234, 0.2)'
-            }}>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className={styles.aiSection}>
+                <div className={styles.aiInputRow}>
                     <input
                         type="text"
                         value={aiPrompt}
                         onChange={(e) => setAiPrompt(e.target.value)}
                         placeholder="e.g., 'generate schema from this data', 'add a required email field', 'make age optional'"
-                        style={{
-                            flex: 1,
-                            padding: '0.6rem 1rem',
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '6px',
-                            color: 'var(--foreground)',
-                            fontSize: '0.9rem'
-                        }}
+                        className={styles.aiInput}
                     />
                     <AiAssistButton
                         prompt={`Perform the following task on JSON Schema: "${aiPrompt}". ${data ? `Data to infer from: ${data}` : ''}. ${schema ? `Current schema: ${schema}` : ''}. Return ONLY the valid JSON Schema result.`}
