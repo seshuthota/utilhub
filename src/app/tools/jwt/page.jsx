@@ -1,82 +1,137 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { jwtDecode } from 'jwt-decode';
-import { Key, AlertTriangle, Copy, Clock } from 'lucide-react';
+import { Key, Copy, Clock, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { useUrlState } from '@/hooks/useUrlState';
+import { useHotkeys } from '@/hooks/useHotkeys';
+import { useToast } from '@/components/Toast';
+import { decodeJwt, getExpirationStatus } from '@/utils/jwt';
+import ShareButton from '@/components/common/ShareButton';
 import styles from './page.module.css';
 
 export default function JwtTool() {
-    const [token, setToken] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
+    const [token, setToken] = useUrlState('token', '');
+    const { showToast } = useToast();
 
-    const decoded = useMemo(() => {
-        try {
-            if (!token.trim()) return { header: null, payload: null, error: null };
+    // Decode logic
+    const { header, payload, error } = useMemo(() => decodeJwt(token), [token]);
 
-            const parts = token.split('.');
-            if (parts.length !== 3) {
-                return { header: null, payload: null, error: 'Invalid JWT format (expected 3 parts)' };
-            }
+    // Status logic
+    const expiration = useMemo(() => {
+        if (!payload) return null;
+        return getExpirationStatus(payload.exp);
+    }, [payload]);
 
-            const header = JSON.parse(atob(parts[0]));
-            const payload = jwtDecode(token);
-
-            return { header, payload, error: null };
-        } catch (e) {
-            return { header: null, payload: null, error: e.message };
-        }
-    }, [token]);
-
-    const formatDate = (timestamp) => {
-        if (!timestamp) return 'N/A';
-        return new Date(timestamp * 1000).toLocaleString();
+    const copyToClipboard = (text, label) => {
+        if (!text) return;
+        navigator.clipboard.writeText(typeof text === 'object' ? JSON.stringify(text, null, 2) : text);
+        showToast(`${label} copied to clipboard`, 'success');
     };
+
+    // Keyboard Shortcuts
+    useHotkeys('c', () => copyToClipboard(payload, 'Payload'), { meta: true, shift: true });
 
     return (
         <div className={styles.container}>
             <header className={styles.header}>
                 <h1 className={styles.title}>JWT Decoder</h1>
+                <ShareButton />
             </header>
 
-            <div className={styles.inputSection}>
-                <label>Paste JWT Token</label>
-                <textarea
-                    className={styles.tokenInput}
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    placeholder="eyJhbGciOiJIUzI1NiI..."
-                />
+            <div className={styles.grid}>
+                {/* Input Column */}
+                <div className={styles.column}>
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardTitle}><Key size={16} /> Encoded Token</span>
+                            <button
+                                className={styles.copyBtn}
+                                onClick={() => copyToClipboard(token, 'Token')}
+                                title="Copy Token"
+                            >
+                                <Copy size={16} />
+                            </button>
+                        </div>
+                        <textarea
+                            value={token}
+                            onChange={(e) => setToken(e.target.value)}
+                            className={styles.inputArea}
+                            placeholder="Paste your JWT here (eyJ...)"
+                            spellCheck={false}
+                        />
+                    </div>
+
+                    {/* Status Bar */}
+                    {expiration && (
+                        <div className={`${styles.statusSection} ${styles[expiration.status]}`}>
+                            <div className={styles.statusCard}>
+                                <div className={styles.statusIcon}>
+                                    {expiration.isExpired ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+                                </div>
+                                <div className={styles.statusInfo}>
+                                    <span className={styles.statusLabel}>Status</span>
+                                    <span className={styles.statusValue}>
+                                        {expiration.isExpired ? 'Expired' : 'Valid Signature Format'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className={styles.statusCard}>
+                                <div className={styles.statusIcon}>
+                                    <Clock size={18} />
+                                </div>
+                                <div className={styles.statusInfo}>
+                                    <span className={styles.statusLabel}>Expiration</span>
+                                    <span className={styles.statusValue}>{expiration.text}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Output Column */}
+                <div className={styles.column}>
+                    {/* Header */}
+                    <div className={styles.card} style={{ flex: 1 }}>
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardTitle}>Header</span>
+                            <button
+                                className={styles.copyBtn}
+                                onClick={() => copyToClipboard(header, 'Header')}
+                                title="Copy Header"
+                            >
+                                <Copy size={16} />
+                            </button>
+                        </div>
+                        <pre className={styles.jsonContent}>
+                            {header ? JSON.stringify(header, null, 2) : <div className={styles.placeholder}>Waiting for token...</div>}
+                        </pre>
+                    </div>
+
+                    {/* Payload */}
+                    <div className={styles.card} style={{ flex: 2 }}>
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardTitle}>Payload</span>
+                            <button
+                                className={styles.copyBtn}
+                                onClick={() => copyToClipboard(payload, 'Payload')}
+                                title="Copy Payload (Cmd+Shift+C)"
+                            >
+                                <Copy size={16} />
+                            </button>
+                        </div>
+                        <pre className={styles.jsonContent}>
+                            {payload ? JSON.stringify(payload, null, 2) : <div className={styles.placeholder}>Waiting for token...</div>}
+                        </pre>
+                    </div>
+
+                    {error && (
+                        <div style={{ color: '#ef4444', padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px' }}>
+                            Error: {error}
+                        </div>
+                    )}
+                </div>
             </div>
-
-            {decoded.error && (
-                <div className={styles.error}>
-                    <AlertTriangle size={16} /> {decoded.error}
-                </div>
-            )}
-
-            {decoded.header && decoded.payload && (
-                <div className={styles.grid}>
-                    <div className={styles.card}>
-                        <h2 className={styles.cardTitle}>Header</h2>
-                        <pre className={styles.json}>{JSON.stringify(decoded.header, null, 2)}</pre>
-                    </div>
-
-                    <div className={styles.card}>
-                        <h2 className={styles.cardTitle}>Payload</h2>
-                        <pre className={styles.json}>{JSON.stringify(decoded.payload, null, 2)}</pre>
-
-                        {decoded.payload.exp && (
-                            <div className={styles.meta}>
-                                <Clock size={14} /> Expires: {formatDate(decoded.payload.exp)}
-                            </div>
-                        )}
-                        {decoded.payload.iat && (
-                            <div className={styles.meta}>
-                                <Clock size={14} /> Issued: {formatDate(decoded.payload.iat)}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
