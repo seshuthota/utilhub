@@ -3,7 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, CornerDownLeft, Command } from 'lucide-react';
+
+import { Search, CornerDownLeft, Command, Monitor } from 'lucide-react';
 
 import { tools } from '@/config/tools';
 import { useTheme } from './ThemeProvider';
