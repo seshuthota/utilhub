@@ -7,12 +7,16 @@ const MODEL = 'llama-3.3-70b-versatile';
 export async function POST(request) {
     const apiKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
 
+
     if (!apiKey) {
+        console.error('AI API Error: GROQ_API_KEY is missing or empty.');
         return NextResponse.json(
             { error: 'AI service not configured' },
             { status: 503 }
         );
     }
+
+    console.log(`AI API: Key length=${apiKey.length}, Prefix=${apiKey.substring(0, 4)}***`);
 
     try {
         const { prompt, systemPrompt } = await request.json();
