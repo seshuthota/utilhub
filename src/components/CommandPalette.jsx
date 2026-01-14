@@ -52,13 +52,10 @@ export default function CommandPalette() {
     const themeCommands = availableThemes ? availableThemes.map(t => ({
         id: `theme-${t.id}`,
         title: `Theme: ${t.name}`,
+
         description: `Switch to ${t.name} theme`,
         icon: Monitor,
-        action: () => {
-            setTheme(t.id);
-            setIsOpen(false);
-            // Optional: show toast
-        }
+        action: () => setTheme(t.id)
     })) : [];
 
     const allItems = [...tools, ...themeCommands];
@@ -74,12 +71,15 @@ export default function CommandPalette() {
         setSelectedIndex(0);
     }, [query]);
 
+
     const handleSelect = (item) => {
+        // Always close the palette first
+        setIsOpen(false);
+
         if (item.action) {
             item.action();
         } else if (item.href) {
             router.push(item.href);
-            setIsOpen(false);
         }
     };
 
