@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe } from 'lucide-react';
+
+import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
+
+const HISTORY_KEY = 'utilhub_api_history';
+const MAX_HISTORY = 20;
 
 export default function ApiTesterTool() {
     // Request State
@@ -22,6 +26,53 @@ export default function ApiTesterTool() {
     const [loading, setLoading] = useState(false);
     const [response, setResponse] = useState(null);
     const [error, setError] = useState(null);
+    const [history, setHistory] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
+
+    const { showToast } = useToast();
+
+    // Load history from localStorage
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(HISTORY_KEY);
+            if (saved) setHistory(JSON.parse(saved));
+        } catch (e) {
+            console.error('Failed to load history:', e);
+        }
+    }, []);
+
+    // Save request to history
+    const saveToHistory = (req) => {
+        const entry = {
+            id: Date.now(),
+            method: req.method,
+            url: req.url,
+            headers: req.headers,
+            body: req.body,
+            timestamp: new Date().toISOString()
+        };
+
+        const newHistory = [entry, ...history].slice(0, MAX_HISTORY);
+        setHistory(newHistory);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+    };
+
+    // Load request from history
+    const loadFromHistory = (entry) => {
+        setMethod(entry.method);
+        setUrl(entry.url);
+        setHeaders(Object.entries(entry.headers || {}).map(([key, value]) => ({ key, value, active: true })));
+        setBody(entry.body || '');
+        setShowHistory(false);
+        showToast('Request loaded from history', 'success');
+    };
+
+    // Clear history
+    const clearHistory = () => {
+        setHistory([]);
+        localStorage.removeItem(HISTORY_KEY);
+        showToast('History cleared', 'success');
+    };
 
 
     // Keyboard Shortcuts
@@ -132,7 +183,11 @@ export default function ApiTesterTool() {
                 throw new Error(data.error || 'Failed to send request');
             }
 
+
             setResponse(data);
+
+            // Save to history
+            saveToHistory({ method, url, headers: finalHeaders, body });
         } catch (e) {
             setError(e.message);
         } finally {
@@ -142,8 +197,15 @@ export default function ApiTesterTool() {
 
     return (
         <div className={styles.container}>
+
             <header className={styles.header}>
                 <h1 className={styles.title}>API Tester</h1>
+                <button
+                    className={`${styles.historyBtn} ${showHistory ? styles.active : ''}`}
+                    onClick={() => setShowHistory(!showHistory)}
+                >
+                    <History size={16} /> History {history.length > 0 && `(${history.length})`}
+                </button>
             </header>
 
             <div className={styles.requestBar}>
@@ -373,8 +435,44 @@ export default function ApiTesterTool() {
                             Send a request to see the response
                         </div>
                     )}
+
                 </div>
             </div>
+
+            {/* History Sidebar */}
+            {showHistory && (
+                <div className={styles.historyPanel}>
+                    <div className={styles.historyHeader}>
+                        <span>Request History</span>
+                        {history.length > 0 && (
+                            <button onClick={clearHistory} className={styles.clearBtn}>
+                                <Trash2 size={14} /> Clear
+                            </button>
+                        )}
+                    </div>
+                    <div className={styles.historyList}>
+                        {history.length === 0 ? (
+                            <div className={styles.placeholder}>No requests yet</div>
+                        ) : (
+                            history.map((entry) => (
+                                <button
+                                    key={entry.id}
+                                    className={styles.historyItem}
+                                    onClick={() => loadFromHistory(entry)}
+                                >
+                                    <span className={`${styles.methodBadge} ${styles[entry.method.toLowerCase()]}`}>
+                                        {entry.method}
+                                    </span>
+                                    <span className={styles.historyUrl}>{entry.url}</span>
+                                    <span className={styles.historyTime}>
+                                        {new Date(entry.timestamp).toLocaleTimeString()}
+                                    </span>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
