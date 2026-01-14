@@ -4,8 +4,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Flag, AlertTriangle, RefreshCw, Layers, BookOpen, ArrowRight, Copy } from 'lucide-react';
 import AiAssistButton from '@/components/common/AiAssistButton';
-import { useUrlState } from '@/hooks/useUrlState';
+
 import { parseAiResponse, explainRegex, CHEATSHEET } from '@/utils/regex';
+import { useUrlState } from '@/hooks/useUrlState';
+import { useHotkeys } from '@/hooks/useHotkeys';
 import styles from './page.module.css';
 import { useToast } from '@/components/Toast';
 
@@ -54,6 +56,7 @@ export default function RegexTool() {
         setPattern(prev => prev + code);
     };
 
+
     const highlightText = () => {
         if (result.error || !pattern) return text;
 
@@ -78,6 +81,16 @@ export default function RegexTool() {
 
         return parts.length > 0 ? parts : text;
     };
+
+    // Keyboard Shortcuts
+    useHotkeys('Enter', () => setMode(prev => prev === 'match' ? 'replace' : 'match'), { meta: true });
+    useHotkeys('c', () => {
+        const content = mode === 'match'
+            ? result.matches.map(m => m[0]).join('\n')
+            : result.replaced;
+        navigator.clipboard.writeText(content);
+        showToast('Result copied to clipboard', 'success');
+    }, { meta: true, shift: true });
 
     return (
         <div className={styles.container}>

@@ -1,8 +1,10 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe } from 'lucide-react';
+import { useUrlState } from '@/hooks/useUrlState';
+import { useHotkeys } from '@/hooks/useHotkeys';
+import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
 
 export default function ApiTesterTool() {
@@ -20,6 +22,10 @@ export default function ApiTesterTool() {
     const [loading, setLoading] = useState(false);
     const [response, setResponse] = useState(null);
     const [error, setError] = useState(null);
+
+
+    // Keyboard Shortcuts
+    useHotkeys('Enter', () => sendRequest(), { meta: true });
 
     // Sync URL params on load
     useEffect(() => {
@@ -99,6 +105,7 @@ export default function ApiTesterTool() {
             headers.forEach(h => {
                 if (h.active && h.key) finalHeaders[h.key] = h.value;
             });
+
 
             // Handle Auth
             if (auth.type === 'basic') {

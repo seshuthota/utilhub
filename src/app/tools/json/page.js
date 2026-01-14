@@ -5,7 +5,9 @@ import { Braces, Copy, Trash2, Maximize, Minimize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
 import AiAssistButton from '@/components/common/AiAssistButton';
+
 import { useUrlState } from '@/hooks/useUrlState';
+import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
@@ -58,10 +60,16 @@ export default function JsonTool() {
         setError(null);
     };
 
+
     const copyToClipboard = () => {
         navigator.clipboard.writeText(code);
         showToast('Copied to clipboard', 'success');
     };
+
+    // Keyboard Shortcuts
+    useHotkeys('Enter', formatJson, { meta: true });
+    useHotkeys('m', minifyJson, { meta: true, shift: true });
+    useHotkeys('c', copyToClipboard, { meta: true, shift: true });
 
     return (
         <div className={styles.container}>

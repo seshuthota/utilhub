@@ -10,7 +10,9 @@ import alasql from 'alasql';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
 import AiAssistButton from '@/components/common/AiAssistButton';
+
 import { useUrlState } from '@/hooks/useUrlState';
+import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
@@ -112,12 +114,18 @@ export default function SqlTool() {
         showToast('Copied to clipboard', 'success');
     };
 
+
     const resetDb = () => {
         initDb();
         showToast('Database reset to initial state', 'success');
         runQuery('SELECT * FROM users', false);
         setCode('SELECT * FROM users');
     };
+
+    // Keyboard Shortcuts
+    useHotkeys('Enter', () => runQuery(), { meta: true });
+    useHotkeys('f', formatSql, { meta: true, shift: true });
+    useHotkeys('c', copyToClipboard, { meta: true, shift: true });
 
     return (
         <div className={styles.container}>
