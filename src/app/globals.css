@@ -16,6 +16,7 @@
   --font-mono: var(--font-geist-mono), monospace;
 }
 
+
 /* Light Mode */
 [data-theme="light"] {
   --bg-primary: #f8fafc;
@@ -28,6 +29,53 @@
 
   --accent-primary: #2563eb;
   --accent-glow: rgba(37, 99, 235, 0.3);
+}
+
+/* Matrix Theme */
+[data-theme="matrix"] {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-hover: #111111;
+  --bg-card: rgba(0, 20, 0, 0.7);
+  --border-color: #003300;
+  --text-primary: #00ff41;
+  --text-secondary: #008f11;
+
+  --accent-primary: #00ff41;
+  --accent-glow: rgba(0, 255, 65, 0.3);
+
+  --font-sans: 'Courier New', monospace;
+  --font-mono: 'Courier New', monospace;
+}
+
+/* Cyberpunk Theme */
+[data-theme="cyberpunk"] {
+  --bg-primary: #020024;
+  --bg-secondary: #090979;
+  --bg-hover: #120046;
+  --bg-card: rgba(18, 0, 70, 0.7);
+  --border-color: #ff00cc;
+  --text-primary: #00f3ff;
+  --text-secondary: #ff00cc;
+
+  --accent-primary: #fcee0a;
+  --accent-glow: rgba(252, 238, 10, 0.5);
+
+  --font-sans: 'Orbitron', system-ui, sans-serif;
+}
+
+/* Dracula Theme */
+[data-theme="dracula"] {
+  --bg-primary: #282a36;
+  --bg-secondary: #44475a;
+  --bg-hover: #6272a4;
+  --bg-card: rgba(68, 71, 90, 0.8);
+  --border-color: #6272a4;
+  --text-primary: #f8f8f2;
+  --text-secondary: #bd93f9;
+
+  --accent-primary: #ff79c6;
+  --accent-glow: rgba(255, 121, 198, 0.3);
 }
 
 * {

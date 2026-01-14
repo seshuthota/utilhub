@@ -64,37 +64,65 @@
     color: var(--text-secondary);
 }
 
-/* Theme Toggle */
-.themeToggle {
-    display: flex;
-    background: var(--bg-secondary);
-    padding: 0.25rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
+
+/* Theme Grid */
+.themeGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    width: 60%;
 }
 
-.themeBtn {
+.themeOption {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: none;
     background: none;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+    border: none;
     cursor: pointer;
-    border-radius: 6px;
+    padding: 0.5rem;
+    border-radius: 8px;
     transition: all 0.2s;
 }
 
-.themeBtn:hover {
-    color: var(--text-primary);
+.themeOption:hover {
+    background: var(--bg-hover);
 }
 
-.themeBtn.active {
-    background: var(--bg-card);
-    color: var(--accent-primary);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.themeOption.activeTheme {
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.themePreview {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.checkIndicator {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.themeName {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.themeOption.activeTheme .themeName {
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 /* Danger Button */

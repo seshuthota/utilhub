@@ -8,8 +8,9 @@ import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
 import pkg from '../../../package.json';
 
+
 export default function Settings() {
-    const { theme, setTheme } = useTheme();
+    const { theme, setTheme, availableThemes } = useTheme();
     const { clearData } = useFavorites();
     const { showToast } = useToast();
     const [mounted, setMounted] = useState(false);
@@ -43,31 +44,21 @@ export default function Settings() {
                             <span>Theme</span>
                             <p className={styles.description}>Select your preferred interface appearance.</p>
                         </div>
-                        <div className={styles.themeToggle}>
-                            <button
-                                className={`${styles.themeBtn} ${theme === 'light' ? styles.active : ''}`}
-                                onClick={() => setTheme('light')}
-                                aria-label="Light Mode"
-                            >
-                                <Sun size={18} />
-                                <span>Light</span>
-                            </button>
-                            <button
-                                className={`${styles.themeBtn} ${theme === 'dark' ? styles.active : ''}`}
-                                onClick={() => setTheme('dark')}
-                                aria-label="Dark Mode"
-                            >
-                                <Moon size={18} />
-                                <span>Dark</span>
-                            </button>
-                            <button
-                                className={`${styles.themeBtn} ${theme === 'system' ? styles.active : ''}`}
-                                onClick={() => setTheme('system')}
-                                aria-label="System Theme"
-                            >
-                                <Monitor size={18} />
-                                <span>System</span>
-                            </button>
+
+                        <div className={styles.themeGrid}>
+                            {availableThemes.map((t) => (
+                                <button
+                                    key={t.id}
+                                    className={`${styles.themeOption} ${theme === t.id ? styles.activeTheme : ''}`}
+                                    onClick={() => setTheme(t.id)}
+                                    title={t.name}
+                                >
+                                    <div className={styles.themePreview} style={{ background: t.color }}>
+                                        {theme === t.id && <div className={styles.checkIndicator}>✓</div>}
+                                    </div>
+                                    <span className={styles.themeName}>{t.name}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>

@@ -4,7 +4,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, CornerDownLeft, Command } from 'lucide-react';
+
 import { tools } from '@/config/tools';
+import { useTheme } from './ThemeProvider';
 import styles from './CommandPalette.module.css';
 
 export default function CommandPalette() {
@@ -43,11 +45,27 @@ export default function CommandPalette() {
         }
     }, [isOpen]);
 
+
+    const { setTheme, availableThemes } = useTheme();
+
+    const themeCommands = availableThemes ? availableThemes.map(t => ({
+        id: `theme-${t.id}`,
+        title: `Theme: ${t.name}`,
+        description: `Switch to ${t.name} theme`,
+        icon: Monitor,
+        action: () => {
+            setTheme(t.id);
+            setIsOpen(false);
+            // Optional: show toast
+        }
+    })) : [];
+
+    const allItems = [...tools, ...themeCommands];
+
     // Filtering
-    const filteredTools = tools.filter(tool =>
-        tool.title.toLowerCase().includes(query.toLowerCase()) ||
-        tool.description.toLowerCase().includes(query.toLowerCase()) ||
-        tool.id.toLowerCase().includes(query.toLowerCase())
+    const filteredItems = allItems.filter(item =>
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.description.toLowerCase().includes(query.toLowerCase())
     );
 
     // Reset selection when query changes
@@ -55,22 +73,26 @@ export default function CommandPalette() {
         setSelectedIndex(0);
     }, [query]);
 
-    const handleNavigate = (path) => {
-        router.push(path);
-        setIsOpen(false);
+    const handleSelect = (item) => {
+        if (item.action) {
+            item.action();
+        } else if (item.href) {
+            router.push(item.href);
+            setIsOpen(false);
+        }
     };
 
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setSelectedIndex(prev => (prev + 1) % filteredTools.length);
+            setSelectedIndex(prev => (prev + 1) % filteredItems.length);
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            setSelectedIndex(prev => (prev - 1 + filteredTools.length) % filteredTools.length);
+            setSelectedIndex(prev => (prev - 1 + filteredItems.length) % filteredItems.length);
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            if (filteredTools[selectedIndex]) {
-                handleNavigate(filteredTools[selectedIndex].href);
+            if (filteredItems[selectedIndex]) {
+                handleSelect(filteredItems[selectedIndex]);
             }
         }
     };
@@ -103,22 +125,23 @@ export default function CommandPalette() {
                     <kbd className={styles.shortcut} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>ESC</kbd>
                 </div>
 
+
                 <div className={styles.list} ref={listRef}>
-                    {filteredTools.map((tool, index) => {
-                        const Icon = tool.icon;
+                    {filteredItems.map((item, index) => {
+                        const Icon = item.icon;
                         return (
                             <button
-                                key={tool.id}
+                                key={item.id}
                                 className={`${styles.item} ${index === selectedIndex ? styles.activeItem : ''}`}
-                                onClick={() => handleNavigate(tool.href)}
+                                onClick={() => handleSelect(item)}
                                 onMouseEnter={() => setSelectedIndex(index)}
                             >
                                 <div className={styles.iconWrapper}>
                                     <Icon size={18} />
                                 </div>
                                 <div className={styles.content}>
-                                    <span className={styles.title}>{tool.title}</span>
-                                    <span className={styles.description}>{tool.description}</span>
+                                    <span className={styles.title}>{item.title}</span>
+                                    <span className={styles.description}>{item.description}</span>
                                 </div>
                                 {index === selectedIndex && (
                                     <CornerDownLeft size={14} className={styles.textSecondary} />
@@ -126,8 +149,8 @@ export default function CommandPalette() {
                             </button>
                         );
                     })}
-                    {filteredTools.length === 0 && (
-                        <div className={styles.empty}>No tools found matching "{query}"</div>
+                    {filteredItems.length === 0 && (
+                        <div className={styles.empty}>No commands found matching "{query}"</div>
                     )}
                 </div>
 
