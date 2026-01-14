@@ -1,79 +1,134 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
+
+// Prism Languages
 import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-markup';
-import { Wand2, Copy, Trash2, Minimize2 } from 'lucide-react';
+import 'prismjs/components/prism-markup'; // matches html/xml
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-yaml';
+import 'prismjs/components/prism-markdown';
+
+// Formatters
+import * as prettier from 'prettier/standalone';
+import * as parserBabel from 'prettier/plugins/babel';
+import * as parserHtml from 'prettier/plugins/html';
+import * as parserPostcss from 'prettier/plugins/postcss';
+import * as parserYaml from 'prettier/plugins/yaml';
+import * as parserMarkdown from 'prettier/plugins/markdown';
+import * as parserEstree from 'prettier/plugins/estree';
+
+import { format as formatSql } from 'sql-formatter';
+import xmlFormat from 'xml-formatter';
+
+import { Wand2, Copy, Trash2, Minimize2, AlertCircle } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
 
-const defaultCode = `<!DOCTYPE html>
-<html><head><title>Test</title><style>body{margin:0;padding:20px;}</style></head><body><div class="container"><h1>Hello World</h1></div><script>console.log('hello');</script></body></html>`;
+const LANGUAGES = [
+    { id: 'javascript', name: 'JavaScript', parser: 'babel', plugin: [parserBabel, parserEstree] },
+    { id: 'typescript', name: 'TypeScript', parser: 'babel-ts', plugin: [parserBabel, parserEstree] },
+    { id: 'html', name: 'HTML', parser: 'html', plugin: [parserHtml] },
+    { id: 'css', name: 'CSS', parser: 'css', plugin: [parserPostcss] },
+    { id: 'json', name: 'JSON', parser: 'json', plugin: [parserBabel, parserEstree] },
+    { id: 'markdown', name: 'Markdown', parser: 'markdown', plugin: [parserMarkdown] },
+    { id: 'yaml', name: 'YAML', parser: 'yaml', plugin: [parserYaml] },
+    { id: 'xml', name: 'XML', parser: 'xml', plugin: [] }, // handled separately
+    { id: 'sql', name: 'SQL', parser: 'sql', plugin: [] }, // handled separately
+];
 
 export default function BeautifyTool() {
-    const [code, setCode] = useState(defaultCode);
-    const [language, setLanguage] = useState('html');
+    const [code, setCode] = useState('');
+    const [language, setLanguage] = useState('javascript');
+    const [error, setError] = useState(null);
+    const { showToast } = useToast();
 
-    // Simple beautification functions (no external deps for basic formatting)
-    function beautify(input, lang) {
+    const handleBeautify = async () => {
         try {
-            if (lang === 'html') {
-                return beautifyHTML(input);
-            } else if (lang === 'css') {
-                return beautifyCSS(input);
-            } else if (lang === 'javascript') {
-                return beautifyJS(input);
+            setError(null);
+            if (!code.trim()) return;
+
+            const selectedLang = LANGUAGES.find(l => l.id === language);
+            let formatted = '';
+
+            if (language === 'sql') {
+                formatted = formatSql(code);
+            } else if (language === 'xml') {
+                formatted = xmlFormat(code, {
+                    indentation: '  ',
+                    collapseContent: true,
+                    lineSeparator: '\n'
+                });
+            } else {
+                formatted = await prettier.format(code, {
+                    parser: selectedLang.parser,
+                    plugins: selectedLang.plugin,
+                    printWidth: 80,
+                    tabWidth: 2,
+                    semi: true,
+                    singleQuote: true,
+                });
             }
-            return input;
+
+            setCode(formatted);
+            showToast('Code beautified successfully', 'success');
         } catch (e) {
-            return input;
+            console.error(e);
+            setError(e.message);
+            showToast('Formatting failed', 'error');
         }
-    }
+    };
 
-    function beautifyHTML(str) {
-        let formatted = '';
-        let indent = 0;
-        str.split(/(<[^>]+>)/g).forEach(token => {
-            if (token.match(/^<\//)) {
-                indent--;
+    const handleMinify = async () => {
+        try {
+            setError(null);
+            if (!code.trim()) return;
+
+            let minified = '';
+
+            // Basic minification logic (Prettier doesn't minify heavily)
+            if (language === 'json') {
+                minified = JSON.stringify(JSON.parse(code));
+            } else if (language === 'xml') {
+                minified = xmlFormat(code, { indentation: '', lineSeparator: '' });
+            } else if (language === 'sql') {
+                // SQL minification is tricky, just simple whitespace collapse
+                minified = code.replace(/\s+/g, ' ').trim();
+            } else {
+                // Formatting with no whitespace is hard, simple logic:
+                minified = code.replace(/\s+/g, ' ').trim();
+                showToast('Basic minification applied', 'info');
             }
-            if (token.trim()) {
-                formatted += '  '.repeat(Math.max(0, indent)) + token.trim() + '\n';
+
+            if (minified) {
+                setCode(minified);
+                showToast('Minified successfully', 'success');
             }
-            if (token.match(/^<[^\/!][^>]*[^\/]>$/) && !token.match(/^<(br|hr|img|input|meta|link)/i)) {
-                indent++;
-            }
-        });
-        return formatted.trim();
-    }
+        } catch (e) {
+            setError(e.message);
+            showToast('Minification failed', 'error');
+        }
+    };
 
-    function beautifyCSS(str) {
-        return str
-            .replace(/\s*{\s*/g, ' {\n  ')
-            .replace(/;\s*/g, ';\n  ')
-            .replace(/\s*}\s*/g, '\n}\n')
-            .replace(/\n\s*\n/g, '\n')
-            .trim();
-    }
-
-    function beautifyJS(str) {
-        return str
-            .replace(/;(?!\n)/g, ';\n')
-            .replace(/{(?!\n)/g, '{\n  ')
-            .replace(/}(?!\n)/g, '\n}')
-            .trim();
-    }
-
-    function minify(input) {
-        return input.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
-    }
-
-    const getLang = () => {
-        if (language === 'html') return Prism.languages.markup;
-        if (language === 'css') return Prism.languages.css;
-        return Prism.languages.javascript;
+    const getPrismLang = (lang) => {
+        switch (lang) {
+            case 'html': return Prism.languages.markup;
+            case 'xml': return Prism.languages.markup;
+            case 'css': return Prism.languages.css;
+            case 'javascript': return Prism.languages.javascript;
+            case 'typescript': return Prism.languages.typescript;
+            case 'json': return Prism.languages.json;
+            case 'sql': return Prism.languages.sql;
+            case 'yaml': return Prism.languages.yaml;
+            case 'markdown': return Prism.languages.markdown;
+            default: return Prism.languages.javascript;
+        }
     };
 
     return (
@@ -81,28 +136,50 @@ export default function BeautifyTool() {
             <header className={styles.header}>
                 <h1 className={styles.title}>Code Beautifier</h1>
                 <div className={styles.actions}>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className={styles.select}>
-                        <option value="html">HTML</option>
-                        <option value="css">CSS</option>
-                        <option value="javascript">JavaScript</option>
+                    <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value)}
+                        className={styles.select}
+                    >
+                        {LANGUAGES.map(lang => (
+                            <option key={lang.id} value={lang.id}>{lang.name}</option>
+                        ))}
                     </select>
-                    <button className={styles.button} onClick={() => setCode(beautify(code, language))}>
+
+                    <button className={styles.button} onClick={handleBeautify}>
                         <Wand2 size={16} /> Beautify
                     </button>
-                    <button className={styles.button} onClick={() => setCode(minify(code))}>
+                    <button className={styles.button} onClick={handleMinify}>
                         <Minimize2 size={16} /> Minify
                     </button>
-                    <button className={styles.button} onClick={() => navigator.clipboard.writeText(code)}>
+                    <button className={styles.button} onClick={() => {
+                        navigator.clipboard.writeText(code);
+                        showToast('Copied to clipboard', 'success');
+                    }}>
                         <Copy size={16} /> Copy
+                    </button>
+                    <button className={styles.button} onClick={() => setCode('')}>
+                        <Trash2 size={16} /> Clear
                     </button>
                 </div>
             </header>
+
+            {error && (
+                <div className={styles.errorBanner}>
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
+                </div>
+            )}
 
             <div className={styles.editorWrapper}>
                 <Editor
                     value={code}
                     onValueChange={setCode}
-                    highlight={code => Prism.highlight(code, getLang(), language)}
+                    highlight={code => Prism.highlight(
+                        code,
+                        getPrismLang(language) || Prism.languages.plaintext,
+                        language
+                    )}
                     padding={20}
                     style={{
                         fontFamily: 'var(--font-mono)',
@@ -110,6 +187,7 @@ export default function BeautifyTool() {
                         backgroundColor: 'transparent',
                         minHeight: '100%',
                     }}
+                    placeholder={`Paste your ${language} code here...`}
                 />
             </div>
         </div>
