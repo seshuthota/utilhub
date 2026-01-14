@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 
+
 import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-json';
 import styles from './page.module.css';
 
 const HISTORY_KEY = 'utilhub_api_history';
@@ -410,9 +413,20 @@ export default function ApiTesterTool() {
                             </div>
 
                             <div className={styles.content}>
+
                                 {responseTab === 'body' && (
                                     <pre className={styles.responseBody}>
-                                        {typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2)}
+                                        <code
+                                            dangerouslySetInnerHTML={{
+                                                __html: Prism.highlight(
+                                                    typeof response.data === 'string'
+                                                        ? response.data
+                                                        : JSON.stringify(response.data, null, 2),
+                                                    Prism.languages.json,
+                                                    'json'
+                                                )
+                                            }}
+                                        />
                                     </pre>
                                 )}
                                 {responseTab === 'headers' && (
