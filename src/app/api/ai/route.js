@@ -5,8 +5,22 @@ const MODEL = 'llama-3.3-70b-versatile';
 
 
 export async function POST(request) {
-    const apiKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
 
+    let apiKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
+
+
+    if (apiKey) {
+        // Fix common issue where user pastes key twice (e.g. keykey)
+        if (apiKey.length > 100 && apiKey.startsWith('gsk_')) {
+            const half = apiKey.length / 2;
+            const firstHalf = apiKey.substring(0, half);
+            const secondHalf = apiKey.substring(half);
+            if (firstHalf === secondHalf) {
+                console.warn(`[API] Detected duplicated key. Auto-fixing.`);
+                apiKey = firstHalf;
+            }
+        }
+    }
 
     if (!apiKey) {
         console.error('AI API Error: GROQ_API_KEY is missing or empty.');
