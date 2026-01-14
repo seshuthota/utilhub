@@ -196,19 +196,33 @@ export default function ApiTesterTool() {
             });
 
 
+
             // Handle Auth
             if (auth.type === 'basic') {
                 const credit = btoa(`${auth.username}:${auth.password}`);
                 finalHeaders['Authorization'] = `Basic ${credit}`;
             } else if (auth.type === 'bearer') {
                 finalHeaders['Authorization'] = `Bearer ${auth.token}`;
+            } else if (auth.type === 'apikey' && auth.apiKeyName && auth.apiKeyValue) {
+                if (auth.apiKeyLocation === 'header') {
+                    finalHeaders[auth.apiKeyName] = auth.apiKeyValue;
+                }
+                // Query param will be handled in URL below
+            }
+
+            // Build final URL with API Key if needed
+            let finalUrl = url;
+            if (auth.type === 'apikey' && auth.apiKeyLocation === 'query' && auth.apiKeyName && auth.apiKeyValue) {
+                const urlObj = new URL(url);
+                urlObj.searchParams.set(auth.apiKeyName, auth.apiKeyValue);
+                finalUrl = urlObj.toString();
             }
 
             const res = await fetch('/api/tester/proxy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    url,
+                    url: finalUrl,
                     method,
                     headers: finalHeaders,
                     body: (method !== 'GET' && method !== 'HEAD') ? body : undefined
@@ -335,10 +349,12 @@ export default function ApiTesterTool() {
                                         value={auth.type}
                                         onChange={(e) => setAuth({ ...auth, type: e.target.value })}
                                         className={styles.select}
+
                                     >
                                         <option value="none">No Auth</option>
                                         <option value="basic">Basic Auth</option>
                                         <option value="bearer">Bearer Token</option>
+                                        <option value="apikey">API Key</option>
                                     </select>
                                 </div>
 
@@ -376,6 +392,40 @@ export default function ApiTesterTool() {
                                             placeholder="Bearer Token"
                                         />
                                     </div>
+                                )}
+
+                                {auth.type === 'apikey' && (
+                                    <>
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.label}>Key Name</label>
+                                            <input
+                                                value={auth.apiKeyName || ''}
+                                                onChange={(e) => setAuth({ ...auth, apiKeyName: e.target.value })}
+                                                className={styles.headerInput}
+                                                placeholder="e.g., X-API-Key"
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.label}>Key Value</label>
+                                            <input
+                                                value={auth.apiKeyValue || ''}
+                                                onChange={(e) => setAuth({ ...auth, apiKeyValue: e.target.value })}
+                                                className={styles.headerInput}
+                                                placeholder="Your API Key"
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.label}>Add To</label>
+                                            <select
+                                                value={auth.apiKeyLocation || 'header'}
+                                                onChange={(e) => setAuth({ ...auth, apiKeyLocation: e.target.value })}
+                                                className={styles.select}
+                                            >
+                                                <option value="header">Header</option>
+                                                <option value="query">Query Param</option>
+                                            </select>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}
