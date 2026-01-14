@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,30 +14,36 @@ export default function ToolCard({ id, title, description, icon: Icon, href }) {
         addRecent(id);
     };
 
-    const handleFavorite = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleFavorite(id);
-    };
-
     return (
-        <Link href={href} onClick={handleClick}>
-            <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                    <div className={styles.icon}>
-                        <Icon size={28} />
-                    </div>
-                    <button
-                        className={`${styles.favoriteBtn} ${favorite ? styles.active : ''}`}
-                        onClick={handleFavorite}
-                        aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                        <Star size={18} fill={favorite ? 'currentColor' : 'none'} />
-                    </button>
+        <div className={styles.card}>
+            {/* Overlay Link for navigation */}
+            <Link
+                href={href}
+                className={styles.linkOverlay}
+                onClick={handleClick}
+                aria-label={`Open ${title}`}
+            >
+            </Link>
+
+            <div className={styles.cardHeader}>
+                <div className={styles.icon}>
+                    <Icon size={28} />
                 </div>
-                <h3 className={styles.title}>{title}</h3>
-                <p className={styles.description}>{description}</p>
+                <button
+                    className={`${styles.favoriteBtn} ${favorite ? styles.active : ''}`}
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent navigation
+                        toggleFavorite(id);
+                    }}
+                    aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+                    title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                    <Star size={18} fill={favorite ? 'currentColor' : 'none'} />
+                </button>
             </div>
-        </Link>
+
+            <h3 className={styles.title}>{title}</h3>
+            <p className={styles.description}>{description}</p>
+        </div>
     );
 }
