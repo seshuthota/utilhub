@@ -1,0 +1,91 @@
+
+'use client';
+
+import { useEffect, useState } from 'react';
+import { X, Keyboard, Command } from 'lucide-react';
+import styles from './ShortcutsHelpModal.module.css';
+
+const SHORTCUTS = {
+    'Global': [
+        { action: 'Command Palette', keys: ['Cmd', 'K'] },
+        { action: 'Keyboard Shortcuts', keys: ['Shift', '?'] },
+    ],
+    'SQL Playground': [
+        { action: 'Run Query', keys: ['Cmd', 'Enter'] },
+        { action: 'Format SQL', keys: ['Cmd', 'Shift', 'F'] },
+        { action: 'Copy Result', keys: ['Cmd', 'Shift', 'C'] },
+    ],
+    'Regex Studio': [
+        { action: 'Match/Replace Mode', keys: ['Cmd', 'Enter'] },
+        { action: 'Copy Result', keys: ['Cmd', 'Shift', 'C'] },
+    ],
+    'JSON / XML': [
+        { action: 'Format Code', keys: ['Cmd', 'Enter'] },
+        { action: 'Minify', keys: ['Cmd', 'Shift', 'M'] },
+        { action: 'Copy output', keys: ['Cmd', 'Shift', 'C'] },
+    ],
+    'API Tester': [
+        { action: 'Send Request', keys: ['Cmd', 'Enter'] },
+    ]
+};
+
+export default function ShortcutsHelpModal({ onClose }) {
+    const [isMac, setIsMac] = useState(true);
+
+    useEffect(() => {
+        setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [onClose]);
+
+    const formatKey = (key) => {
+        if (key === 'Cmd') return isMac ? '⌘' : 'Ctrl';
+        if (key === 'Enter') return '↵';
+        if (key === 'Shift') return '⇧';
+        if (key === 'Alt') return isMac ? '⌥' : 'Alt';
+        return key;
+    };
+
+    return (
+        <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                <div className={styles.header}>
+                    <div className={styles.title}>
+                        <Keyboard size={24} />
+                        Keyboard Shortcuts
+                    </div>
+                    <button className={styles.closeButton} onClick={onClose}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className={styles.content}>
+                    {Object.entries(SHORTCUTS).map(([category, items]) => (
+                        <div key={category} className={styles.category}>
+                            <div className={styles.categoryTitle}>{category}</div>
+                            <div className={styles.shortcutList}>
+                                {items.map((item, idx) => (
+                                    <div key={idx} className={styles.shortcutItem}>
+                                        <span className={styles.action}>{item.action}</span>
+                                        <div className={styles.keys}>
+                                            {item.keys.map((k, i) => (
+                                                <kbd key={i} className={styles.key}>
+                                                    {formatKey(k)}
+                                                </kbd>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
