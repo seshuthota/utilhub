@@ -16,7 +16,8 @@ export async function POST(request) {
         );
     }
 
-    console.log(`AI API: Key length=${apiKey.length}, Prefix=${apiKey.substring(0, 4)}***`);
+
+    console.log(`[${new Date().toISOString()}] AI API Check: Key length=${apiKey.length}, Prefix=${apiKey.substring(0, 4)}***`);
 
     try {
         const { prompt, systemPrompt } = await request.json();
