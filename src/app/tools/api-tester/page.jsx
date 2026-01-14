@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 
 
-import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw } from 'lucide-react';
+
+import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw, Terminal } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
@@ -70,11 +71,45 @@ export default function ApiTesterTool() {
         showToast('Request loaded from history', 'success');
     };
 
+
     // Clear history
     const clearHistory = () => {
         setHistory([]);
         localStorage.removeItem(HISTORY_KEY);
         showToast('History cleared', 'success');
+    };
+
+    // Generate cURL command
+    const generateCurl = () => {
+        let curl = `curl -X ${method} '${url}'`;
+
+        // Add headers
+        headers.forEach(h => {
+            if (h.active && h.key) {
+                curl += ` \\\n  -H '${h.key}: ${h.value}'`;
+            }
+        });
+
+        // Add auth header
+        if (auth.type === 'basic') {
+            const creds = btoa(`${auth.username}:${auth.password}`);
+            curl += ` \\\n  -H 'Authorization: Basic ${creds}'`;
+        } else if (auth.type === 'bearer') {
+            curl += ` \\\n  -H 'Authorization: Bearer ${auth.token}'`;
+        }
+
+        // Add body for non-GET requests
+        if (body && !['GET', 'HEAD'].includes(method)) {
+            curl += ` \\\n  -d '${body.replace(/'/g, "\\'")}'`;
+        }
+
+        return curl;
+    };
+
+    const copyAsCurl = () => {
+        const curlCmd = generateCurl();
+        navigator.clipboard.writeText(curlCmd);
+        showToast('cURL command copied to clipboard!', 'success');
     };
 
 
@@ -224,8 +259,12 @@ export default function ApiTesterTool() {
                     className={styles.urlInput}
                     placeholder="Enter URL (e.g. https://api.example.com/v1/users)"
                 />
+
                 <button onClick={sendRequest} className={styles.sendBtn} disabled={loading}>
                     <Send size={16} /> {loading ? 'Sending...' : 'Send'}
+                </button>
+                <button onClick={copyAsCurl} className={styles.curlBtn} title="Copy as cURL">
+                    <Terminal size={16} /> cURL
                 </button>
             </div>
 
