@@ -8,112 +8,160 @@ export const tools = [
         title: 'Markdown Viewer',
         description: 'Start writing in markdown and see the result in real-time.',
         icon: FileText,
-        href: '/tools/markdown'
+        href: '/tools/markdown',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'text'
     },
     {
         id: 'json',
         title: 'JSON Formatter',
         description: 'Format, validate, and minipy your JSON data instantly.',
         icon: Braces,
-        href: '/tools/json'
+        href: '/tools/json',
+        isClientSideOnly: true,
+        hasAiFeatures: true,
+        category: 'data'
     },
     {
         id: 'mermaid',
         title: 'Mermaid Chart',
         description: 'Generate flowcharts and diagrams from text using Mermaid.js.',
         icon: GitGraph,
-        href: '/tools/mermaid'
+        href: '/tools/mermaid',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'visualization'
     },
     {
         id: 'diff',
         title: 'Diff Checker',
         description: 'Compare text files side-by-side to spot differences.',
         icon: FileDiff,
-        href: '/tools/diff'
+        href: '/tools/diff',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'text'
     },
     {
         id: 'sql',
         title: 'SQL Formatter',
         description: 'Beautify messy SQL queries for better readability.',
         icon: Database,
-        href: '/tools/sql'
+        href: '/tools/sql',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'code'
     },
     {
         id: 'xml',
         title: 'XML Formatter',
         description: 'Format, minify, and validate XML data.',
         icon: FileCode,
-        href: '/tools/xml'
+        href: '/tools/xml',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'data'
     },
     {
         id: 'image',
         title: 'Image Resizer',
         description: 'Resize, compress, and convert images locally.',
         icon: ImageIcon,
-        href: '/tools/image'
+        href: '/tools/image',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'media'
     },
     {
         id: 'base64',
         title: 'Base64 Converter',
         description: 'Encode and decode text or data to Base64.',
         icon: RefreshCcw,
-        href: '/tools/base64'
+        href: '/tools/base64',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'encoding'
     },
     {
         id: 'timestamp',
         title: 'Timestamp Converter',
         description: 'Convert between Unix timestamps and human-readable dates.',
         icon: Clock,
-        href: '/tools/timestamp'
+        href: '/tools/timestamp',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'time'
     },
     {
         id: 'hash',
         title: 'Hash Generator',
         description: 'Calculate MD5, SHA-1, SHA-256 hashes.',
         icon: Shield,
-        href: '/tools/hash'
+        href: '/tools/hash',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'security'
     },
     {
         id: 'password',
         title: 'Password Audit',
         description: 'Check password strength and crack times.',
         icon: ShieldCheck,
-        href: '/tools/password'
+        href: '/tools/password',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'security'
     },
     {
         id: 'lorem',
         title: 'Lorem Ipsum',
         description: 'Generate dummy text placeholders.',
         icon: Type,
-        href: '/tools/lorem'
+        href: '/tools/lorem',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'text'
     },
     {
         id: 'yaml',
         title: 'YAML Converter',
         description: 'Convert between YAML and JSON.',
         icon: FileText,
-        href: '/tools/yaml'
+        href: '/tools/yaml',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'data'
     },
     {
         id: 'csv',
         title: 'CSV Viewer',
         description: 'Parse CSV to table and export JSON.',
         icon: Braces,
-        href: '/tools/csv'
+        href: '/tools/csv',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'data'
     },
     {
         id: 'url',
         title: 'URL Encoder',
         description: 'Encode and decode URL components.',
         icon: LinkIcon,
-        href: '/tools/url'
+        href: '/tools/url',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'encoding'
     },
     {
         id: 'regex',
         title: 'Regex Tester',
         description: 'Test regular expressions against text.',
         icon: Search,
-        href: '/tools/regex'
+        href: '/tools/regex',
+        isClientSideOnly: true,
+        hasAiFeatures: true,
+        category: 'text'
     },
 
     {
@@ -121,125 +169,194 @@ export const tools = [
         title: 'Color Converter',
         description: 'Convert Hex, RGB, HSL, and CMYK colors.',
         icon: Palette,
-        href: '/tools/color'
+        href: '/tools/color',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'design'
     },
     {
         id: 'jwt',
         title: 'JWT Decoder',
         description: 'Decode and inspect JSON Web Tokens.',
         icon: ShieldCheck,
-        href: '/tools/jwt'
+        href: '/tools/jwt',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'security'
     },
     {
         id: 'cron',
         title: 'Cron Parser',
         description: 'Visualize cron schedules and see next run times.',
         icon: Clock,
-        href: '/tools/cron'
+        href: '/tools/cron',
+        isClientSideOnly: true,
+        hasAiFeatures: true,
+        category: 'time'
     },
     {
         id: 'json-schema',
         title: 'JSON Schema',
         description: 'Validate JSON data against schemas.',
         icon: Braces,
-        href: '/tools/json-schema'
+        href: '/tools/json-schema',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'data'
     },
     {
         id: 'units',
         title: 'Unit Converter',
         description: 'Convert bytes, CSS units, and time.',
         icon: RefreshCcw,
-        href: '/tools/units'
+        href: '/tools/units',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'utility'
     },
     {
         id: 'beautify',
         title: 'Code Beautifier',
         description: 'Beautify or minify HTML, CSS, and JavaScript.',
         icon: FileCode,
-        href: '/tools/beautify'
+        href: '/tools/beautify',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'code'
     },
     {
         id: 'validate',
         title: 'Email/URL Validator',
         description: 'Validate email addresses and URLs.',
         icon: ShieldCheck,
-        href: '/tools/validate'
+        href: '/tools/validate',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'validation'
     },
     {
         id: 'api-tester',
         title: 'API Tester',
         description: 'Send HTTP requests and view responses.',
         icon: LinkIcon,
-        href: '/tools/api-tester'
+        href: '/tools/api-tester',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'networking'
     },
     {
         id: 'css-lint',
         title: 'CSS Linter',
         description: 'Check CSS for errors and best practices.',
         icon: FileCode,
-        href: '/tools/css-lint'
+        href: '/tools/css-lint',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'code'
     },
     {
         id: 'html-lint',
         title: 'HTML Validator',
         description: 'Validate HTML and check accessibility.',
         icon: FileText,
-        href: '/tools/html-lint'
+        href: '/tools/html-lint',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'code'
     },
     {
         id: 'qrcode',
         title: 'QR Code Tool',
         description: 'Generate QR codes from text or scan them using your camera.',
         icon: QrCode,
-        href: '/tools/qrcode'
+        href: '/tools/qrcode',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'utility'
     },
     {
         id: 'uuid',
         title: 'UUID Generator',
         description: 'Generate random UUIDs (v4) for your projects.',
         icon: RefreshCcw,
-        href: '/tools/uuid'
+        href: '/tools/uuid',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'utility'
     },
     {
         id: 'case-converter',
         title: 'Text Case Converter',
         description: 'Convert text between camelCase, snake_case, kebab-case, and more.',
         icon: Type,
-        href: '/tools/case-converter'
+        href: '/tools/case-converter',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'text'
     },
     {
         id: 'json-to-ts',
         title: 'JSON to TypeScript',
         description: 'Generate TypeScript interfaces from JSON data.',
         icon: FileCode,
-        href: '/tools/json-to-ts'
+        href: '/tools/json-to-ts',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'code'
     },
     {
         id: 'number-base',
         title: 'Number Base Converter',
         description: 'Convert numbers between Binary, Octal, Decimal, and Hex.',
         icon: Binary,
-        href: '/tools/number-base'
+        href: '/tools/number-base',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'encoding'
     },
     {
         id: 'ip-subnet',
         title: 'IP Subnet Calculator',
         description: 'Calculate subnet masks, network addresses, and IP ranges.',
         icon: Network,
-        href: '/tools/ip-subnet'
+        href: '/tools/ip-subnet',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'networking'
     },
     {
         id: 'chmod',
         title: 'Chmod Calculator',
         description: 'Visual Unix permissions calculator.',
         icon: Lock,
-        href: '/tools/chmod'
+        href: '/tools/chmod',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'utility'
     },
     {
         id: 'regex-generator',
         title: 'RegEx Generator',
         description: 'Generate regular expressions using AI.',
         icon: Search,
-        href: '/tools/regex-generator'
+        href: '/tools/regex-generator',
+        isClientSideOnly: false,
+        hasAiFeatures: true,
+        category: 'text'
     }
 ];
+
+// Helper to get tool by ID
+export function getToolById(id) {
+    return tools.find(tool => tool.id === id);
+}
+
+// Helper to get tools by category
+export function getToolsByCategory(category) {
+    return tools.filter(tool => tool.category === category);
+}
+
+// Get unique categories
+export function getCategories() {
+    return [...new Set(tools.map(tool => tool.category))];
+}

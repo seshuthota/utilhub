@@ -11,6 +11,8 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useHistory } from '@/hooks/useHistory';
 import { useToast } from '@/components/Toast';
+import ActionToolbar from '@/components/common/ActionToolbar';
+import { parseJsonError } from '@/utils/errorParser';
 import styles from '../markdown/page.module.css';
 
 const HISTORY_KEY = 'utilhub_json_history';
@@ -49,7 +51,7 @@ export default function JsonTool() {
             setError(null);
             showToast('JSON formatted successfully', 'success');
         } catch (e) {
-            setError(e.message);
+            setError(parseJsonError(e, code));
             showToast('Invalid JSON', 'error');
         }
     };
@@ -63,7 +65,7 @@ export default function JsonTool() {
             setError(null);
             showToast('JSON minified successfully', 'success');
         } catch (e) {
-            setError(e.message);
+            setError(parseJsonError(e, code));
             showToast('Invalid JSON', 'error');
         }
     };
@@ -151,13 +153,30 @@ export default function JsonTool() {
                 </div>
             </div>
 
-            {error && <div className={styles.errorAlert}>Error: {error}</div>}
+            {error && (
+                <div className={styles.errorAlert}>
+                    <div style={{ fontWeight: 600 }}>{error.message || error}</div>
+                    {error.line && (
+                        <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                            Found at Line {error.line}, Column {error.col}
+                        </div>
+                    )}
+                    {error.suggestion && (
+                        <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.9, fontStyle: 'italic' }}>
+                            💡 Tip: {error.suggestion}
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className={styles.editorContainer}>
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
                         <span>Input / Output</span>
-                        <span className={styles.languageBadge}>JSON</span>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <ActionToolbar content={code} currentToolId="json" />
+                            <span className={styles.languageBadge}>JSON</span>
+                        </div>
                     </div>
                     <div className={styles.editorWrapper}>
                         <CodeEditor

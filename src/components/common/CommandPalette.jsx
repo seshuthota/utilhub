@@ -12,6 +12,8 @@ export default function CommandPalette({ isOpen, onClose }) {
     const inputRef = useRef(null);
     const router = useRouter();
 
+    const [suggestion, setSuggestion] = useState(null);
+
     const filteredTools = tools.filter(tool =>
         tool.title.toLowerCase().includes(query.toLowerCase()) ||
         tool.description.toLowerCase().includes(query.toLowerCase())
@@ -21,24 +23,51 @@ export default function CommandPalette({ isOpen, onClose }) {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 50);
             setQuery('');
+            setSuggestion(null);
             setActiveIndex(0);
         }
     }, [isOpen]);
 
     useEffect(() => {
+        // Run smart detection on query
+        if (query.length > 2) {
+            import('@/utils/detection').then(({ detectType }) => {
+                const result = detectType(query);
+                setSuggestion(result);
+                // Reset active index if we have a suggestion vs results
+                setActiveIndex(0);
+            });
+        } else {
+            setSuggestion(null);
+        }
+    }, [query]);
+
+    useEffect(() => {
         const handleKeyDown = (e) => {
             if (!isOpen) return;
 
+            // Adjust navigation count based on if suggestion exists
+            const totalItems = filteredTools.length + (suggestion ? 1 : 0);
+
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                setActiveIndex(prev => (prev + 1) % filteredTools.length);
+                setActiveIndex(prev => (prev + 1) % totalItems);
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                setActiveIndex(prev => (prev - 1 + filteredTools.length) % filteredTools.length);
+                setActiveIndex(prev => (prev - 1 + totalItems) % totalItems);
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                if (filteredTools[activeIndex]) {
-                    navigate(filteredTools[activeIndex].href);
+
+                // Handle Suggestion Selection (Index 0 if suggestion exists)
+                if (suggestion && activeIndex === 0) {
+                    navigate(suggestion.toolPath, query, suggestion.paramKey);
+                    return;
+                }
+
+                // Handle Tool Selection (Shift index by 1 if suggestion exists)
+                const toolIndex = suggestion ? activeIndex - 1 : activeIndex;
+                if (toolIndex >= 0 && filteredTools[toolIndex]) {
+                    navigate(filteredTools[toolIndex].href);
                 }
             } else if (e.key === 'Escape') {
                 onClose();
@@ -47,10 +76,16 @@ export default function CommandPalette({ isOpen, onClose }) {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, filteredTools, activeIndex]);
+    }, [isOpen, filteredTools, activeIndex, suggestion, query]);
 
-    const navigate = (href) => {
-        router.push(href);
+    const navigate = (href, inputData = null, paramKey = 'input') => {
+        if (inputData) {
+            // URL encode the input data if provided (for smart suggestions)
+            const url = `${href}?${paramKey}=${encodeURIComponent(inputData)}`;
+            router.push(url);
+        } else {
+            router.push(href);
+        }
         onClose();
     };
 
@@ -65,12 +100,12 @@ export default function CommandPalette({ isOpen, onClose }) {
                 aria-modal="true"
             >
                 <div className={styles.searchBox}>
-                    <Search className={styles.searchIcon} size={20} />
+                    <Search className={styles.searchIcon} size={20} aria-hidden="true" />
                     <input
                         ref={inputRef}
                         type="text"
                         className={styles.input}
-                        placeholder="Search tools..."
+                        placeholder="Search tools or paste content..."
                         aria-label="Search tools"
                         value={query}
                         onChange={(e) => {
@@ -78,20 +113,43 @@ export default function CommandPalette({ isOpen, onClose }) {
                             setActiveIndex(0);
                         }}
                     />
-                    <button onClick={onClose} className={styles.closeBtn}>
-                        <X size={20} />
+                    <button onClick={onClose} className={styles.closeBtn} aria-label="Close search">
+                        <X size={20} aria-hidden="true" />
                     </button>
                 </div>
 
                 <div className={styles.results}>
+                    {/* Smart Suggestion Section */}
+                    {suggestion && (
+                        <div
+                            className={`${styles.suggestion} ${activeIndex === 0 ? styles.active : ''}`}
+                            onClick={() => navigate(suggestion.toolPath, query, suggestion.paramKey)}
+                            onMouseEnter={() => setActiveIndex(0)}
+                        >
+                            <div className={styles.suggestionHeader}>
+                                <span className={styles.sparkles}>✨</span>
+                                <span className={styles.suggestionLabel}>Smart Suggestion</span>
+                            </div>
+                            <div className={styles.suggestionContent}>
+                                <span className={styles.suggestionTitle}>{suggestion.label}</span>
+                                <span className={styles.suggestionDesc}>Open in {suggestion.toolId} tool</span>
+                            </div>
+                            {activeIndex === 0 && <Command size={14} className={styles.enterHint} />}
+                        </div>
+                    )}
+
                     {filteredTools.map((tool, index) => {
                         const Icon = tool.icon;
+                        // Adjust index if suggestion is present
+                        const visualIndex = suggestion ? index + 1 : index;
+                        const isActive = visualIndex === activeIndex;
+
                         return (
                             <div
                                 key={tool.id}
-                                className={`${styles.option} ${index === activeIndex ? styles.active : ''}`}
+                                className={`${styles.option} ${isActive ? styles.active : ''}`}
                                 onClick={() => navigate(tool.href)}
-                                onMouseEnter={() => setActiveIndex(index)}
+                                onMouseEnter={() => setActiveIndex(visualIndex)}
                             >
                                 <div className={styles.optionIcon}>
                                     <Icon size={18} />
@@ -100,11 +158,11 @@ export default function CommandPalette({ isOpen, onClose }) {
                                     <span className={styles.optionTitle}>{tool.title}</span>
                                     <span className={styles.optionDesc}>{tool.description}</span>
                                 </div>
-                                {index === activeIndex && <Command size={14} className={styles.enterHint} />}
+                                {isActive && <Command size={14} className={styles.enterHint} />}
                             </div>
                         );
                     })}
-                    {filteredTools.length === 0 && (
+                    {filteredTools.length === 0 && !suggestion && (
                         <div className={styles.noResults}>
                             No tools found matching "{query}"
                         </div>

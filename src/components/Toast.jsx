@@ -10,9 +10,9 @@ const ToastContext = createContext({
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 
-    const showToast = useCallback((message, type = 'success') => {
+    const showToast = useCallback((message, type = 'success', description = null) => {
         const id = Date.now();
-        setToasts(prev => [...prev, { id, message, type }]);
+        setToasts(prev => [...prev, { id, message, type, description }]);
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 2500);
@@ -24,7 +24,10 @@ export function ToastProvider({ children }) {
             <div className={styles.container}>
                 {toasts.map(toast => (
                     <div key={toast.id} className={`${styles.toast} ${styles[toast.type]}`}>
-                        {toast.message}
+                        <div>{toast.message}</div>
+                        {toast.description && (
+                            <div className={styles.description}>{toast.description}</div>
+                        )}
                     </div>
                 ))}
             </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format, fromUnixTime, getUnixTime, parseISO } from 'date-fns';
 import { Clock, Play, Pause, Copy, RefreshCw } from 'lucide-react';
+import { useUrlState } from '@/hooks/useUrlState';
 import styles from './page.module.css';
 
 export default function TimestampTool() {
@@ -10,7 +11,7 @@ export default function TimestampTool() {
     const [isPaused, setIsPaused] = useState(false);
 
     // Input states
-    const [unixInput, setUnixInput] = useState('');
+    const [unixInput, setUnixInput] = useUrlState('ts', '');
     const [dateInput, setDateInput] = useState('');
 
     // Live Clock
@@ -24,9 +25,20 @@ export default function TimestampTool() {
 
     // Initial load
     useEffect(() => {
-        const current = new Date();
-        setUnixInput(getUnixTime(current).toString());
-        setDateInput(current.toISOString().slice(0, 16)); // YYYY-MM-DDTHH:mm
+        if (unixInput) {
+            // If loaded from URL, sync date input
+            try {
+                const date = fromUnixTime(Number(unixInput));
+                if (!isNaN(date.getTime())) {
+                    setDateInput(date.toISOString().slice(0, 16));
+                }
+            } catch (e) { }
+        } else {
+            // Default to now
+            const current = new Date();
+            setUnixInput(getUnixTime(current).toString());
+            setDateInput(current.toISOString().slice(0, 16));
+        }
     }, []);
 
     const handleUnixChange = (val) => {

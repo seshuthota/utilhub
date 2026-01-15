@@ -6,10 +6,21 @@ import { useFavorites } from '@/components/FavoritesProvider';
 import styles from './page.module.css';
 
 export default function Home() {
-  const { favorites, recentTools } = useFavorites();
+  const { favorites, recentTools, usageStats } = useFavorites();
 
   const favoriteTools = tools.filter(tool => favorites.includes(tool.id));
-  const recentToolList = tools.filter(tool => recentTools.includes(tool.id));
+
+  // Sort recent tools by recent array order
+  const recentToolList = recentTools
+    .map(id => tools.find(t => t.id === id))
+    .filter(Boolean);
+
+  // Calculate most used (exclude those already in favorites to avoid redundancy? maybe not)
+  const mostUsed = Object.entries(usageStats || {})
+    .sort(([, a], [, b]) => b - a) // Descending count
+    .slice(0, 4) // Top 4
+    .map(([id]) => tools.find(t => t.id === id))
+    .filter(Boolean);
 
   return (
     <div className={styles.container}>
@@ -27,6 +38,17 @@ export default function Home() {
           <h2 className={styles.sectionTitle}>Favorites</h2>
           <div className={styles.grid}>
             {favoriteTools.map(tool => (
+              <ToolCard key={tool.id} {...tool} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {mostUsed.length > 0 && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Most Frequent</h2>
+          <div className={styles.grid}>
+            {mostUsed.map(tool => (
               <ToolCard key={tool.id} {...tool} />
             ))}
           </div>

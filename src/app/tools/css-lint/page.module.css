@@ -31,11 +31,11 @@
 }
 
 .errors {
-    color: #ff4444;
+    color: var(--error-color);
 }
 
 .warnings {
-    color: #ffbb33;
+    color: var(--warning-color);
 }
 
 .grid {
@@ -92,13 +92,13 @@
 }
 
 .issue.error {
-    background: #ff444420;
-    color: #ff4444;
+    background: var(--error-bg);
+    color: var(--error-color);
 }
 
 .issue.warning {
-    background: #ffbb3320;
-    color: #ffbb33;
+    background: var(--warning-bg);
+    color: var(--warning-color);
 }
 
 .issue.info {
@@ -117,7 +117,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #00C851;
+    color: var(--success-color);
     gap: 0.5rem;
     font-weight: 600;
 }

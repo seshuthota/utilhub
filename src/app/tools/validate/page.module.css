@@ -73,11 +73,11 @@
 }
 
 .input.valid {
-    border-color: #00C851;
+    border-color: var(--success-color);
 }
 
 .input.invalid {
-    border-color: #ff4444;
+    border-color: var(--error-color);
 }
 
 .status {
@@ -88,11 +88,11 @@
 }
 
 .iconValid {
-    color: #00C851;
+    color: var(--success-color);
 }
 
 .iconInvalid {
-    color: #ff4444;
+    color: var(--error-color);
 }
 
 .result {
@@ -105,13 +105,13 @@
 }
 
 .resultValid {
-    background: #00C85120;
-    color: #00C851;
+    background: var(--success-bg);
+    color: var(--success-color);
 }
 
 .resultInvalid {
-    background: #ff444420;
-    color: #ff4444;
+    background: var(--error-bg);
+    color: var(--error-color);
 }
 
 .details {

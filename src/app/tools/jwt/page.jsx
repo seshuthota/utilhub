@@ -8,6 +8,7 @@ import { useToast } from '@/components/Toast';
 import { decodeJwt, getExpirationStatus, signJwt } from '@/utils/jwt';
 import ShareButton from '@/components/common/ShareButton';
 import CodeEditor from '@/components/common/CodeEditor';
+import ActionToolbar from '@/components/common/ActionToolbar';
 import styles from './page.module.css';
 
 const defaultHeader = {
@@ -142,13 +143,7 @@ export default function JwtTool() {
                         <div className={styles.card} style={{ flex: 1 }}>
                             <div className={styles.cardHeader}>
                                 <span className={styles.cardTitle}>Header</span>
-                                <button
-                                    className={styles.copyBtn}
-                                    onClick={() => copyToClipboard(header, 'Header')}
-                                    title="Copy Header"
-                                >
-                                    <Copy size={16} />
-                                </button>
+                                <ActionToolbar content={header ? JSON.stringify(header, null, 2) : ''} currentToolId="jwt" />
                             </div>
                             <pre className={styles.jsonContent}>
                                 {header ? JSON.stringify(header, null, 2) : <div className={styles.placeholder}>Waiting for token...</div>}
@@ -159,13 +154,7 @@ export default function JwtTool() {
                         <div className={styles.card} style={{ flex: 2 }}>
                             <div className={styles.cardHeader}>
                                 <span className={styles.cardTitle}>Payload</span>
-                                <button
-                                    className={styles.copyBtn}
-                                    onClick={() => copyToClipboard(payload, 'Payload')}
-                                    title="Copy Payload (Cmd+Shift+C)"
-                                >
-                                    <Copy size={16} />
-                                </button>
+                                <ActionToolbar content={payload ? JSON.stringify(payload, null, 2) : ''} currentToolId="jwt" />
                             </div>
                             <pre className={styles.jsonContent}>
                                 {payload ? JSON.stringify(payload, null, 2) : <div className={styles.placeholder}>Waiting for token...</div>}

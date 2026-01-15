@@ -135,6 +135,54 @@
     color: var(--text-secondary);
 }
 
+.suggestion {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.suggestion.active {
+    background: linear-gradient(to right, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.suggestionHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.sparkles {
+    font-size: 1rem;
+}
+
+.suggestionLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #a78bfa;
+    letter-spacing: 0.05em;
+}
+
+.suggestionTitle {
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+}
+
+.suggestionDesc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
 .footer {
     padding: 0.75rem 1rem;
     background: rgba(0, 0, 0, 0.1);

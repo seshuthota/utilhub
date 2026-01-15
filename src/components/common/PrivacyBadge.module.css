@@ -1,0 +1,58 @@
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: transform var(--transition-fast), opacity var(--transition-fast);
+    cursor: default;
+}
+
+.badge:hover {
+    transform: scale(1.02);
+}
+
+/* Client-Side Only - Green/Trust */
+.clientSide {
+    background: var(--success-bg);
+    color: var(--success-color);
+    border: 1px solid rgba(0, 200, 81, 0.2);
+}
+
+/* AI-Enabled - Purple/Accent */
+.aiEnabled {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Compact mode - icon only */
+.compact {
+    padding: 4px;
+    border-radius: 50%;
+}
+
+.compact .label {
+    display: none;
+}
+
+.label {
+    line-height: 1;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .clientSide {
+    background: rgba(5, 150, 105, 0.1);
+    color: #059669;
+    border-color: rgba(5, 150, 105, 0.2);
+}
+
+[data-theme="light"] .aiEnabled {
+    background: rgba(124, 58, 237, 0.1);
+    color: #7c3aed;
+    border-color: rgba(124, 58, 237, 0.2);
+}

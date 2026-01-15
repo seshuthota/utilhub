@@ -147,8 +147,8 @@
 }
 
 .error {
-    color: #ff4444;
-    background: #ff444420;
+    color: var(--error-color);
+    background: var(--error-bg);
     padding: 0.75rem;
     border-radius: 6px;
 }
@@ -166,11 +166,11 @@
 }
 
 .success {
-    color: #00C851;
+    color: var(--success-color);
 }
 
 .fail {
-    color: #ff4444;
+    color: var(--error-color);
 }
 
 .time {
@@ -419,10 +419,10 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.3rem 0.6rem;
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--error-bg);
     border: 1px solid rgba(239, 68, 68, 0.2);
     border-radius: 4px;
-    color: #ef4444;
+    color: var(--error-color);
     font-size: 0.75rem;
     cursor: pointer;
 }
@@ -461,7 +461,7 @@
     background: rgba(59, 130, 246, 0.1);
     border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 8px;
-    color: #3b82f6;
+    color: var(--accent-primary);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -469,7 +469,7 @@
 
 .importBtn:hover {
     background: rgba(59, 130, 246, 0.2);
-    border-color: #3b82f6;
+    border-color: var(--accent-primary);
 }
 
 

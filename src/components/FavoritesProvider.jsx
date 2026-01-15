@@ -14,12 +14,17 @@ export function FavoritesProvider({ children }) {
     const [favorites, setFavorites] = useState([]);
     const [recentTools, setRecentTools] = useState([]);
 
+    const [usageStats, setUsageStats] = useState({});
+
     // Load from localStorage on mount
     useEffect(() => {
         const savedFavorites = localStorage.getItem('utilhub-favorites');
         const savedRecent = localStorage.getItem('utilhub-recent');
+        const savedStats = localStorage.getItem('utilhub-stats');
+
         if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
         if (savedRecent) setRecentTools(JSON.parse(savedRecent));
+        if (savedStats) setUsageStats(JSON.parse(savedStats));
     }, []);
 
     const toggleFavorite = useCallback((toolId) => {
@@ -33,11 +38,22 @@ export function FavoritesProvider({ children }) {
     }, []);
 
     const addRecent = useCallback((toolId) => {
+        // Update Recent
         setRecentTools(prev => {
             const filtered = prev.filter(id => id !== toolId);
             const newRecent = [toolId, ...filtered].slice(0, 5); // Keep last 5
             localStorage.setItem('utilhub-recent', JSON.stringify(newRecent));
             return newRecent;
+        });
+
+        // Update Usage Stats
+        setUsageStats(prev => {
+            const newStats = {
+                ...prev,
+                [toolId]: (prev[toolId] || 0) + 1
+            };
+            localStorage.setItem('utilhub-stats', JSON.stringify(newStats));
+            return newStats;
         });
     }, []);
 
@@ -51,7 +67,7 @@ export function FavoritesProvider({ children }) {
     const isFavorite = useCallback((toolId) => favorites.includes(toolId), [favorites]);
 
     return (
-        <FavoritesContext.Provider value={{ favorites, recentTools, toggleFavorite, addRecent, isFavorite, clearData }}>
+        <FavoritesContext.Provider value={{ favorites, recentTools, usageStats, toggleFavorite, addRecent, isFavorite, clearData }}>
             {children}
         </FavoritesContext.Provider>
     );

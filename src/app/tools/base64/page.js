@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Base64 } from 'js-base64';
 import { RefreshCcw, Copy, Trash2, ArrowRightLeft } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
+import ActionToolbar from '@/components/common/ActionToolbar';
 import styles from './page.module.css';
 
 export default function Base64Tool() {
@@ -81,10 +82,8 @@ export default function Base64Tool() {
 
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
-                        {mode === 'encode' ? 'Base64 Output' : 'Text Output'}
-                        <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(output)}>
-                            <Copy size={14} />
-                        </button>
+                        <span>{mode === 'encode' ? 'Base64 Output' : 'Text Output'}</span>
+                        <ActionToolbar content={output} currentToolId="base64" />
                     </div>
                     <textarea
                         className={styles.textarea}

@@ -26,13 +26,13 @@ export default class ErrorBoundary extends Component {
         if (this.state.hasError) {
             return (
                 <div className={styles.container}>
-                    <AlertTriangle size={48} className={styles.icon} />
+                    <AlertTriangle size={48} className={styles.icon} aria-hidden="true" />
                     <h2 className={styles.title}>Something went wrong</h2>
                     <p className={styles.message}>
                         {this.state.error?.message || 'An unexpected error occurred'}
                     </p>
                     <button onClick={this.handleReset} className={styles.button}>
-                        <RefreshCcw size={16} /> Try Again
+                        <RefreshCcw size={16} aria-hidden="true" /> Try Again
                     </button>
                 </div>
             );

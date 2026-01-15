@@ -6,6 +6,8 @@ import { GitGraph, Download, Trash2, Maximize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
 import AiAssistButton from '@/components/common/AiAssistButton';
+import AiDisclaimer from '@/components/common/AiDisclaimer';
+import ActionToolbar from '@/components/common/ActionToolbar';
 import { useUrlState } from '@/hooks/useUrlState';
 import styles from '../markdown/page.module.css';
 
@@ -114,7 +116,10 @@ export default function MermaidTool() {
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
                         <span>Mermaid Syntax</span>
-                        <span className={styles.languageBadge}>Mermaid</span>
+                        <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                            <ActionToolbar content={code} currentToolId="mermaid" />
+                            <span className={styles.languageBadge}>Mermaid</span>
+                        </div>
                     </div>
                     <div className={styles.editorWrapper}>
                         <CodeEditor
@@ -135,6 +140,10 @@ export default function MermaidTool() {
                         dangerouslySetInnerHTML={{ __html: svg }}
                     />
                 </div>
+            </div>
+
+            <div style={{ marginTop: '2rem' }}>
+                <AiDisclaimer featureName="Mermaid AI Generation" />
             </div>
         </div>
     );

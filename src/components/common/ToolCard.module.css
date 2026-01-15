@@ -64,6 +64,18 @@
     z-index: 1;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.badges {
+    display: flex;
+    gap: 4px;
+}
+
 .favoriteBtn {
     background: none;
     border: none;
@@ -73,7 +85,6 @@
     padding: 0.25rem;
     transition: all 0.2s;
     position: relative;
-    z-index: 2;
 }
 
 .favoriteBtn:hover {
