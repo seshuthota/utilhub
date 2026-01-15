@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Monitor, Moon, Sun, Trash2, RotateCcw, Info, Github, Sparkles } from 'lucide-react';
+import { Monitor, Moon, Sun, Trash2, RotateCcw, Info, Sparkles } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useFavorites } from '@/components/FavoritesProvider';
 import { useToast } from '@/components/Toast';
@@ -113,17 +113,6 @@ export default function Settings() {
                             <span>Version</span>
                         </div>
                         <span className={styles.value}>v{pkg.version}</span>
-                    </div>
-                    <div className={`${styles.row} ${styles.linkRow}`}>
-                        <a
-                            href="https://github.com/seshuthota/utilhub"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.link}
-                        >
-                            <Github size={18} />
-                            <span>GitHub Repository</span>
-                        </a>
                     </div>
                 </div>
             </div>

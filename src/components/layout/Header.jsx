@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Terminal, Settings, Github, Search } from 'lucide-react';
+import { Terminal, Settings, Search } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import CommandPalette from '@/components/common/CommandPalette';
 import styles from './Header.module.css';
@@ -41,15 +41,6 @@ export default function Header() {
 
                     <nav className={styles.nav}>
                         <ThemeToggle />
-                        <a
-                            href="https://github.com/seshuthota/utilhub"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.navItem}
-                            aria-label="GitHub Repository"
-                        >
-                            <Github size={20} />
-                        </a>
                         <Link href="/settings" className={styles.navItem} aria-label="Settings">
                             <Settings size={20} />
                         </Link>
