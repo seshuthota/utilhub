@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Flag, AlertTriangle, RefreshCw, Layers, BookOpen, ArrowRight, Copy } from 'lucide-react';
+import { Search, Flag, AlertTriangle, RefreshCw, Layers, BookOpen, ArrowRight, Copy, Zap } from 'lucide-react';
 import AiAssistButton from '@/components/common/AiAssistButton';
 
 import { parseAiResponse, explainRegex, CHEATSHEET } from '@/utils/regex';
@@ -10,6 +10,20 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import styles from './page.module.css';
 import { useToast } from '@/components/Toast';
+
+// Common Regex Presets
+const PRESETS = [
+    { name: 'Email', pattern: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}', flags: 'gi', sample: 'test@example.com' },
+    { name: 'Phone (US)', pattern: '\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}', flags: 'g', sample: '(555) 123-4567' },
+    { name: 'URL', pattern: 'https?:\\/\\/[\\w\\-._~:/?#[\\]@!$&\'()*+,;=%]+', flags: 'gi', sample: 'https://example.com' },
+    { name: 'IPv4', pattern: '\\b(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\b', flags: 'g', sample: '192.168.1.1' },
+    { name: 'Date (ISO)', pattern: '\\d{4}-\\d{2}-\\d{2}', flags: 'g', sample: '2024-01-15' },
+    { name: 'Time (24h)', pattern: '([01]?\\d|2[0-3]):[0-5]\\d(:[0-5]\\d)?', flags: 'g', sample: '14:30:00' },
+    { name: 'Hex Color', pattern: '#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})\\b', flags: 'gi', sample: '#FF5733' },
+    { name: 'UUID', pattern: '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', flags: 'gi', sample: '550e8400-e29b-41d4-a716-446655440000' },
+    { name: 'Username', pattern: '^[a-zA-Z][a-zA-Z0-9_]{2,15}$', flags: '', sample: 'john_doe123' },
+    { name: 'Strong Password', pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$', flags: '', sample: 'Pass@123' },
+];
 
 export default function RegexTool() {
     const [pattern, setPattern] = useUrlState('pattern', '\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b');
@@ -56,6 +70,12 @@ export default function RegexTool() {
         setPattern(prev => prev + code);
     };
 
+    const loadPreset = (preset) => {
+        setPattern(preset.pattern);
+        setFlags(preset.flags);
+        setText(preset.sample);
+        showToast(`Loaded "${preset.name}" preset`, 'success');
+    };
 
     const highlightText = () => {
         if (result.error || !pattern) return text;
@@ -131,6 +151,26 @@ export default function RegexTool() {
                     onResult={handleAiResult}
                     disabled={!aiPrompt.trim()}
                 />
+            </div>
+
+            {/* Presets */}
+            <div className={styles.presetsSection}>
+                <div className={styles.presetsHeader}>
+                    <Zap size={14} />
+                    <span>Quick Presets</span>
+                </div>
+                <div className={styles.presetsRow}>
+                    {PRESETS.map((preset) => (
+                        <button
+                            key={preset.name}
+                            className={styles.presetBtn}
+                            onClick={() => loadPreset(preset)}
+                            title={preset.sample}
+                        >
+                            {preset.name}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className={styles.grid}>

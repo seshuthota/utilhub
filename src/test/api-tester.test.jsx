@@ -88,7 +88,9 @@ describe('ApiTesterTool', () => {
         expect(screen.getByText('200')).toBeInTheDocument();
         expect(screen.getByText('OK')).toBeInTheDocument();
         // Check for JSON content
-        expect(screen.getByText(/"id": 1/)).toBeInTheDocument();
+        // Check for JSON content - using querySelector to bypass Prism's span fragmentation
+        const codeBlock = document.querySelector('code');
+        expect(codeBlock.textContent).toContain('"id": 1');
     });
 
     it('handles error gracefully', async () => {

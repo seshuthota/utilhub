@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 
 
 
-import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw, Terminal } from 'lucide-react';
+import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw, Terminal, Upload } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
+import { parseCurl } from '@/utils/curl';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-json';
 import styles from './page.module.css';
@@ -32,6 +33,8 @@ export default function ApiTesterTool() {
     const [error, setError] = useState(null);
     const [history, setHistory] = useState([]);
     const [showHistory, setShowHistory] = useState(false);
+    const [showCurlImport, setShowCurlImport] = useState(false);
+    const [curlInput, setCurlInput] = useState('');
 
     const { showToast } = useToast();
 
@@ -112,6 +115,31 @@ export default function ApiTesterTool() {
         showToast('cURL command copied to clipboard!', 'success');
     };
 
+    const handleImportCurl = () => {
+        const result = parseCurl(curlInput);
+        if (result.error) {
+            showToast(result.error, 'error');
+            return;
+        }
+
+        setMethod(result.method);
+        setUrl(result.url);
+        if (result.headers.length > 0) {
+            setHeaders(result.headers);
+        }
+        if (result.body) {
+            setBody(result.body);
+        }
+        if (result.auth && result.auth.type !== 'none') {
+            setAuth(result.auth);
+        }
+
+        setShowCurlImport(false);
+        setCurlInput('');
+        setResponse(null);
+        setError(null);
+        showToast('cURL imported successfully!', 'success');
+    };
 
     // Keyboard Shortcuts
     useHotkeys('Enter', () => sendRequest(), { meta: true });
@@ -279,6 +307,9 @@ export default function ApiTesterTool() {
                 </button>
                 <button onClick={copyAsCurl} className={styles.curlBtn} title="Copy as cURL">
                     <Terminal size={16} /> cURL
+                </button>
+                <button onClick={() => setShowCurlImport(true)} className={styles.importBtn} title="Import cURL">
+                    <Upload size={16} /> Import
                 </button>
             </div>
 
@@ -573,6 +604,41 @@ export default function ApiTesterTool() {
                                 </button>
                             ))
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* cURL Import Modal */}
+            {showCurlImport && (
+                <div className={styles.modalOverlay} onClick={() => setShowCurlImport(false)}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3>Import cURL</h3>
+                            <button onClick={() => setShowCurlImport(false)} className={styles.closeBtn}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <textarea
+                            value={curlInput}
+                            onChange={(e) => setCurlInput(e.target.value)}
+                            className={styles.curlTextarea}
+                            placeholder={`Paste your cURL command here...
+
+Example:
+curl -X POST 'https://api.example.com/data' \\
+  -H 'Content-Type: application/json' \\
+  -H 'Authorization: Bearer token123' \\
+  -d '{"key": "value"}'`}
+                            rows={10}
+                        />
+                        <div className={styles.modalActions}>
+                            <button onClick={() => setShowCurlImport(false)} className={styles.cancelBtn}>
+                                Cancel
+                            </button>
+                            <button onClick={handleImportCurl} className={styles.importActionBtn} disabled={!curlInput.trim()}>
+                                <Upload size={16} /> Import
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

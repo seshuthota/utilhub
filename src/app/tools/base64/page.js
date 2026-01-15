@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Base64 } from 'js-base64';
 import { RefreshCcw, Copy, Trash2, ArrowRightLeft } from 'lucide-react';
+import { useUrlState } from '@/hooks/useUrlState';
 import styles from './page.module.css';
 
 export default function Base64Tool() {
-    const [input, setInput] = useState('Hello UtilHub');
+    const [input, setInput] = useUrlState('input', 'Hello UtilHub');
     const [mode, setMode] = useState('encode'); // encode | decode
     const [output, setOutput] = useState('');
     const [error, setError] = useState(null);

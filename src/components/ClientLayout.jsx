@@ -9,7 +9,6 @@ import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 import Header from "@/components/layout/Header";
 import Background from '@/components/layout/Background';
 
-import CommandPalette from '@/components/CommandPalette';
 import ShortcutsHelpModal from '@/components/common/ShortcutsHelpModal';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useState } from 'react';
@@ -30,7 +29,6 @@ export default function ClientLayout({ children }) {
                     <>
                         <Background />
                         <Header />
-                        <CommandPalette />
                         {showShortcuts && <ShortcutsHelpModal onClose={() => setShowShortcuts(false)} />}
                         <main className={styles.main}>
                             <ErrorBoundary>

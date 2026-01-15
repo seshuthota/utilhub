@@ -44,6 +44,7 @@
     "react-simple-code-editor": "^0.14.1",
     "sql-formatter": "^15.6.12",
     "xml-formatter": "^3.6.7",
+    "zod": "^4.3.5",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

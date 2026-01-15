@@ -195,5 +195,26 @@ export const tools = [
         description: 'Generate QR codes from text or scan them using your camera.',
         icon: QrCode,
         href: '/tools/qrcode'
+    },
+    {
+        id: 'uuid',
+        title: 'UUID Generator',
+        description: 'Generate random UUIDs (v4) for your projects.',
+        icon: RefreshCcw,
+        href: '/tools/uuid'
+    },
+    {
+        id: 'case-converter',
+        title: 'Text Case Converter',
+        description: 'Convert text between camelCase, snake_case, kebab-case, and more.',
+        icon: Type,
+        href: '/tools/case-converter'
+    },
+    {
+        id: 'json-to-ts',
+        title: 'JSON to TypeScript',
+        description: 'Generate TypeScript interfaces from JSON data.',
+        icon: FileCode,
+        href: '/tools/json-to-ts'
     }
 ];
