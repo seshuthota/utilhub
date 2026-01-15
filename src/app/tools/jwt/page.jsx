@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useMemo, useEffect } from 'react';
 import { Key, Copy, Clock, ShieldCheck, ShieldAlert, PenTool, Lock } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
