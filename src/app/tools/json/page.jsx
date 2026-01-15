@@ -1,20 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { Braces, Copy, Trash2, Maximize, Minimize } from 'lucide-react';
+import { Braces, Copy, Trash2, Maximize, Minimize, History } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
 import AiAssistButton from '@/components/common/AiAssistButton';
+import HistorySidebar from '@/components/common/HistorySidebar';
 
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
+import { useHistory } from '@/hooks/useHistory';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
+
+const HISTORY_KEY = 'utilhub_json_history';
 
 export default function JsonTool() {
     const [code, setCode] = useUrlState('code', '{"name":"UtilHub","type":"Project","active":true}');
     const [aiPrompt, setAiPrompt] = useState('');
     const [error, setError] = useState(null);
+    const { history, addToHistory, clearHistory } = useHistory(HISTORY_KEY, 20);
+    const [showHistory, setShowHistory] = useState(false);
     const { showToast } = useToast();
 
     const handleAiResult = (response) => {
@@ -23,7 +29,9 @@ export default function JsonTool() {
         try {
             // Validate it's actual JSON
             const parsed = JSON.parse(cleaned);
-            setCode(JSON.stringify(parsed, null, 2));
+            const formatted = JSON.stringify(parsed, null, 2);
+            setCode(formatted);
+            addToHistory({ content: formatted, type: 'AI Generation', timestamp: Date.now() });
             setError(null);
         } catch (e) {
             // If not JSON, just set the text (maybe AI returned an explanation)
@@ -34,7 +42,10 @@ export default function JsonTool() {
     const formatJson = () => {
         try {
             const parsed = JSON.parse(code);
-            setCode(JSON.stringify(parsed, null, 2));
+            const formatted = JSON.stringify(parsed, null, 2);
+            setCode(formatted);
+            // Save to history only if it's different from the last entry (optional, simplifed here)
+            addToHistory({ content: formatted, type: 'Format', timestamp: Date.now() });
             setError(null);
             showToast('JSON formatted successfully', 'success');
         } catch (e) {
@@ -46,7 +57,9 @@ export default function JsonTool() {
     const minifyJson = () => {
         try {
             const parsed = JSON.parse(code);
-            setCode(JSON.stringify(parsed));
+            const minified = JSON.stringify(parsed);
+            setCode(minified);
+            addToHistory({ content: minified, type: 'Minify', timestamp: Date.now() });
             setError(null);
             showToast('JSON minified successfully', 'success');
         } catch (e) {
@@ -66,6 +79,12 @@ export default function JsonTool() {
         showToast('Copied to clipboard', 'success');
     };
 
+    const loadFromHistory = (item) => {
+        setCode(item.content);
+        setShowHistory(false);
+        showToast('Restored from history', 'success');
+    };
+
     // Keyboard Shortcuts
     useHotkeys('Enter', formatJson, { meta: true });
     useHotkeys('m', minifyJson, { meta: true, shift: true });
@@ -77,6 +96,13 @@ export default function JsonTool() {
                 <h1 className={styles.title}>JSON Formatter</h1>
                 <div className={styles.actions}>
                     <ShareButton />
+                    <button
+                        className={styles.button}
+                        onClick={() => setShowHistory(true)}
+                        title="History"
+                    >
+                        <History size={16} /> History
+                    </button>
                     <button className={styles.button} onClick={formatJson} title="Format (Cmd/Ctrl + Enter)">
                         <Maximize size={16} /> Format
                     </button>
@@ -144,6 +170,25 @@ export default function JsonTool() {
                     </div>
                 </div>
             </div>
+
+            <HistorySidebar
+                history={history}
+                isOpen={showHistory}
+                onClose={() => setShowHistory(false)}
+                onClear={clearHistory}
+                onSelect={loadFromHistory}
+                title="JSON History"
+                renderItem={(item) => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            {item.type} • {new Date(item.timestamp).toLocaleTimeString()}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'monospace' }}>
+                            {item.content.substring(0, 50)}
+                        </div>
+                    </div>
+                )}
+            />
         </div>
     );
 }

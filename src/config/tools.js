@@ -1,8 +1,5 @@
 import {
-    FileText, Braces, GitGraph, FileDiff, Database, FileCode,
-    ImageIcon, RefreshCcw, Clock, Shield, ShieldCheck, Type,
-
-    LinkIcon, Search, QrCode, Palette
+    FileText, Braces, GitGraph, FileDiff, Database, FileCode, ImageIcon, RefreshCcw, Clock, Shield, ShieldCheck, Type, LinkIcon, Search, QrCode, Palette, Binary, Network, Lock
 } from 'lucide-react';
 
 export const tools = [
@@ -216,5 +213,33 @@ export const tools = [
         description: 'Generate TypeScript interfaces from JSON data.',
         icon: FileCode,
         href: '/tools/json-to-ts'
+    },
+    {
+        id: 'number-base',
+        title: 'Number Base Converter',
+        description: 'Convert numbers between Binary, Octal, Decimal, and Hex.',
+        icon: Binary,
+        href: '/tools/number-base'
+    },
+    {
+        id: 'ip-subnet',
+        title: 'IP Subnet Calculator',
+        description: 'Calculate subnet masks, network addresses, and IP ranges.',
+        icon: Network,
+        href: '/tools/ip-subnet'
+    },
+    {
+        id: 'chmod',
+        title: 'Chmod Calculator',
+        description: 'Visual Unix permissions calculator.',
+        icon: Lock,
+        href: '/tools/chmod'
+    },
+    {
+        id: 'regex-generator',
+        title: 'RegEx Generator',
+        description: 'Generate regular expressions using AI.',
+        icon: Search,
+        href: '/tools/regex-generator'
     }
 ];

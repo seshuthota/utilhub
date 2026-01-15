@@ -110,33 +110,9 @@
     background: var(--bg-secondary);
 }
 
-.textarea {
+.editorContainer {
     flex: 1;
-    padding: 1rem;
+    overflow: hidden;
+    position: relative;
     background: var(--bg-primary);
-    border: none;
-    color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    resize: none;
-}
-
-.textarea:focus {
-    outline: none;
-}
-
-.output {
-    flex: 1;
-    padding: 1rem;
-    margin: 0;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    overflow: auto;
-    white-space: pre-wrap;
-}
-
-.output code {
-    color: #3b82f6;
 }

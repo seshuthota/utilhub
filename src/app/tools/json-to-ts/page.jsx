@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Copy, Braces, FileCode } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import CodeEditor from '@/components/common/CodeEditor';
 import styles from './page.module.css';
 
 // Convert JSON value to TypeScript type
@@ -128,13 +129,14 @@ export default function JsonToTsTool() {
                         <Braces size={16} />
                         <span>JSON Input</span>
                     </div>
-                    <textarea
-                        value={json}
-                        onChange={(e) => setJson(e.target.value)}
-                        className={styles.textarea}
-                        placeholder="Paste your JSON here..."
-                        spellCheck={false}
-                    />
+                    <div className={styles.editorContainer}>
+                        <CodeEditor
+                            value={json}
+                            onChange={(val) => setJson(val)}
+                            language="json"
+                            placeholder="Paste your JSON here..."
+                        />
+                    </div>
                 </div>
 
                 <div className={styles.pane}>
@@ -145,9 +147,14 @@ export default function JsonToTsTool() {
                             <Copy size={14} />
                         </button>
                     </div>
-                    <pre className={styles.output}>
-                        <code>{typescript}</code>
-                    </pre>
+                    <div className={styles.editorContainer}>
+                        <CodeEditor
+                            value={typescript}
+                            onChange={() => { }} // Read only
+                            language="typescript" // Prism might not have typescript loaded by default, checking CodeEditor
+                            readOnly={true}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

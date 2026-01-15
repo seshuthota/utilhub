@@ -1,0 +1,152 @@
+.sidebarOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+}
+
+.sidebar {
+    position: fixed;
+    top: 60px;
+    /* Below header */
+    right: 0;
+    width: 380px;
+    height: calc(100vh - 60px);
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    animation: slideIn 0.2s ease-out;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+.headerActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.clearBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    color: #ef4444;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.clearBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.closeBtn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+    gap: 1rem;
+    font-size: 0.9rem;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    user-select: none;
+}
+
+.item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-color);
+}
+
+.itemContent {
+    flex: 1;
+    min-width: 0;
+    /* Enable truncation */
+}
+
+.deleteBtn {
+    opacity: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+    color: #ef4444;
+}
+
+.item:hover .deleteBtn {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        top: 0;
+        height: 100vh;
+    }
+}

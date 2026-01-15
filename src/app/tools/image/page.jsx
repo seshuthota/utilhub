@@ -11,6 +11,8 @@ export default function ImageTool() {
     const [height, setHeight] = useState(0);
     const [quality, setQuality] = useState(0.8);
     const [format, setFormat] = useState('image/jpeg');
+    const [lockAspectRatio, setLockAspectRatio] = useState(true);
+    const [aspectRatio, setAspectRatio] = useState(0);
     const canvasRef = useRef(null);
 
     const handleFileChange = (e) => {
@@ -22,9 +24,24 @@ export default function ImageTool() {
                 setImage(img);
                 setWidth(img.width);
                 setHeight(img.height);
+                setAspectRatio(img.width / img.height);
                 setPreview(url);
             };
             img.src = url;
+        }
+    };
+
+    const handleWidthChange = (val) => {
+        setWidth(val);
+        if (lockAspectRatio && aspectRatio) {
+            setHeight(Math.round(val / aspectRatio));
+        }
+    };
+
+    const handleHeightChange = (val) => {
+        setHeight(val);
+        if (lockAspectRatio && aspectRatio) {
+            setWidth(Math.round(val * aspectRatio));
         }
     };
 
@@ -46,8 +63,6 @@ export default function ImageTool() {
         link.click();
     };
 
-    // Aspect ratio lock could be added here
-
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -66,13 +81,32 @@ export default function ImageTool() {
 
                     {image && (
                         <div className={styles.settings}>
+                            <div className={styles.checkboxGroup}>
+                                <input
+                                    type="checkbox"
+                                    id="lockRatio"
+                                    checked={lockAspectRatio}
+                                    onChange={(e) => setLockAspectRatio(e.target.checked)}
+                                />
+                                <label htmlFor="lockRatio">Lock Aspect Ratio</label>
+                            </div>
                             <div className={styles.group}>
                                 <label>Width (px)</label>
-                                <input type="number" value={width} onChange={(e) => setWidth(Number(e.target.value))} className={styles.input} />
+                                <input
+                                    type="number"
+                                    value={width}
+                                    onChange={(e) => handleWidthChange(Number(e.target.value))}
+                                    className={styles.input}
+                                />
                             </div>
                             <div className={styles.group}>
                                 <label>Height (px)</label>
-                                <input type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} className={styles.input} />
+                                <input
+                                    type="number"
+                                    value={height}
+                                    onChange={(e) => handleHeightChange(Number(e.target.value))}
+                                    className={styles.input}
+                                />
                             </div>
                             <div className={styles.group}>
                                 <label>Quality (0-1)</label>

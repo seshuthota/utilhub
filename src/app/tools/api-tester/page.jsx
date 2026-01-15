@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 
 
-import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw, Terminal, Upload } from 'lucide-react';
+import { Send, Copy, Trash2, Plus, X, Clock, Database, Globe, History, RotateCcw, Terminal, Upload, Folder, Save, ChevronRight, ChevronDown } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
@@ -12,8 +12,13 @@ import { parseCurl } from '@/utils/curl';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-json';
 import styles from './page.module.css';
+import { useEnvironments, substituteVariables } from '@/hooks/useEnvironments';
+import { useHistory } from '@/hooks/useHistory';
+import EnvironmentManager from './EnvironmentManager';
+import HistorySidebar from '@/components/common/HistorySidebar';
 
 const HISTORY_KEY = 'utilhub_api_history';
+const COLLECTIONS_KEY = 'utilhub_api_collections';
 const MAX_HISTORY = 20;
 
 export default function ApiTesterTool() {
@@ -31,25 +36,54 @@ export default function ApiTesterTool() {
     const [loading, setLoading] = useState(false);
     const [response, setResponse] = useState(null);
     const [error, setError] = useState(null);
-    const [history, setHistory] = useState([]);
+    const { history, addToHistory, clearHistory } = useHistory(HISTORY_KEY, 20);
     const [showHistory, setShowHistory] = useState(false);
     const [showCurlImport, setShowCurlImport] = useState(false);
     const [curlInput, setCurlInput] = useState('');
 
+    // Collections State
+    const [collections, setCollections] = useState([]);
+    const [showCollections, setShowCollections] = useState(false);
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [saveRequestName, setSaveRequestName] = useState('');
+    const [selectedCollectionId, setSelectedCollectionId] = useState('');
+    const [expandedCollections, setExpandedCollections] = useState({});
+
+    // Environments State
+    const {
+        environments,
+        activeEnvId,
+        setActiveEnvId,
+        addEnvironment,
+        updateEnvironment,
+        deleteEnvironment,
+        duplicateEnvironment,
+        getActiveEnvironment
+    } = useEnvironments();
+    const [showEnvManager, setShowEnvManager] = useState(false);
+
     const { showToast } = useToast();
 
-    // Load history from localStorage
+    // Load collections from localStorage
     useEffect(() => {
         try {
-            const saved = localStorage.getItem(HISTORY_KEY);
-            if (saved) setHistory(JSON.parse(saved));
+            const saved = localStorage.getItem(COLLECTIONS_KEY);
+            if (saved) {
+                const loaded = JSON.parse(saved);
+                setCollections(loaded);
+                // Expand all by default
+                const expanded = {};
+                loaded.forEach(c => expanded[c.id] = true);
+                setExpandedCollections(expanded);
+            }
         } catch (e) {
-            console.error('Failed to load history:', e);
+            console.error('Failed to load collections:', e);
         }
     }, []);
 
     // Save request to history
-    const saveToHistory = (req) => {
+    // Save request to history
+    const handleSaveToHistory = (req) => {
         const entry = {
             id: Date.now(),
             method: req.method,
@@ -58,10 +92,7 @@ export default function ApiTesterTool() {
             body: req.body,
             timestamp: new Date().toISOString()
         };
-
-        const newHistory = [entry, ...history].slice(0, MAX_HISTORY);
-        setHistory(newHistory);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
+        addToHistory(entry);
     };
 
     // Load request from history
@@ -75,11 +106,89 @@ export default function ApiTesterTool() {
     };
 
 
-    // Clear history
-    const clearHistory = () => {
-        setHistory([]);
-        localStorage.removeItem(HISTORY_KEY);
-        showToast('History cleared', 'success');
+
+
+    // Collection Management
+    const createCollection = (name) => {
+        if (!name.trim()) return;
+        const newCollection = {
+            id: Date.now().toString(),
+            name: name.trim(),
+            requests: []
+        };
+        const newCollections = [...collections, newCollection];
+        setCollections(newCollections);
+        localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(newCollections));
+        setExpandedCollections(prev => ({ ...prev, [newCollection.id]: true }));
+        showToast('Collection created', 'success');
+    };
+
+    const deleteCollection = (id) => {
+        if (!confirm('Delete this collection and all its requests?')) return;
+        const newCollections = collections.filter(c => c.id !== id);
+        setCollections(newCollections);
+        localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(newCollections));
+        showToast('Collection deleted', 'success');
+    };
+
+    const saveRequestToCollection = () => {
+        if (!saveRequestName.trim() || !selectedCollectionId) {
+            showToast('Please enter a name and select a collection', 'error');
+            return;
+        }
+
+        const newCollections = collections.map(c => {
+            if (c.id === selectedCollectionId) {
+                return {
+                    ...c,
+                    requests: [...c.requests, {
+                        id: Date.now().toString(),
+                        name: saveRequestName.trim(),
+                        method,
+                        url,
+                        headers,
+                        body,
+                        auth
+                    }]
+                };
+            }
+            return c;
+        });
+
+        setCollections(newCollections);
+        localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(newCollections));
+        setShowSaveModal(false);
+        setSaveRequestName('');
+        showToast('Request saved to collection', 'success');
+    };
+
+    const deleteRequestFromCollection = (collectionId, requestId) => {
+        const newCollections = collections.map(c => {
+            if (c.id === collectionId) {
+                return {
+                    ...c,
+                    requests: c.requests.filter(r => r.id !== requestId)
+                };
+            }
+            return c;
+        });
+        setCollections(newCollections);
+        localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(newCollections));
+        showToast('Request deleted', 'success');
+    };
+
+    const loadFromCollection = (req) => {
+        setMethod(req.method);
+        setUrl(req.url);
+        setHeaders(req.headers);
+        setBody(req.body);
+        if (req.auth) setAuth(req.auth);
+        showToast(`Loaded "${req.name}"`, 'success');
+        setShowCollections(false);
+    };
+
+    const toggleCollection = (id) => {
+        setExpandedCollections(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
     // Generate cURL command
@@ -218,32 +327,49 @@ export default function ApiTesterTool() {
         setResponse(null);
 
         try {
+            const activeEnv = getActiveEnvironment();
+            const variables = activeEnv ? activeEnv.variables : [];
+
+            // Apply substitutions
+            let finalUrl = substituteVariables(url, variables);
+            const finalBody = (method !== 'GET' && method !== 'HEAD') ? substituteVariables(body, variables) : undefined;
+
             const finalHeaders = {};
             headers.forEach(h => {
-                if (h.active && h.key) finalHeaders[h.key] = h.value;
+                if (h.active && h.key) {
+                    const key = substituteVariables(h.key, variables);
+                    const value = substituteVariables(h.value, variables);
+                    finalHeaders[key] = value;
+                }
             });
-
-
 
             // Handle Auth
             if (auth.type === 'basic') {
-                const credit = btoa(`${auth.username}:${auth.password}`);
+                const credit = btoa(`${substituteVariables(auth.username, variables)}:${substituteVariables(auth.password, variables)}`);
                 finalHeaders['Authorization'] = `Basic ${credit}`;
             } else if (auth.type === 'bearer') {
-                finalHeaders['Authorization'] = `Bearer ${auth.token}`;
+                finalHeaders['Authorization'] = `Bearer ${substituteVariables(auth.token, variables)}`;
             } else if (auth.type === 'apikey' && auth.apiKeyName && auth.apiKeyValue) {
+                const name = substituteVariables(auth.apiKeyName, variables);
+                const value = substituteVariables(auth.apiKeyValue, variables);
+
                 if (auth.apiKeyLocation === 'header') {
-                    finalHeaders[auth.apiKeyName] = auth.apiKeyValue;
+                    finalHeaders[name] = value;
                 }
-                // Query param will be handled in URL below
             }
 
             // Build final URL with API Key if needed
-            let finalUrl = url;
             if (auth.type === 'apikey' && auth.apiKeyLocation === 'query' && auth.apiKeyName && auth.apiKeyValue) {
-                const urlObj = new URL(url);
-                urlObj.searchParams.set(auth.apiKeyName, auth.apiKeyValue);
-                finalUrl = urlObj.toString();
+                const name = substituteVariables(auth.apiKeyName, variables);
+                const value = substituteVariables(auth.apiKeyValue, variables);
+
+                try {
+                    const urlObj = new URL(finalUrl);
+                    urlObj.searchParams.set(name, value);
+                    finalUrl = urlObj.toString();
+                } catch (e) {
+                    // if finalUrl invalid (e.g. contains variable in scheme/host), basic substitution already happened above
+                }
             }
 
             const res = await fetch('/api/tester/proxy', {
@@ -253,7 +379,7 @@ export default function ApiTesterTool() {
                     url: finalUrl,
                     method,
                     headers: finalHeaders,
-                    body: (method !== 'GET' && method !== 'HEAD') ? body : undefined
+                    body: finalBody
                 })
             });
 
@@ -267,7 +393,8 @@ export default function ApiTesterTool() {
             setResponse(data);
 
             // Save to history
-            saveToHistory({ method, url, headers: finalHeaders, body });
+            // Save to history
+            handleSaveToHistory({ method, url, headers: finalHeaders, body: finalBody });
         } catch (e) {
             setError(e.message);
         } finally {
@@ -280,12 +407,40 @@ export default function ApiTesterTool() {
 
             <header className={styles.header}>
                 <h1 className={styles.title}>API Tester</h1>
-                <button
-                    className={`${styles.historyBtn} ${showHistory ? styles.active : ''}`}
-                    onClick={() => setShowHistory(!showHistory)}
-                >
-                    <History size={16} /> History {history.length > 0 && `(${history.length})`}
-                </button>
+                <div className={styles.actions}>
+                    <div className={styles.envSelector}>
+                        <select
+                            value={activeEnvId || ''}
+                            onChange={(e) => setActiveEnvId(e.target.value || null)}
+                            className={styles.envSelect}
+                        >
+                            <option value="">No Environment</option>
+                            {environments.map(e => (
+                                <option key={e.id} value={e.id}>{e.name}</option>
+                            ))}
+                        </select>
+                        <button
+                            className={styles.actionBtn}
+                            onClick={() => setShowEnvManager(true)}
+                            title="Manage Environments"
+                        >
+                            <Globe size={16} />
+                        </button>
+                    </div>
+
+                    <button
+                        className={`${styles.actionBtn} ${showHistory ? styles.active : ''}`}
+                        onClick={() => { setShowHistory(!showHistory); setShowCollections(false); }}
+                    >
+                        <History size={16} /> History {history.length > 0 && `(${history.length})`}
+                    </button>
+                    <button
+                        className={`${styles.actionBtn} ${showCollections ? styles.active : ''}`}
+                        onClick={() => { setShowCollections(!showCollections); setShowHistory(false); }}
+                    >
+                        <Folder size={16} /> Collections
+                    </button>
+                </div>
             </header>
 
             <div className={styles.requestBar}>
@@ -304,6 +459,9 @@ export default function ApiTesterTool() {
 
                 <button onClick={sendRequest} className={styles.sendBtn} disabled={loading}>
                     <Send size={16} /> {loading ? 'Sending...' : 'Send'}
+                </button>
+                <button onClick={() => setShowSaveModal(true)} className={styles.saveBtn} title="Save to Collection">
+                    <Save size={16} />
                 </button>
                 <button onClick={copyAsCurl} className={styles.curlBtn} title="Copy as cURL">
                     <Terminal size={16} /> cURL
@@ -524,6 +682,17 @@ export default function ApiTesterTool() {
                                 >
                                     Body
                                 </button>
+                                {response.headers['content-type'] && (
+                                    (response.headers['content-type'].includes('text/html') ||
+                                        response.headers['content-type'].includes('image/')) && (
+                                        <button
+                                            className={`${styles.tab} ${responseTab === 'preview' ? styles.activeTab : ''}`}
+                                            onClick={() => setResponseTab('preview')}
+                                        >
+                                            Preview
+                                        </button>
+                                    )
+                                )}
                                 <button
                                     className={`${styles.tab} ${responseTab === 'headers' ? styles.activeTab : ''}`}
                                     onClick={() => setResponseTab('headers')}
@@ -548,6 +717,26 @@ export default function ApiTesterTool() {
                                             }}
                                         />
                                     </pre>
+                                )}
+                                {responseTab === 'preview' && (
+                                    <div className={styles.previewContainer}>
+                                        {response.headers['content-type'].includes('image/') ? (
+                                            <div className={styles.imagePreview}>
+                                                <img
+                                                    src={response.url}
+                                                    alt="Response Preview"
+                                                    style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <iframe
+                                                title="Response Preview"
+                                                srcDoc={response.data}
+                                                className={styles.iframePreview}
+                                                sandbox="allow-scripts"
+                                            />
+                                        )}
+                                    </div>
                                 )}
                                 {responseTab === 'headers' && (
                                     <div className={styles.responseHeaders}>
@@ -574,36 +763,171 @@ export default function ApiTesterTool() {
             </div>
 
             {/* History Sidebar */}
-            {showHistory && (
+            <HistorySidebar
+                history={history}
+                isOpen={showHistory}
+                onClose={() => setShowHistory(false)}
+                onClear={clearHistory}
+                onSelect={loadFromHistory}
+                title="Request History"
+                renderItem={(entry) => (
+                    <div className={styles.historyItemContent}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                            <span className={`${styles.methodBadge} ${styles[entry.method.toLowerCase()]}`}>
+                                {entry.method}
+                            </span>
+                            <span className={styles.historyTime}>
+                                {new Date(entry.id).toLocaleTimeString()}
+                            </span>
+                        </div>
+                        <div className={styles.historyUrl} title={entry.url}>
+                            {entry.url}
+                        </div>
+                    </div>
+                )}
+            />
+
+            {/* Collections Sidebar */}
+            {showCollections && (
                 <div className={styles.historyPanel}>
                     <div className={styles.historyHeader}>
-                        <span>Request History</span>
-                        {history.length > 0 && (
-                            <button onClick={clearHistory} className={styles.clearBtn}>
-                                <Trash2 size={14} /> Clear
+                        <span>Collections</span>
+                        <div className={styles.collectionActions}>
+                            <button
+                                onClick={() => {
+                                    const name = prompt('New Collection Name:');
+                                    if (name) createCollection(name);
+                                }}
+                                className={styles.createBtn}
+                            >
+                                <Plus size={14} /> New
                             </button>
-                        )}
+                            <button onClick={() => setShowCollections(false)} className={styles.iconBtn}>
+                                <X size={16} />
+                            </button>
+                        </div>
                     </div>
                     <div className={styles.historyList}>
-                        {history.length === 0 ? (
-                            <div className={styles.placeholder}>No requests yet</div>
+                        {collections.length === 0 ? (
+                            <div className={styles.placeholder}>No collections</div>
                         ) : (
-                            history.map((entry) => (
-                                <button
-                                    key={entry.id}
-                                    className={styles.historyItem}
-                                    onClick={() => loadFromHistory(entry)}
-                                >
-                                    <span className={`${styles.methodBadge} ${styles[entry.method.toLowerCase()]}`}>
-                                        {entry.method}
-                                    </span>
-                                    <span className={styles.historyUrl}>{entry.url}</span>
-                                    <span className={styles.historyTime}>
-                                        {new Date(entry.timestamp).toLocaleTimeString()}
-                                    </span>
-                                </button>
+                            collections.map(col => (
+                                <div key={col.id} className={styles.collectionItem}>
+                                    <div className={styles.collectionHeader} onClick={() => toggleCollection(col.id)}>
+                                        <div className={styles.collectionTitle}>
+                                            {expandedCollections[col.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                            <Folder size={14} className={styles.folderIcon} />
+                                            <span>{col.name}</span>
+                                            <span className={styles.count}>({col.requests.length})</span>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); deleteCollection(col.id); }}
+                                            className={styles.deleteBtn}
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                    {expandedCollections[col.id] && (
+                                        <div className={styles.collectionRequests}>
+                                            {col.requests.map(req => (
+                                                <div key={req.id} className={styles.savedRequest}>
+                                                    <div
+                                                        className={styles.savedRequestInfo}
+                                                        onClick={() => loadFromCollection(req)}
+                                                    >
+                                                        <span className={`${styles.methodBadge} ${styles[req.method.toLowerCase()]}`}>
+                                                            {req.method}
+                                                        </span>
+                                                        <span className={styles.savedRequestName}>{req.name}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => deleteRequestFromCollection(col.id, req.id)}
+                                                        className={styles.deleteRequestBtn}
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {col.requests.length === 0 && (
+                                                <div className={styles.emptyCollection}>Empty</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             ))
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Environment Manager Modal */}
+            <EnvironmentManager
+                isOpen={showEnvManager}
+                onClose={() => setShowEnvManager(false)}
+                environments={environments}
+                activeEnvId={activeEnvId}
+                setActiveEnvId={setActiveEnvId}
+                addEnvironment={addEnvironment}
+                updateEnvironment={updateEnvironment}
+                deleteEnvironment={deleteEnvironment}
+                duplicateEnvironment={duplicateEnvironment}
+            />
+
+            {/* Save Request Modal */}
+            {showSaveModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowSaveModal(false)}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3>Save Request</h3>
+                            <button onClick={() => setShowSaveModal(false)} className={styles.closeBtn}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className={styles.modalContent}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Request Name</label>
+                                <input
+                                    value={saveRequestName}
+                                    onChange={(e) => setSaveRequestName(e.target.value)}
+                                    className={styles.headerInput}
+                                    placeholder="e.g., Get All Users"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Collection</label>
+                                <select
+                                    value={selectedCollectionId}
+                                    onChange={(e) => setSelectedCollectionId(e.target.value)}
+                                    className={styles.select}
+                                >
+                                    <option value="">Select a collection...</option>
+                                    {collections.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            {collections.length === 0 && (
+                                <div className={styles.hint}>
+                                    No collections created yet. <button onClick={() => {
+                                        const name = prompt('New Collection Name:');
+                                        if (name) createCollection(name);
+                                    }} className={styles.linkBtn}>Create one</button>
+                                </div>
+                            )}
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button onClick={() => setShowSaveModal(false)} className={styles.cancelBtn}>
+                                Cancel
+                            </button>
+                            <button
+                                onClick={saveRequestToCollection}
+                                className={styles.importActionBtn}
+                                disabled={!saveRequestName.trim() || !selectedCollectionId}
+                            >
+                                <Save size={16} /> Save
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

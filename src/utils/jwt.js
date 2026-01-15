@@ -57,6 +57,91 @@ export function isJwtExpired(payload) {
 }
 
 /**
+ * Base64URL encode helper
+ */
+function base64UrlEncode(str) {
+    try {
+        return btoa(unescape(encodeURIComponent(str)))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+    } catch (e) {
+        console.error('Base64 encode failed:', e);
+        return '';
+    }
+}
+
+/**
+ * Generate JWT signature using HMAC SHA-256
+ */
+async function generateSignature(headerBy64, payloadBy64, secret) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${headerBy64}.${payloadBy64}`);
+    const keyData = encoder.encode(secret);
+
+    try {
+        const key = await crypto.subtle.importKey(
+            'raw',
+            keyData,
+            { name: 'HMAC', hash: 'SHA-256' },
+            false,
+            ['sign']
+        );
+
+        const signature = await crypto.subtle.sign('HMAC', key, data);
+
+        // Convert ArrayBuffer to binary string
+        const signatureArray = Array.from(new Uint8Array(signature));
+        const signatureString = signatureArray.map(b => String.fromCharCode(b)).join('');
+
+        return btoa(signatureString)
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
+    } catch (e) {
+        console.error('Signing failed:', e);
+        throw e;
+    }
+}
+
+/**
+ * Sign a JWT token
+ * @param {object} header 
+ * @param {object} payload 
+ * @param {string} secret 
+ */
+export async function signJwt(header, payload, secret) {
+    try {
+        const headerStr = base64UrlEncode(JSON.stringify(header));
+        const payloadStr = base64UrlEncode(JSON.stringify(payload));
+
+        if (!secret) return `${headerStr}.${payloadStr}.`;
+
+        const signature = await generateSignature(headerStr, payloadStr, secret);
+        return `${headerStr}.${payloadStr}.${signature}`;
+    } catch (e) {
+        console.error('JWT Signing error:', e);
+        return null;
+    }
+}
+
+/**
+ * Verify JWT signature
+ */
+export async function verifyJwt(token, secret) {
+    if (!token || !secret) return false;
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+
+    try {
+        const expectedSignature = await generateSignature(parts[0], parts[1], secret);
+        return expectedSignature === parts[2];
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
  * Get human readable expiration status
  * @param {number} exp - Expiration timestamp in seconds
  */
