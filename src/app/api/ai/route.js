@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile';
+const MODEL = 'openai/gpt-oss-120b';
 
 
 export async function POST(request) {
@@ -48,8 +48,9 @@ export async function POST(request) {
                     { role: 'system', content: systemPrompt || 'You are a helpful coding assistant. Be concise.' },
                     { role: 'user', content: prompt },
                 ],
-                temperature: 0.7,
-                max_tokens: 256,
+                temperature: 1,
+                max_tokens: 8192,
+                top_p: 1,
             }),
         });
 
