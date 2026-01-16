@@ -70,6 +70,20 @@ const LanguageLoader = ({ language, children }) => {
   return children;
 };
 
+/**
+ * A lightweight code editor with syntax highlighting using PrismJS.
+ * Supports lazy loading of languages.
+ *
+ * @param {Object} props
+ * @param {string} props.value - Current code value
+ * @param {Function} props.onChange - Callback when value changes
+ * @param {string} [props.language="plaintext"] - Language for syntax highlighting
+ * @param {string} [props.placeholder] - Placeholder text
+ * @param {boolean} [props.readOnly=false] - Whether editor is read-only
+ * @param {Function} [props.onRun] - Callback for Ctrl/Cmd+Enter shortcut
+ * @param {string} [props.className] - Additional classes
+ * @param {Object} [props.style] - Inline styles
+ */
 export default function CodeEditor({
   value,
   onChange,
@@ -77,6 +91,8 @@ export default function CodeEditor({
   placeholder,
   readOnly = false,
   onRun,
+  className = '',
+  style = {},
 }) {
   const highlight = useCallback(
     (code) => {
@@ -98,7 +114,7 @@ export default function CodeEditor({
   };
 
   return (
-    <div className={styles.container} onKeyDown={handleKeyDown}>
+    <div className={`${styles.container} ${className}`} style={style} onKeyDown={handleKeyDown}>
       <LanguageLoader language={language}>
         <Editor
           value={value}
@@ -120,6 +136,11 @@ export default function CodeEditor({
   );
 }
 
+/**
+ * Preloads a syntax highlighting language.
+ *
+ * @param {string} language - The language identifier (e.g. 'json', 'javascript')
+ */
 export function preloadLanguage(language) {
   const loadFn = LANGUAGE_MODULES[language];
   if (loadFn && !loadedLanguages.has(language)) {
@@ -129,6 +150,11 @@ export function preloadLanguage(language) {
   }
 }
 
+/**
+ * Returns a list of all supported languages.
+ *
+ * @returns {string[]} Array of language identifiers
+ */
 export function getAvailableLanguages() {
   return Object.keys(LANGUAGE_MODULES);
 }

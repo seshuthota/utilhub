@@ -68,7 +68,16 @@ export default function NumberBaseTool() {
     // Update source of truth if valid
     try {
       if (cleanVal) {
-        const dec = BigInt(parseInt(cleanVal, base));
+        let dec;
+        if (base === 10) {
+          dec = BigInt(cleanVal);
+        } else if (base === 16) {
+          dec = BigInt(`0x${cleanVal}`);
+        } else if (base === 8) {
+          dec = BigInt(`0o${cleanVal}`);
+        } else if (base === 2) {
+          dec = BigInt(`0b${cleanVal}`);
+        }
         setValue(dec.toString());
       }
     } catch (e) {

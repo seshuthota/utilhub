@@ -23,14 +23,16 @@ export default function HistorySidebar({
     onClear,
     onDelete,
     renderItem,
-    title = 'History'
+    title = 'History',
+    className = '',
+    style = {}
 }) {
     if (!isOpen) return null;
 
     return (
         <>
             <div className={styles.sidebarOverlay} onClick={onClose} />
-            <div className={styles.sidebar}>
+            <div className={`${styles.sidebar} ${className}`} style={style}>
                 <div className={styles.header}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <History size={18} />

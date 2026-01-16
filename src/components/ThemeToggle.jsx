@@ -4,6 +4,10 @@ import { useTheme } from './ThemeProvider';
 import { Sun, Moon } from 'lucide-react';
 import styles from './ThemeToggle.module.css';
 
+/**
+ * Button to toggle between light and dark themes.
+ * Uses the ThemeProvider context.
+ */
 export default function ThemeToggle() {
     const { theme, toggleTheme } = useTheme();
 

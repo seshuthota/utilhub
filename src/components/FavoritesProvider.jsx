@@ -16,6 +16,13 @@ const FavoritesContext = createContext({
   isFavorite: () => false,
 });
 
+/**
+ * Context provider for managing user favorites and recent tool usage.
+ * Persists data to localStorage.
+ *
+ * @param {Object} props
+ * @param {React.ReactNode} props.children
+ */
 export function FavoritesProvider({ children }) {
   const [favorites, setFavorites] = useState([]);
   const [recentTools, setRecentTools] = useState([]);
@@ -95,6 +102,10 @@ export function FavoritesProvider({ children }) {
   );
 }
 
+/**
+ * Hook to access favorites and recent tools.
+ * @returns {{ favorites: string[], recentTools: string[], usageStats: Object, toggleFavorite: (id: string) => void, addRecent: (id: string) => void, isFavorite: (id: string) => boolean, clearData: () => void }}
+ */
 export function useFavorites() {
   return useContext(FavoritesContext);
 }

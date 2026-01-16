@@ -3,10 +3,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.4rem 0.8rem;
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.3), rgba(79, 70, 229, 0.3));
-    border: 1px solid rgba(147, 51, 234, 0.4);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-ai), transparent 70%), color-mix(in srgb, var(--accent-primary), transparent 70%));
+    border: 1px solid color-mix(in srgb, var(--accent-ai), transparent 60%);
     border-radius: 6px;
-    color: #fff;
+    color: var(--color-white);
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 500;
@@ -14,7 +14,7 @@
 }
 
 .button:hover {
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.4), rgba(79, 70, 229, 0.4));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-ai), transparent 60%), color-mix(in srgb, var(--accent-primary), transparent 60%));
 }
 
 .button:disabled {

@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import cronstrue from 'cronstrue';
 import cronParser from 'cron-parser';
 import { Clock, Calendar, AlertTriangle } from 'lucide-react';
-import AiAssistButton from '@/components/common/AiAssistButton';
+import AiAssistBar from '@/components/common/AiAssistBar';
 import styles from './page.module.css';
 
 export default function CronTool() {
@@ -57,37 +57,14 @@ export default function CronTool() {
             </header>
 
             {/* AI Assist Section */}
-            <div className={styles.aiSection} style={{
-                marginBottom: '1.5rem',
-                padding: '1rem',
-                background: 'rgba(147, 51, 234, 0.1)',
-                borderRadius: '8px',
-                border: '1px solid rgba(147, 51, 234, 0.2)'
-            }}>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <input
-                        type="text"
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder="Describe when to run (e.g., 'every Monday at 3 PM', 'first day of month')"
-                        style={{
-                            flex: 1,
-                            padding: '0.6rem 1rem',
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '6px',
-                            color: 'var(--foreground)',
-                            fontSize: '0.9rem'
-                        }}
-                    />
-                    <AiAssistButton
-                        type="cron"
-                        payload={{ description: aiPrompt }}
-                        onResult={handleAiResult}
-                        disabled={!aiPrompt.trim()}
-                    />
-                </div>
-            </div>
+            {/* AI Assist Section */}
+            <AiAssistBar
+                prompt={aiPrompt}
+                onPromptChange={setAiPrompt}
+                type="cron"
+                onResult={handleAiResult}
+                placeholder="Describe when to run (e.g., 'every Monday at 3 PM', 'first day of month')"
+            />
 
             <div className={styles.grid}>
                 <div className={styles.inputPanel}>

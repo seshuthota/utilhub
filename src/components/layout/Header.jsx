@@ -7,6 +7,10 @@ import ThemeToggle from '@/components/ThemeToggle';
 import CommandPalette from '@/components/common/CommandPalette';
 import styles from './Header.module.css';
 
+/**
+ * Main application header with logo, global search trigger, and navigation/theme toggle.
+ * Handles the global Command Palette shortcut (Cmd/Ctrl+K).
+ */
 export default function Header() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 

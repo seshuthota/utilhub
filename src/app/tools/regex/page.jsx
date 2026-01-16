@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Flag, AlertTriangle, RefreshCw, Layers, BookOpen, ArrowRight, Copy, Zap } from 'lucide-react';
-import AiAssistButton from '@/components/common/AiAssistButton';
+import AiAssistBar from '@/components/common/AiAssistBar';
 
 import { parseAiResponse, explainRegex, CHEATSHEET } from '@/utils/regex';
 import { useUrlState } from '@/hooks/useUrlState';
@@ -133,21 +133,14 @@ export default function RegexTool() {
             </header>
 
             {/* AI Assist */}
-            <div className={styles.aiSection}>
-                <input
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="Ask AI (e.g., 'match IPv4 addresses', 'extract dates')"
-                    className={styles.aiInput}
-                />
-
-                <AiAssistButton
-                    type={pattern ? 'regex-edit' : 'regex-create'}
-                    payload={{ description: aiPrompt, pattern, flags }}
-                    onResult={handleAiResult}
-                    disabled={!aiPrompt.trim()}
-                />
-            </div>
+            <AiAssistBar
+                prompt={aiPrompt}
+                onPromptChange={setAiPrompt}
+                type={pattern ? 'regex-edit' : 'regex-create'}
+                payload={{ pattern, flags }}
+                onResult={handleAiResult}
+                placeholder="Ask AI (e.g., 'match IPv4 addresses', 'extract dates')"
+            />
 
             {/* Presets */}
             <div className={styles.presetsSection}>

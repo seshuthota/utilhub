@@ -1,0 +1,37 @@
+.container {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(147, 51, 234, 0.1);
+    /* Ideally use var(--accent-ai) but with opacity. 
+       CSS variables with opacity is tricky without color-mix or rgb vars.
+       For now, let's leave the rgba or use color-mix if supported. 
+       Let's stick to the inline value converted to CSS for now, but referenced to variables where possible.
+    */
+    background: color-mix(in srgb, var(--accent-ai), transparent 90%);
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--accent-ai), transparent 80%);
+}
+
+.inputWrapper {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.input {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    background: var(--bg-card);
+    /* Using semantic bg */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent-ai);
+    box-shadow: 0 0 0 2px var(--accent-ai-glow);
+}

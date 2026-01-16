@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import CodeEditor from "@/components/common/CodeEditor";
 import ShareButton from "@/components/common/ShareButton";
-import AiAssistButton from "@/components/common/AiAssistButton";
+import AiAssistBar from "@/components/common/AiAssistBar";
 import HistorySidebar from "@/components/common/HistorySidebar";
 
 import { useUrlState } from "@/hooks/useUrlState";
@@ -276,39 +276,14 @@ export default function JsonTool() {
 
       <SizeWarning inputSize={inputSize} />
 
-      <div
-        style={{
-          marginBottom: "1.5rem",
-          padding: "1rem",
-          background: "rgba(147, 51, 234, 0.1)",
-          borderRadius: "8px",
-          border: "1px solid rgba(147, 51, 234, 0.2)",
-        }}
-      >
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <input
-            type="text"
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="e.g., 'fix this broken JSON', 'convert this list to JSON', 'generate 5 user objects'"
-            style={{
-              flex: 1,
-              padding: "0.6rem 1rem",
-              background: "rgba(0,0,0,0.3)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "6px",
-              color: "var(--foreground)",
-              fontSize: "0.9rem",
-            }}
-          />
-          <AiAssistButton
-            type="json"
-            payload={{ description: aiPrompt, code }}
-            onResult={handleAiResult}
-            disabled={!aiPrompt.trim()}
-          />
-        </div>
-      </div>
+      <AiAssistBar
+        prompt={aiPrompt}
+        onPromptChange={setAiPrompt}
+        type="json"
+        payload={{ code }}
+        onResult={handleAiResult}
+        placeholder="e.g., 'fix this broken JSON', 'convert this list to JSON', 'generate 5 user objects'"
+      />
 
       {error && (
         <div className={styles.errorAlert}>

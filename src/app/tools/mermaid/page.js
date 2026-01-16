@@ -5,7 +5,7 @@ import mermaid from 'mermaid';
 import { GitGraph, Download, Trash2, Maximize } from 'lucide-react';
 import CodeEditor from '@/components/common/CodeEditor';
 import ShareButton from '@/components/common/ShareButton';
-import AiAssistButton from '@/components/common/AiAssistButton';
+import AiAssistBar from '@/components/common/AiAssistBar';
 import AiDisclaimer from '@/components/common/AiDisclaimer';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import { useUrlState } from '@/hooks/useUrlState';
@@ -78,37 +78,13 @@ export default function MermaidTool() {
             </header>
 
             {/* AI Assist Section */}
-            <div style={{
-                marginBottom: '1.5rem',
-                padding: '1rem',
-                background: 'rgba(147, 51, 234, 0.1)',
-                borderRadius: '8px',
-                border: '1px solid rgba(147, 51, 234, 0.2)'
-            }}>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <input
-                        type="text"
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder="e.g., 'a sequence diagram for user login', 'a flowchart for order processing'"
-                        style={{
-                            flex: 1,
-                            padding: '0.6rem 1rem',
-                            background: 'rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: '6px',
-                            color: 'var(--foreground)',
-                            fontSize: '0.9rem'
-                        }}
-                    />
-                    <AiAssistButton
-                        type="mermaid"
-                        payload={{ description: aiPrompt }}
-                        onResult={handleAiResult}
-                        disabled={!aiPrompt.trim()}
-                    />
-                </div>
-            </div>
+            <AiAssistBar
+                prompt={aiPrompt}
+                onPromptChange={setAiPrompt}
+                type="mermaid"
+                onResult={handleAiResult}
+                placeholder="e.g., 'a sequence diagram for user login', 'a flowchart for order processing'"
+            />
 
             {error && <div className={styles.errorAlert}>{error}</div>}
 

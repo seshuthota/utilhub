@@ -26,14 +26,30 @@ const SHORTCUTS = {
   "API Tester": [{ action: "Send Request", keys: ["Cmd", "Enter"] }],
 };
 
-export default function ShortcutsHelpModal({ onClose }) {
+/**
+ * Modal displaying keyboard shortcuts for the application.
+ * Adapts keys (Cmd/Ctrl) based on the user's platform (Mac/Windows).
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether the modal is visible
+ * @param {Function} props.onClose - Callback to close the modal
+ * @param {string} [props.className] - Additional classes
+ * @param {Object} [props.style] - Inline styles
+ */
+export default function ShortcutsHelpModal({ isOpen, onClose, className = '', style = {} }) {
   const [isMac, setIsMac] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0);
-    }, 0);
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        setIsMac(navigator.platform.toUpperCase().indexOf("MAC") >= 0);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
     const handleEscape = (e) => {
       if (e.key === "Escape") onClose();
     };
@@ -41,9 +57,8 @@ export default function ShortcutsHelpModal({ onClose }) {
     window.addEventListener("keydown", handleEscape);
     return () => {
       window.removeEventListener("keydown", handleEscape);
-      clearTimeout(timer);
     };
-  }, [onClose]);
+  }, [isOpen, onClose]);
 
   const formatKey = (key) => {
     if (key === "Cmd") return isMac ? "⌘" : "Ctrl";
@@ -53,9 +68,12 @@ export default function ShortcutsHelpModal({ onClose }) {
     return key;
   };
 
+  if (!isOpen) return null;
+
   return (
     <div
-      className={styles.overlay}
+      className={`${styles.overlay} ${className}`}
+      style={style}
       onClick={onClose}
       role="dialog"
       aria-modal="true"

@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { Copy, ExternalLink, Check } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import AiAssistButton from '@/components/common/AiAssistButton';
+import AiAssistBar from '@/components/common/AiAssistBar';
 import styles from './page.module.css';
 
 export default function RegexGenerator() {
@@ -89,20 +89,13 @@ export default function RegexGenerator() {
                     ))}
                 </div>
 
-                <textarea
-                    className={styles.descriptionInput}
+                <AiAssistBar
+                    prompt={description}
+                    onPromptChange={setDescription}
+                    type="regex-generator"
+                    onResult={handleAiResponse}
                     placeholder="E.g., Match a US phone number like (555) 123-4567..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
                 />
-
-                <div style={{ alignSelf: 'flex-end' }}>
-                    <AiAssistButton
-                        type="regex-generator"
-                        payload={{ description }}
-                        onResult={handleAiResponse}
-                    />
-                </div>
             </div>
 
             {regex && (

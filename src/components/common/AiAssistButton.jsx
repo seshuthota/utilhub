@@ -7,6 +7,15 @@ import { useToast } from '@/components/Toast';
 import AiDisclaimer, { hasAcceptedAiDisclaimer } from './AiDisclaimer';
 import styles from './AiAssistButton.module.css';
 
+/**
+ * Button to trigger AI generation with built-in loading state and disclaimer modal.
+ *
+ * @param {Object} props
+ * @param {string} props.type - The type of AI generation task (e.g., 'json-schema', 'regex')
+ * @param {any} props.payload - Data to send to the AI generation function
+ * @param {Function} props.onResult - Callback function receiving the AI output
+ * @param {boolean} [props.disabled=false] - Whether the button is disabled
+ */
 export default function AiAssistButton({ type, payload, onResult, disabled = false }) {
     const [loading, setLoading] = useState(false);
     const [showDisclaimer, setShowDisclaimer] = useState(false);

@@ -1,5 +1,5 @@
 
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FavoritesProvider, useFavorites } from '../components/FavoritesProvider';
 import ToolCard from '../components/common/ToolCard';
@@ -66,7 +66,7 @@ describe('Favorites System', () => {
         expect(screen.getByTestId('is-fav')).toHaveTextContent('no');
     });
 
-    it('loads from localStorage', () => {
+    it('loads from localStorage', async () => {
         localStorageMock.getItem.mockReturnValue(JSON.stringify(['tool-1', 'tool-2']));
 
         render(
@@ -75,8 +75,10 @@ describe('Favorites System', () => {
             </FavoritesProvider>
         );
 
-        expect(screen.getByTestId('count')).toHaveTextContent('2');
-        expect(screen.getByTestId('is-fav')).toHaveTextContent('yes');
+        await waitFor(() => {
+            expect(screen.getByTestId('count')).toHaveTextContent('2');
+            expect(screen.getByTestId('is-fav')).toHaveTextContent('yes');
+        });
     });
 });
 

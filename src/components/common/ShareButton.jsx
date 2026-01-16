@@ -5,7 +5,15 @@ import { useState } from 'react';
 import { useToast } from '@/components/Toast';
 import styles from './ShareButton.module.css';
 
-export default function ShareButton({ title = "Share" }) {
+/**
+ * A button that copies the current URL to the clipboard.
+ *
+ * @param {Object} props
+ * @param {string} [props.title="Share"] - Button label text
+ * @param {string} [props.className] - Additional classes
+ * @param {Object} [props.style] - Inline styles
+ */
+export default function ShareButton({ title = "Share", className = '', style = {} }) {
     const { showToast } = useToast();
     const [copied, setCopied] = useState(false);
 
@@ -20,7 +28,8 @@ export default function ShareButton({ title = "Share" }) {
         <button
             onClick={handleShare}
             title="Copy link to current state"
-            className={styles.button}
+            className={`${styles.button} ${className}`}
+            style={style}
         >
             {copied ? <Check size={16} className={styles.copied} /> : <LinkIcon size={16} />}
             {title}

@@ -6,7 +6,17 @@ import { Search, X, Command } from "lucide-react";
 import { tools } from "@/config/tools";
 import styles from "./CommandPalette.module.css";
 
-export default function CommandPalette({ isOpen, onClose }) {
+/**
+ * Global command palette for searching tools and navigation.
+ * Also supports smart suggestions based on input content detection.
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Whether the palette is visible
+ * @param {Function} props.onClose - Callback to close the palette
+ * @param {string} [props.className] - Additional classes
+ * @param {Object} [props.style] - Inline styles
+ */
+export default function CommandPalette({ isOpen, onClose, className = '', style = {} }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
@@ -93,7 +103,7 @@ export default function CommandPalette({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={`${styles.overlay} ${className}`} style={style} onClick={onClose}>
       <div
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}

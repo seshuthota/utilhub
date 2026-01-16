@@ -7,6 +7,13 @@ const ToastContext = createContext({
     showToast: () => { },
 });
 
+/**
+ * Context provider for managing toast notifications.
+ * Renders the toast container and notifications.
+ *
+ * @param {Object} props
+ * @param {React.ReactNode} props.children
+ */
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 
@@ -35,6 +42,10 @@ export function ToastProvider({ children }) {
     );
 }
 
+/**
+ * Hook to access the toast notification system.
+ * @returns {{ showToast: (message: string, type?: 'success'|'error'|'info', description?: string) => void }}
+ */
 export function useToast() {
     return useContext(ToastContext);
 }

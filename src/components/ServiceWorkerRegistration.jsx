@@ -2,6 +2,10 @@
 
 import { useEffect } from 'react';
 
+/**
+ * Registers the service worker for PWA support.
+ * Does not render any UI.
+ */
 export default function ServiceWorkerRegistration() {
     useEffect(() => {
         if ('serviceWorker' in navigator) {

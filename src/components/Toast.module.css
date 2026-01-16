@@ -21,12 +21,12 @@
 
 .success {
     background: var(--success-color);
-    color: #000;
+    color: var(--color-black);
 }
 
 .error {
     background: var(--error-color);
-    color: #fff;
+    color: var(--color-white);
 }
 
 .info {

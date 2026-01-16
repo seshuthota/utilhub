@@ -4,6 +4,10 @@ import { Component } from 'react';
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
 import styles from './ErrorBoundary.module.css';
 
+/**
+ * Catches JavaScript errors anywhere in their child component tree,
+ * logs those errors, and displays a fallback UI.
+ */
 export default class ErrorBoundary extends Component {
     constructor(props) {
         super(props);

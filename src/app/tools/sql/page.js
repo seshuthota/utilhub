@@ -16,7 +16,7 @@ import { format } from "sql-formatter";
 import alasql from "alasql";
 import CodeEditor from "@/components/common/CodeEditor";
 import ShareButton from "@/components/common/ShareButton";
-import AiAssistButton from "@/components/common/AiAssistButton";
+import AiAssistBar from "@/components/common/AiAssistBar";
 
 import { useUrlState } from "@/hooks/useUrlState";
 import { useHotkeys } from "@/hooks/useHotkeys";
@@ -178,38 +178,14 @@ export default function SqlTool() {
       </header>
 
       {/* AI Assist */}
-      <div className={styles.aiSection} style={{ marginBottom: "1rem" }}>
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            alignItems: "center",
-            background: "var(--bg-secondary)",
-            padding: "0.5rem",
-            borderRadius: "8px",
-          }}
-        >
-          <input
-            className={styles.aiInput}
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="Ask AI to write a query (e.g. 'Show products under $100')"
-            style={{
-              flex: 1,
-              border: "none",
-              background: "transparent",
-              outline: "none",
-              color: "var(--text-primary)",
-            }}
-          />
-          <AiAssistButton
-            type="sql"
-            payload={{ description: aiPrompt }}
-            onResult={handleAiResult}
-            disabled={!aiPrompt.trim()}
-          />
-        </div>
-      </div>
+      <AiAssistBar
+        prompt={aiPrompt}
+        onPromptChange={setAiPrompt}
+        type="sql"
+        payload={{ description: aiPrompt }}
+        onResult={handleAiResult}
+        placeholder="Ask AI to write a query (e.g. 'Show products under $100')"
+      />
 
       <div
         className={styles.editorContainer}

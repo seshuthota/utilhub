@@ -9,8 +9,13 @@
 
   /* Accents */
   --accent-primary: #3b82f6;
+  --accent-ai: #9333ea;
   /* Modern Blue */
   --accent-glow: rgba(59, 130, 246, 0.5);
+  --accent-ai-glow: rgba(147, 51, 234, 0.5);
+
+  --color-black: #000000;
+  --color-white: #ffffff;
 
   /* Semantic Colors */
   --success-color: #00C851;

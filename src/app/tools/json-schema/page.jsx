@@ -6,7 +6,7 @@ import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-json';
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import AiAssistButton from '@/components/common/AiAssistButton';
+import AiAssistBar from '@/components/common/AiAssistBar';
 import styles from './page.module.css';
 
 const ajv = new Ajv({ allErrors: true });
@@ -78,23 +78,14 @@ export default function JsonSchemaTool() {
             </header>
 
             {/* AI Assist Section */}
-            <div className={styles.aiSection}>
-                <div className={styles.aiInputRow}>
-                    <input
-                        type="text"
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder="e.g., 'generate schema from this data', 'add a required email field', 'make age optional'"
-                        className={styles.aiInput}
-                    />
-                    <AiAssistButton
-                        type="json-schema"
-                        payload={{ description: aiPrompt, data, schema }}
-                        onResult={handleAiResult}
-                        disabled={!aiPrompt.trim()}
-                    />
-                </div>
-            </div>
+            <AiAssistBar
+                prompt={aiPrompt}
+                onPromptChange={setAiPrompt}
+                type="json-schema"
+                payload={{ data, schema }} // description is added by AiAssistBar
+                onResult={handleAiResult}
+                placeholder="e.g., 'generate schema from this data', 'add a required email field', 'make age optional'"
+            />
 
             <div className={styles.grid}>
                 <div className={styles.pane}>

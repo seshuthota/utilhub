@@ -18,7 +18,18 @@ import { detectType } from "@/utils/detection";
 import { useToast } from "@/components/Toast";
 import styles from "./ActionToolbar.module.css";
 
-export default function ActionToolbar({ content, currentToolId, onCopy }) {
+/**
+ * Toolbar providing quick actions like Copy and "Send to..." tool chaining.
+ * Automatically suggests tools based on content detection.
+ *
+ * @param {Object} props
+ * @param {string} props.content - Content to operate on
+ * @param {string} props.currentToolId - ID of the current tool (to exclude from suggestions)
+ * @param {Function} [props.onCopy] - Custom copy handler
+ * @param {string} [props.className] - Additional classes
+ * @param {Object} [props.style] - Inline styles
+ */
+export default function ActionToolbar({ content, currentToolId, onCopy, className = '', style = {} }) {
   const [isOpen, setIsOpen] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
   const router = useRouter();
@@ -111,7 +122,7 @@ export default function ActionToolbar({ content, currentToolId, onCopy }) {
   if (!content) return null;
 
   return (
-    <div className={styles.toolbar}>
+    <div className={`${styles.toolbar} ${className}`} style={style}>
       <button className={styles.actionBtn} onClick={handleCopy} title="Copy">
         <Copy size={14} /> Copy
       </button>
