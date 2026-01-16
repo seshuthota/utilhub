@@ -13,11 +13,23 @@ const nextConfig = {
 
   webpack: (config, { webpack }) => {
     config.plugins.push(
-
       new webpack.IgnorePlugin({
         resourceRegExp: /^(react-native|react-native-fs|react-native-fetch-blob)$/,
       })
     );
+
+    config.module.rules.push({
+      test: /\.node$/,
+      use: "node-loader",
+    });
+
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false,
+    };
+
     return config;
   },
 };
