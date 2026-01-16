@@ -10,6 +10,7 @@ export default defineConfig({
     setupFiles: "./src/test/setup.js",
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "\\.(css|less|scss|sass)$": "identity-obj-proxy",
     },
     include: ["src/test/**/*.test.{js,jsx}", "src/test/**/*.spec.{js,jsx}"],
     coverage: {

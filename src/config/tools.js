@@ -1,5 +1,5 @@
 import {
-    FileText, Braces, GitGraph, FileDiff, Database, FileCode, ImageIcon, RefreshCcw, Clock, Shield, ShieldCheck, Type, LinkIcon, Search, QrCode, Palette, Binary, Network, Lock
+    FileText, Braces, GitGraph, FileDiff, Database, FileCode, ImageIcon, RefreshCcw, Clock, Shield, ShieldCheck, Type, LinkIcon, Search, QrCode, Palette, Binary, Network, Lock, Zap, Container, Image, Settings
 } from 'lucide-react';
 
 export const tools = [
@@ -333,6 +333,66 @@ export const tools = [
         isClientSideOnly: true,
         hasAiFeatures: false,
         category: 'utility'
+    },
+    {
+        id: 'svg-optimizer',
+        title: 'SVG Optimizer',
+        description: 'Optimize and minify SVG files using SVGO.',
+        icon: Zap,
+        href: '/tools/svg',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'media'
+    },
+    {
+        id: 'docker-converter',
+        title: 'Docker -> Compose',
+        description: 'Convert "docker run" commands to docker-compose.yml files.',
+        icon: Container,
+        href: '/tools/docker',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'devops'
+    },
+    {
+        id: 'favicon-generator',
+        title: 'Favicon Generator',
+        description: 'Generate comprehensive favicon packages (ICO, PNG, Manifest) from an image.',
+        icon: Image,
+        href: '/tools/favicon',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'design'
+    },
+    {
+        id: 'yaml-validator',
+        title: 'Kubernetes/YAML Validator',
+        description: 'Validate YAML syntax and Kubernetes manifests.',
+        icon: ShieldCheck,
+        href: '/tools/yaml-validator',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'devops'
+    },
+    {
+        id: 'graphql-schema',
+        title: 'GraphQL Schema Tool',
+        description: 'Convert GraphQL SDL to Introspection JSON or TypeScript.',
+        icon: Database,
+        href: '/tools/graphql-schema',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'code'
+    },
+    {
+        id: 'config-converter',
+        title: 'Config Converter',
+        description: 'Convert between JSON, YAML, and TOML.',
+        icon: Settings,
+        href: '/tools/converter',
+        isClientSideOnly: true,
+        hasAiFeatures: false,
+        category: 'devops'
     },
     {
         id: 'regex-generator',
