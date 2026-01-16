@@ -1,195 +1,346 @@
+"use client";
 
-'use client';
-
-import { useState, useCallback } from 'react';
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-
-// Prism Languages
-import 'prismjs/components/prism-css';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-markup'; // matches html/xml
-import 'prismjs/components/prism-typescript';
-import 'prismjs/components/prism-json';
-import 'prismjs/components/prism-sql';
-import 'prismjs/components/prism-yaml';
-import 'prismjs/components/prism-markdown';
-
-// Formatters
-import * as prettier from 'prettier/standalone';
-import * as parserBabel from 'prettier/plugins/babel';
-import * as parserHtml from 'prettier/plugins/html';
-import * as parserPostcss from 'prettier/plugins/postcss';
-import * as parserYaml from 'prettier/plugins/yaml';
-import * as parserMarkdown from 'prettier/plugins/markdown';
-import * as parserEstree from 'prettier/plugins/estree';
-
-import { format as formatSql } from 'sql-formatter';
-import xmlFormat from 'xml-formatter';
-
-import { Wand2, Copy, Trash2, Minimize2, AlertCircle } from 'lucide-react';
-import { useToast } from '@/components/Toast';
-import styles from './page.module.css';
+import { useState, useCallback, useMemo } from "react";
+import Editor from "react-simple-code-editor";
+import Prism from "prismjs";
+import {
+  Wand2,
+  Copy,
+  Trash2,
+  Minimize2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "@/components/Toast";
+import { useInputSize, getProcessingEstimate } from "@/hooks/useInputSize";
+import styles from "./page.module.css";
 
 const LANGUAGES = [
-    { id: 'javascript', name: 'JavaScript', parser: 'babel', plugin: [parserBabel, parserEstree] },
-    { id: 'typescript', name: 'TypeScript', parser: 'babel-ts', plugin: [parserBabel, parserEstree] },
-    { id: 'html', name: 'HTML', parser: 'html', plugin: [parserHtml] },
-    { id: 'css', name: 'CSS', parser: 'css', plugin: [parserPostcss] },
-    { id: 'json', name: 'JSON', parser: 'json', plugin: [parserBabel, parserEstree] },
-    { id: 'markdown', name: 'Markdown', parser: 'markdown', plugin: [parserMarkdown] },
-    { id: 'yaml', name: 'YAML', parser: 'yaml', plugin: [parserYaml] },
-    { id: 'xml', name: 'XML', parser: 'xml', plugin: [] }, // handled separately
-    { id: 'sql', name: 'SQL', parser: 'sql', plugin: [] }, // handled separately
+  { id: "javascript", name: "JavaScript", parser: "babel" },
+  { id: "typescript", name: "TypeScript", parser: "babel-ts" },
+  { id: "html", name: "HTML", parser: "html" },
+  { id: "css", name: "CSS", parser: "css" },
+  { id: "json", name: "JSON", parser: "json" },
+  { id: "markdown", name: "Markdown", parser: "markdown" },
+  { id: "yaml", name: "YAML", parser: "yaml" },
+  { id: "xml", name: "XML", parser: "xml" },
+  { id: "sql", name: "SQL", parser: "sql" },
 ];
 
+const PLUGIN_MAP = {
+  javascript: () => import("prettier/plugins/babel"),
+  typescript: () => import("prettier/plugins/babel"),
+  json: () => import("prettier/plugins/babel"),
+  html: () => import("prettier/plugins/html"),
+  css: () => import("prettier/plugins/postcss"),
+  yaml: () => import("prettier/plugins/yaml"),
+  markdown: () => import("prettier/plugins/markdown"),
+};
+
+let loadedPlugins = null;
+let prettierInstance = null;
+
+async function getPrettier() {
+  if (prettierInstance) return prettierInstance;
+
+  const prettier = await import("prettier/standalone");
+  prettierInstance = prettier;
+  return prettier;
+}
+
+async function getPlugins(language) {
+  const pluginFn = PLUGIN_MAP[language];
+  if (!pluginFn) return [];
+
+  const key = language;
+  if (loadedPlugins && loadedPlugins[key]) {
+    return loadedPlugins[key];
+  }
+
+  const plugin = await pluginFn();
+  if (!loadedPlugins) loadedPlugins = {};
+  loadedPlugins[key] = [plugin];
+  return loadedPlugins[key];
+}
+
+async function loadSqlFormatter() {
+  const { format } = await import("sql-formatter");
+  return format;
+}
+
+async function loadXmlFormatter() {
+  const xmlFormatter = await import("xml-formatter");
+  return xmlFormatter.default || xmlFormatter;
+}
+
 export default function BeautifyTool() {
-    const [code, setCode] = useState('');
-    const [language, setLanguage] = useState('javascript');
-    const [error, setError] = useState(null);
-    const { showToast } = useToast();
+  const [code, setCode] = useState("");
+  const [language, setLanguage] = useState("javascript");
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast();
 
-    const handleBeautify = async () => {
-        try {
-            setError(null);
-            if (!code.trim()) return;
+  const inputSize = useInputSize({
+    warningThreshold: 1024 * 200,
+    heavyThreshold: 1024 * 500,
+    criticalThreshold: 1024 * 1024,
+    maxSize: 5 * 1024 * 1024,
+  });
 
-            const selectedLang = LANGUAGES.find(l => l.id === language);
-            let formatted = '';
+  const handleBeautify = useCallback(async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      inputSize.startProcessing();
 
-            if (language === 'sql') {
-                formatted = formatSql(code);
-            } else if (language === 'xml') {
-                formatted = xmlFormat(code, {
-                    indentation: '  ',
-                    collapseContent: true,
-                    lineSeparator: '\n'
-                });
-            } else {
-                formatted = await prettier.format(code, {
-                    parser: selectedLang.parser,
-                    plugins: selectedLang.plugin,
-                    printWidth: 80,
-                    tabWidth: 2,
-                    semi: true,
-                    singleQuote: true,
-                });
-            }
+      if (!code.trim()) {
+        setIsLoading(false);
+        return;
+      }
 
-            setCode(formatted);
-            showToast('Code beautified successfully', 'success');
-        } catch (e) {
-            console.error(e);
-            setError(e.message);
-            showToast('Formatting failed', 'error');
-        }
+      let formatted;
+
+      if (language === "sql") {
+        const formatSql = await loadSqlFormatter();
+        formatted = formatSql(code);
+      } else if (language === "xml") {
+        const xmlFormatter = await loadXmlFormatter();
+        formatted = xmlFormatter(code, {
+          indentation: "  ",
+          collapseContent: true,
+          lineSeparator: "\n",
+        });
+      } else {
+        const prettier = await getPrettier();
+        const plugins = await getPlugins(language);
+        formatted = await prettier.format(code, {
+          parser: LANGUAGES.find((l) => l.id === language)?.parser,
+          plugins,
+          printWidth: 80,
+          tabWidth: 2,
+          semi: true,
+          singleQuote: true,
+        });
+      }
+
+      setCode(formatted);
+      showToast("Code beautified successfully", "success");
+    } catch (e) {
+      console.error(e);
+      setError(e.message);
+      showToast("Formatting failed", "error");
+    } finally {
+      setIsLoading(false);
+      inputSize.finishProcessing();
+    }
+  }, [code, language, showToast, inputSize]);
+
+  const handleMinify = useCallback(async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+      inputSize.startProcessing();
+
+      if (!code.trim()) {
+        setIsLoading(false);
+        return;
+      }
+
+      let minified;
+
+      if (language === "json") {
+        minified = JSON.stringify(JSON.parse(code));
+      } else if (language === "xml") {
+        const xmlFormatter = await loadXmlFormatter();
+        minified = xmlFormatter(code, { indentation: "", lineSeparator: "" });
+      } else if (language === "sql") {
+        minified = code.replace(/\s+/g, " ").trim();
+      } else {
+        minified = code.replace(/\s+/g, " ").trim();
+        showToast("Basic minification applied", "info");
+      }
+
+      if (minified) {
+        setCode(minified);
+        showToast("Minified successfully", "success");
+      }
+    } catch (e) {
+      setError(e.message);
+      showToast("Minification failed", "error");
+    } finally {
+      setIsLoading(false);
+      inputSize.finishProcessing();
+    }
+  }, [code, language, showToast, inputSize]);
+
+  const getPrismLang = useCallback((lang) => {
+    switch (lang) {
+      case "html":
+      case "xml":
+        return Prism.languages.markup;
+      case "css":
+        return Prism.languages.css;
+      case "javascript":
+        return Prism.languages.javascript;
+      case "typescript":
+        return Prism.languages.typescript || Prism.languages.javascript;
+      case "json":
+        return Prism.languages.json;
+      case "sql":
+        return Prism.languages.sql;
+      case "yaml":
+        return Prism.languages.yaml;
+      case "markdown":
+        return Prism.languages.markdown;
+      default:
+        return Prism.languages.javascript;
+    }
+  }, []);
+
+  const highlight = useCallback(
+    (codeStr) => {
+      const lang = Prism.languages[language] || getPrismLang(language);
+      if (!lang) return codeStr;
+      return Prism.highlight(codeStr, lang, language);
+    },
+    [language, getPrismLang],
+  );
+
+  const SizeWarning = useMemo(() => {
+    if (inputSize.status === "idle" || inputSize.status === "normal")
+      return null;
+
+    const warningStyles = {
+      warning: {
+        background: "var(--warning-bg)",
+        color: "var(--warning-color)",
+        border: "1px solid var(--warning-color)",
+      },
+      heavy: {
+        background: "rgba(255, 165, 0, 0.15)",
+        color: "orange",
+        border: "1px solid orange",
+      },
+      critical: {
+        background: "var(--error-bg)",
+        color: "var(--error-color)",
+        border: "1px solid var(--error-color)",
+      },
     };
 
-    const handleMinify = async () => {
-        try {
-            setError(null);
-            if (!code.trim()) return;
-
-            let minified = '';
-
-            // Basic minification logic (Prettier doesn't minify heavily)
-            if (language === 'json') {
-                minified = JSON.stringify(JSON.parse(code));
-            } else if (language === 'xml') {
-                minified = xmlFormat(code, { indentation: '', lineSeparator: '' });
-            } else if (language === 'sql') {
-                // SQL minification is tricky, just simple whitespace collapse
-                minified = code.replace(/\s+/g, ' ').trim();
-            } else {
-                // Formatting with no whitespace is hard, simple logic:
-                minified = code.replace(/\s+/g, ' ').trim();
-                showToast('Basic minification applied', 'info');
-            }
-
-            if (minified) {
-                setCode(minified);
-                showToast('Minified successfully', 'success');
-            }
-        } catch (e) {
-            setError(e.message);
-            showToast('Minification failed', 'error');
-        }
-    };
-
-    const getPrismLang = (lang) => {
-        switch (lang) {
-            case 'html': return Prism.languages.markup;
-            case 'xml': return Prism.languages.markup;
-            case 'css': return Prism.languages.css;
-            case 'javascript': return Prism.languages.javascript;
-            case 'typescript': return Prism.languages.typescript;
-            case 'json': return Prism.languages.json;
-            case 'sql': return Prism.languages.sql;
-            case 'yaml': return Prism.languages.yaml;
-            case 'markdown': return Prism.languages.markdown;
-            default: return Prism.languages.javascript;
-        }
+    const style = warningStyles[inputSize.status] || warningStyles.warning;
+    const messages = {
+      warning: "Large code - loading formatters on demand",
+      heavy: "Very large code - processing may take a moment",
+      critical: "Code size exceeds recommended limit",
     };
 
     return (
-        <div className={styles.container}>
-            <header className={styles.header}>
-                <h1 className={styles.title}>Code Beautifier</h1>
-                <div className={styles.actions}>
-                    <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
-                        className={styles.select}
-                    >
-                        {LANGUAGES.map(lang => (
-                            <option key={lang.id} value={lang.id}>{lang.name}</option>
-                        ))}
-                    </select>
-
-                    <button className={styles.button} onClick={handleBeautify}>
-                        <Wand2 size={16} /> Beautify
-                    </button>
-                    <button className={styles.button} onClick={handleMinify}>
-                        <Minimize2 size={16} /> Minify
-                    </button>
-                    <button className={styles.button} onClick={() => {
-                        navigator.clipboard.writeText(code);
-                        showToast('Copied to clipboard', 'success');
-                    }}>
-                        <Copy size={16} /> Copy
-                    </button>
-                    <button className={styles.button} onClick={() => setCode('')}>
-                        <Trash2 size={16} /> Clear
-                    </button>
-                </div>
-            </header>
-
-            {error && (
-                <div className={styles.errorBanner}>
-                    <AlertCircle size={16} />
-                    <span>{error}</span>
-                </div>
-            )}
-
-            <div className={styles.editorWrapper}>
-                <Editor
-                    value={code}
-                    onValueChange={setCode}
-                    highlight={code => Prism.highlight(
-                        code,
-                        getPrismLang(language) || Prism.languages.plaintext,
-                        language
-                    )}
-                    padding={20}
-                    style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 14,
-                        backgroundColor: 'transparent',
-                        minHeight: '100%',
-                    }}
-                    placeholder={`Paste your ${language} code here...`}
-                />
-            </div>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          padding: "0.75rem",
+          borderRadius: "8px",
+          fontSize: "0.85rem",
+          marginBottom: "1rem",
+          ...style,
+        }}
+      >
+        <AlertCircle size={16} />
+        <span>{messages[inputSize.status]}</span>
+        {inputSize.estimatedTime && (
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.25rem",
+              marginLeft: "auto",
+            }}
+          >
+            <Loader2 size={14} className="animate-spin" />
+            Est. {inputSize.estimatedTime}
+          </span>
+        )}
+      </div>
     );
+  }, [inputSize]);
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>Code Beautifier</h1>
+        <div className={styles.actions}>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className={styles.select}
+          >
+            {LANGUAGES.map((lang) => (
+              <option key={lang.id} value={lang.id}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+
+          <button
+            className={styles.button}
+            onClick={handleBeautify}
+            disabled={isLoading}
+          >
+            <Wand2 size={16} /> Beautify
+          </button>
+          <button
+            className={styles.button}
+            onClick={handleMinify}
+            disabled={isLoading}
+          >
+            <Minimize2 size={16} /> Minify
+          </button>
+          <button
+            className={styles.button}
+            onClick={() => {
+              navigator.clipboard.writeText(code);
+              showToast("Copied to clipboard", "success");
+            }}
+          >
+            <Copy size={16} /> Copy
+          </button>
+          <button className={styles.button} onClick={() => setCode("")}>
+            <Trash2 size={16} /> Clear
+          </button>
+        </div>
+      </header>
+
+      {SizeWarning}
+
+      {error && (
+        <div className={styles.errorBanner}>
+          <AlertCircle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className={styles.editorWrapper}>
+        <Editor
+          value={code}
+          onValueChange={(val) => {
+            setCode(val);
+            inputSize.setInput(val);
+          }}
+          highlight={highlight}
+          padding={20}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 14,
+            backgroundColor: "transparent",
+            minHeight: "100%",
+          }}
+          textareaClassName={styles.textarea}
+          placeholder={`Paste your ${language} code here...`}
+        />
+      </div>
+    </div>
+  );
 }
