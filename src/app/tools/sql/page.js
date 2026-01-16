@@ -203,7 +203,8 @@ export default function SqlTool() {
             }}
           />
           <AiAssistButton
-            prompt={`Given tables: users(id, name, email, role), products(id, name, price, stock), orders(id, user_id, product_id, date). Write a standard SQL query for: "${aiPrompt}". Return ONLY sql.`}
+            type="sql"
+            payload={{ description: aiPrompt }}
             onResult={handleAiResult}
             disabled={!aiPrompt.trim()}
           />

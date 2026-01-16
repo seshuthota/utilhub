@@ -88,8 +88,8 @@ export default function JsonSchemaTool() {
                         className={styles.aiInput}
                     />
                     <AiAssistButton
-                        prompt={`Perform the following task on JSON Schema: "${aiPrompt}". ${data ? `Data to infer from: ${data}` : ''}. ${schema ? `Current schema: ${schema}` : ''}. Return ONLY the valid JSON Schema result.`}
-                        systemPrompt="You are a JSON Schema expert. Return ONLY the valid JSON Schema object. No text before or after."
+                        type="json-schema"
+                        payload={{ description: aiPrompt, data, schema }}
                         onResult={handleAiResult}
                         disabled={!aiPrompt.trim()}
                     />

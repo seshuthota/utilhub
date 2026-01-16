@@ -7,7 +7,7 @@ import { useToast } from '@/components/Toast';
 import AiDisclaimer, { hasAcceptedAiDisclaimer } from './AiDisclaimer';
 import styles from './AiAssistButton.module.css';
 
-export default function AiAssistButton({ prompt, systemPrompt, onResult, disabled = false }) {
+export default function AiAssistButton({ type, payload, onResult, disabled = false }) {
     const [loading, setLoading] = useState(false);
     const [showDisclaimer, setShowDisclaimer] = useState(false);
     const { showToast } = useToast();
@@ -15,7 +15,7 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
     const executeAiRequest = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await generate(prompt, systemPrompt);
+            const result = await generate(type, payload);
             onResult(result);
             showToast('AI response generated!', 'success');
         } catch (error) {
@@ -24,7 +24,7 @@ export default function AiAssistButton({ prompt, systemPrompt, onResult, disable
         } finally {
             setLoading(false);
         }
-    }, [prompt, systemPrompt, onResult, showToast]);
+    }, [type, payload, onResult, showToast]);
 
     const handleClick = async () => {
         // Check if user has already accepted the disclaimer

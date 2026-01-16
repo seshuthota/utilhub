@@ -98,9 +98,9 @@ export default function RegexGenerator() {
 
                 <div style={{ alignSelf: 'flex-end' }}>
                     <AiAssistButton
-                        prompt={`Generate a JavaScript-compatible regular expression for: ${description}. Return ONLY the regex pattern inside a code block.`}
-                        onResponse={handleAiResponse}
-                        context="regex-generator"
+                        type="regex-generator"
+                        payload={{ description }}
+                        onResult={handleAiResponse}
                     />
                 </div>
             </div>

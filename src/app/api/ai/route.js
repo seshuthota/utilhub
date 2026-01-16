@@ -1,10 +1,49 @@
 import { NextResponse } from 'next/server';
+import { getPrompt } from './prompts';
+import { checkRateLimit } from '@/utils/rate-limit';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'openai/gpt-oss-120b';
 
 
 export async function POST(request) {
+    // 1. Security: Origin Check
+    // Get the request origin and the server's origin
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('host');
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const serverOrigin = `${protocol}://${host}`;
+
+    // Skip check for non-browser requests (no origin) if necessary, 
+    // but for this client-side app, we expect an origin or referer from the same app.
+    // Allow localhost for dev.
+    const allowedOrigins = ['http://localhost:3000', serverOrigin];
+
+    // Simple check: If origin is present, it must be allowed. 
+    // If not present (e.g. server-side fetch), check referer or allow if secure token implies internal use.
+    // Here we strict it to browser calls mostly.
+    if (origin && !allowedOrigins.some(o => origin.startsWith(o)) && origin !== serverOrigin) {
+        // Note: Strict comparison might fail on Vercel preview URLs, 
+        // so checking if it ends with vercel.app might be good if we knew the domain.
+        // For now, let's trust same-origin relative based logic if possible.
+        // Better: Compare `origin` with `new URL(request.url).origin`
+    }
+
+    // Robust Same-Origin Check
+    const currentOrigin = new URL(request.url).origin;
+    if (origin && origin !== currentOrigin) {
+        console.warn(`[API] Blocked cross-origin request from: ${origin}`);
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // 2. Security: Rate Limiting
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    if (!checkRateLimit(ip)) {
+        return NextResponse.json(
+            { error: 'Too many requests. Please try again later.' },
+            { status: 429 }
+        );
+    }
 
     let apiKey = process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY.trim() : null;
 
@@ -34,7 +73,26 @@ export async function POST(request) {
     console.log(`[${new Date().toISOString()}] AI API Check: Key length=${apiKey.length}, Prefix=${apiKey.substring(0, 4)}***`);
 
     try {
-        const { prompt, systemPrompt } = await request.json();
+        const { type, payload } = await request.json();
+
+        if (!type) {
+            return NextResponse.json(
+                { error: 'Missing request type' },
+                { status: 400 }
+            );
+        }
+
+        let promptConfig;
+        try {
+            promptConfig = getPrompt(type, payload);
+        } catch (e) {
+            return NextResponse.json(
+                { error: e.message },
+                { status: 400 }
+            );
+        }
+
+        const { prompt, systemPrompt } = promptConfig;
 
         const response = await fetch(GROQ_API_URL, {
             method: 'POST',

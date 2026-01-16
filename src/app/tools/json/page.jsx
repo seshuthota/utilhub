@@ -302,8 +302,8 @@ export default function JsonTool() {
             }}
           />
           <AiAssistButton
-            prompt={`Perform the following task on JSON/data: "${aiPrompt}". ${code ? `Current input: ${code}` : ""}. Return ONLY the valid JSON result.`}
-            systemPrompt="You are a JSON assistant. Return ONLY the valid JSON data. No text before or after. If repairing JSON, fix syntax errors like missing commas or quotes."
+            type="json"
+            payload={{ description: aiPrompt, code }}
             onResult={handleAiResult}
             disabled={!aiPrompt.trim()}
           />

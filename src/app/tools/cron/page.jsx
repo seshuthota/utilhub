@@ -81,8 +81,8 @@ export default function CronTool() {
                         }}
                     />
                     <AiAssistButton
-                        prompt={`Generate a standard crontab expression for: "${aiPrompt}". Return ONLY the expression (5 fields). Example for "daily at 3am": "0 3 * * *"`}
-                        systemPrompt="You are a cron expression generator. Return ONLY the 5-field cron expression. No text before or after."
+                        type="cron"
+                        payload={{ description: aiPrompt }}
                         onResult={handleAiResult}
                         disabled={!aiPrompt.trim()}
                     />

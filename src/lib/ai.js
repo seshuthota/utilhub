@@ -2,13 +2,13 @@
 
 // AI module - calls server-side API route (keeps API key secure)
 
-export async function generate(prompt, systemPrompt = 'You are a helpful coding assistant. Be concise.') {
+export async function generate(type, payload = {}) {
     const response = await fetch('/api/ai', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, systemPrompt }),
+        body: JSON.stringify({ type, payload }),
     });
 
     if (!response.ok) {

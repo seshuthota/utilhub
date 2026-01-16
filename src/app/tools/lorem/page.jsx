@@ -66,8 +66,8 @@ export default function LoremTool() {
                         }}
                     />
                     <AiAssistButton
-                        prompt={`Generate placeholder text for: "${aiPrompt}". Unit: ${count} ${unit}. Return ONLY the requested text.`}
-                        systemPrompt="You are a professional copywriter. Generate high-quality placeholder text based on the user's topic. Do not include titles or metadata. Return ONLY the text content."
+                        type="lorem"
+                        payload={{ description: aiPrompt, count, unit }}
                         onResult={handleAiResult}
                         disabled={!aiPrompt.trim()}
                     />

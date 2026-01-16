@@ -142,12 +142,8 @@ export default function RegexTool() {
                 />
 
                 <AiAssistButton
-                    prompt={
-                        pattern
-                            ? `Current regex: /${pattern}/${flags}. Task: "${aiPrompt}". Return ONLY the fixed or new regex in /pattern/flags format.`
-                            : `Create a JavaScript regex for: "${aiPrompt}". Return ONLY the regex in /pattern/flags format.`
-                    }
-                    systemPrompt="You are a regex expert. Return ONLY the valid /pattern/flags. Do not explain."
+                    type={pattern ? 'regex-edit' : 'regex-create'}
+                    payload={{ description: aiPrompt, pattern, flags }}
                     onResult={handleAiResult}
                     disabled={!aiPrompt.trim()}
                 />

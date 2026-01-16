@@ -102,8 +102,8 @@ export default function MermaidTool() {
                         }}
                     />
                     <AiAssistButton
-                        prompt={`Generate Mermaid chart syntax for: "${aiPrompt}". Return ONLY the mermaid code. Example for a graph: "graph TD; A-->B;"`}
-                        systemPrompt="You are a Mermaid chart expert. Return ONLY the valid Mermaid diagram syntax. No text before or after. Support flowchart, sequence, class, state, entity relationship, and gantt diagrams."
+                        type="mermaid"
+                        payload={{ description: aiPrompt }}
                         onResult={handleAiResult}
                         disabled={!aiPrompt.trim()}
                     />
