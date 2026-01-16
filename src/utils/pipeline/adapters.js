@@ -1,6 +1,6 @@
 // Tool Adapters - Define I/O formats and transformation functions for each tool
 
-import { IO_TYPES } from "./types";
+import { IO_TYPES, canConvert } from "./types";
 import { tools } from "@/config/tools";
 
 // Tool capability registry

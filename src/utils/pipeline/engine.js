@@ -1,7 +1,7 @@
 // Pipeline Execution Engine
 
-import { ExecutionState, createExecutionResult } from "./types";
-import { getToolAdapter, detectInputType, canConvert } from "./adapters";
+import { ExecutionState, createExecutionResult, canConvert } from "./types";
+import { getToolAdapter, detectInputType } from "./adapters";
 
 class PipelineEngine {
   constructor() {
