@@ -72,7 +72,7 @@
 }
 
 .error {
-    border-color: #ef4444;
+    border-color: var(--error-color);
 }
 
 .copyBtn {

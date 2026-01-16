@@ -159,14 +159,14 @@
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+    color: var(--success-color);
     font-size: 0.75rem;
     font-weight: 600;
 }
 
 .statBadge.negative {
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--error-color);
 }
 
 .dropzone {

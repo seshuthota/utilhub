@@ -114,8 +114,8 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #ff4444;
-    background: #ff444420;
+    color: var(--error-color);
+    background: var(--error-color)20;
     padding: 1rem;
     border-radius: 6px;
 }

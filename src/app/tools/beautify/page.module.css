@@ -67,7 +67,7 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--error-color);
     border: 1px solid rgba(239, 68, 68, 0.2);
     border-radius: 8px;
     font-size: 0.9rem;

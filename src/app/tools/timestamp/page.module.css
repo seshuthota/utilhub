@@ -181,6 +181,6 @@
 }
 
 .error {
-    color: #ff4444;
+    color: var(--error-color);
     font-weight: 500;
 }

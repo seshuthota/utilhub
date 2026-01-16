@@ -214,12 +214,12 @@
 /* Status variants */
 .active .statusIcon {
     background: rgba(16, 185, 129, 0.2);
-    color: #10b981;
+    color: var(--success-color);
 }
 
 .expired .statusIcon {
     background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    color: var(--error-color);
 }
 
 .placeholder {
