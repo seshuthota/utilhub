@@ -76,6 +76,16 @@ export const tools = [
     category: "code",
   },
   {
+    id: "sqlite",
+    title: "SQLite Studio",
+    description: "Upload, query, and export SQLite databases in your browser (WebAssembly).",
+    icon: Database,
+    href: "/tools/sqlite",
+    isClientSideOnly: true,
+    hasAiFeatures: false,
+    category: "data",
+  },
+  {
     id: "xml",
     title: "XML Formatter",
     description: "Format, minify, and validate XML data.",

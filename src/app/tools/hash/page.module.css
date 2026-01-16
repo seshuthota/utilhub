@@ -5,12 +5,66 @@
 }
 
 .header {
-    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .title {
     font-size: 1.5rem;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wasmBadge {
+    font-size: 0.7rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.modeBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.modeBtn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.modeBtnActive {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.modeBtnActive:hover {
+    background: var(--primary);
+    opacity: 0.9;
 }
 
 .grid {
@@ -19,7 +73,6 @@
     gap: 2rem;
     flex: 1;
     min-height: 0;
-    /* Fix overflow inside flex item */
 }
 
 @media (max-width: 768px) {
@@ -41,14 +94,19 @@
     overflow: hidden;
 }
 
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .cardTitle {
     font-size: 1rem;
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--border-color);
+    margin: 0;
 }
 
 .textarea {
@@ -62,20 +120,138 @@
     resize: none;
     font-size: 14px;
     line-height: 1.6;
+    min-height: 200px;
 }
 
 .textarea:focus {
     outline: none;
-    border-color: var(--text-secondary);
+    border-color: var(--primary);
+}
+
+.inputFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
 }
 
 .info {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    justify-content: flex-end;
+}
+
+.computeBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    color: white;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.computeBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.computeBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.fileInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    flex: 1;
+}
+
+.fileIcon {
+    color: var(--primary);
+}
+
+.fileName {
+    font-weight: 600;
+    font-size: 1.1rem;
+    word-break: break-all;
+    text-align: center;
+}
+
+.fileSize {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.copyAllBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.copyAllBtn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.benchmarkBar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.benchmarkLabel {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
 }
 
 .hashList {
@@ -83,10 +259,11 @@
     flex-direction: column;
     gap: 0;
     overflow-y: auto;
+    flex: 1;
 }
 
 .hashRow {
-    padding: 1rem 0;
+    padding: 0.75rem 0;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -98,18 +275,31 @@
 }
 
 .hashLabel {
-    width: 80px;
+    width: 90px;
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.hashTime {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    opacity: 0.7;
 }
 
 .hashValue {
     flex: 1;
     font-family: var(--font-mono);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     word-break: break-all;
     color: var(--text-primary);
+    background: var(--bg-primary);
+    padding: 0.5rem;
+    border-radius: 4px;
 }
 
 .copyBtn {
@@ -117,12 +307,29 @@
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     opacity: 0.6;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
+    border-radius: 4px;
 }
 
 .copyBtn:hover {
     opacity: 1;
     color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.emptyState p {
+    font-size: 0.9rem;
 }
