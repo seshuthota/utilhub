@@ -3,7 +3,15 @@
  * Used by Command Palette to suggest relevant tools
  */
 
-export function detectType(input) {
+export interface DetectionResult {
+    type: string;
+    label: string;
+    toolId: string;
+    toolPath: string;
+    paramKey: string;
+}
+
+export function detectType(input: string): DetectionResult | null {
     if (!input) return null;
     const trimmed = input.trim();
 

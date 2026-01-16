@@ -419,16 +419,6 @@ export const tools = [
     category: "devops",
   },
   {
-    id: "regex-generator",
-    title: "RegEx Generator",
-    description: "Generate regular expressions using AI.",
-    icon: Search,
-    href: "/tools/regex-generator",
-    isClientSideOnly: false,
-    hasAiFeatures: true,
-    category: "text",
-  },
-  {
     id: "pipeline",
     title: "Pipeline Builder",
     description: "Chain multiple tools together to create powerful workflows.",
@@ -437,6 +427,16 @@ export const tools = [
     isClientSideOnly: true,
     hasAiFeatures: false,
     category: "utility",
+  },
+  {
+    id: "curl",
+    title: "Curl Converter",
+    description: "Convert cURL commands to Python, JavaScript, Go, and more.",
+    icon: FileCode,
+    href: "/tools/curl",
+    isClientSideOnly: true,
+    hasAiFeatures: false,
+    category: "networking",
   },
 ];
 

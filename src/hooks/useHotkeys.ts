@@ -12,7 +12,15 @@ import { useEffect, useCallback } from 'react';
  * @param {boolean} options.alt - Require Alt key
  * @param {boolean} options.preventDefault - Prevent default browser action (default: true)
  */
-export function useHotkeys(key, callback, options = {}) {
+
+interface HotkeyOptions {
+    meta?: boolean;
+    shift?: boolean;
+    alt?: boolean;
+    preventDefault?: boolean;
+}
+
+export function useHotkeys(key: string, callback: (event: KeyboardEvent) => void, options: HotkeyOptions = {}) {
     const {
         meta = false,
         shift = false,
@@ -20,7 +28,7 @@ export function useHotkeys(key, callback, options = {}) {
         preventDefault = true
     } = options;
 
-    const handleKeyDown = useCallback((event) => {
+    const handleKeyDown = useCallback((event: KeyboardEvent) => {
         // Check modifiers
         const metaPressed = event.metaKey || event.ctrlKey;
         const shiftPressed = event.shiftKey;
@@ -41,9 +49,9 @@ export function useHotkeys(key, callback, options = {}) {
     }, [key, callback, meta, shift, alt, preventDefault]);
 
     useEffect(() => {
-        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('keydown', handleKeyDown as any);
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keydown', handleKeyDown as any);
         };
     }, [handleKeyDown]);
 }

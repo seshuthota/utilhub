@@ -308,7 +308,11 @@ These are high-impact, low-effort improvements that can be implemented quickly.
 - [x] Standardize component prop interfaces
   - [x] Add `className` and `style` to shared components (`HistorySidebar`, `ToolCard`, etc.)
   - [x] Standardize modal visibility (`isOpen`) for `ShortcutsHelpModal`
-- [ ] Add TypeScript types (future consideration)
+- [x] Add TypeScript types
+  - [x] Install dependencies & config
+  - [x] Migrate `src/utils/detection.js`
+  - [x] Migrate `src/hooks/useHotkeys.js`
+  - [x] Migrate `src/hooks/useUrlState.js`
 - [x] Increase test coverage to 80%+
   - Achieved >85% on critical tools (Chmod, GraphQL, ActionToolbar, AiDisclaimer)
   - Improved overall project coverage to ~71%
@@ -322,7 +326,7 @@ These are high-impact, low-effort improvements that can be implemented quickly.
 
 1. **Privacy Trust:** Users explicitly mention privacy as a reason for using UtilHub
 2. **Performance:** No UI freezes on files up to 10MB
-3. **Tool Count:** Reach 35+ high-quality tools
+3. **Tool Count:** Reach 35+ high-quality tools (Current: 35 - Merged Regex tools) [x]
 4. **User Retention:** Users return for multiple sessions (via analytics)
 
 ---
