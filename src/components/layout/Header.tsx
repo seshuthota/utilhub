@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Terminal, Settings, Search } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import CommandPalette from '@/components/common/CommandPalette';
+import OfflineIndicator from '@/components/common/OfflineIndicator';
 import styles from './Header.module.css';
 
 /**
@@ -44,6 +45,7 @@ export default function Header() {
                     </button>
 
                     <nav className={styles.nav}>
+                        <OfflineIndicator />
                         <ThemeToggle />
                         <Link href="/settings" className={styles.navItem} aria-label="Settings">
                             <Settings size={20} />

@@ -1,0 +1,42 @@
+.indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    animation: slideIn 0.3s ease-out;
+    transition: all 0.3s ease;
+}
+
+.offline {
+    background: var(--error-bg);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+.online {
+    background: var(--success-bg);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 640px) {
+    .indicator span {
+        display: none;
+    }
+}
