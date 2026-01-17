@@ -1,81 +1,175 @@
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
+import { vi, describe, it, expect, beforeEach } from "vitest";
+import Converter from "../app/tools/curl/Converter";
 
-import { render, screen, fireEvent } from '@testing-library/react';
-import { vi, describe, it, expect } from 'vitest';
-import CurlConverter from '../app/tools/curl/page';
-
-// Mock clipboard
 const mockWriteText = vi.fn();
 Object.assign(navigator, {
-    clipboard: {
-        writeText: mockWriteText,
-    },
+  clipboard: {
+    writeText: mockWriteText,
+  },
 });
 
-// Mock ResizeObserver for CodeEditor
 global.ResizeObserver = class ResizeObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
 };
 
-// Mock useUrlState
-vi.mock('@/hooks/useUrlState', async (importOriginal) => {
-    const React = await import('react');
-    return {
-        useUrlState: (key, initial) => React.useState(initial),
-    };
+vi.mock("@/hooks/useUrlState", async (importOriginal) => {
+  const React = await import("react");
+  return {
+    useUrlState: (key, initial) => React.useState(initial),
+  };
 });
 
-// Mock CodeEditor to mostly avoid Prism issues, though we want to test interaction
-vi.mock('@/components/common/CodeEditor', () => {
-    return {
-        __esModule: true,
-        default: ({ value, onChange, placeholder, readOnly, "data-testid": testId }) => (
-            <textarea
-                data-testid={testId || (readOnly ? "output-editor" : "input-editor")}
-                value={value}
-                onChange={(e) => onChange && onChange(e.target.value)}
-                placeholder={placeholder}
-                readOnly={readOnly}
-            />
-        ),
-    };
+vi.mock("@/components/common/CodeEditor", () => {
+  return {
+    __esModule: true,
+    default: ({
+      value,
+      onChange,
+      placeholder,
+      readOnly,
+      "data-testid": testId,
+    }) => (
+      <textarea
+        data-testid={testId || (readOnly ? "output-editor" : "input-editor")}
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
+        placeholder={placeholder}
+        readOnly={readOnly}
+      />
+    ),
+  };
 });
 
-// Mock curlconverter
-// We verify that the library functions are called correctly
-vi.mock('curlconverter', () => ({
-    toPython: (curl) => {
-        if (curl.includes("error")) throw new Error("Parse error");
-        return "requests.get('https://example.com')";
-    },
-    toNodeFetch: () => "fetch('https://example.com')",
-    toGo: () => "http.Get(\"https://example.com\")"
+vi.mock("@/components/Toast", () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+  }),
 }));
 
-describe('Curl Converter', () => {
-    it('renders correctly', () => {
-        render(<CurlConverter />);
-        expect(screen.getByText(/Curl Converter/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/curl https/i)).toBeInTheDocument();
+vi.mock("curlconverter", () => ({
+  toPython: (curl) => {
+    if (curl.includes("error")) throw new Error("Parse error");
+    return "requests.get('https://example.com')";
+  },
+  toNodeFetch: () => "fetch('https://example.com')",
+  toGo: () => 'http.Get("https://example.com")',
+  toNodeAxios: () => "axios.get('https://example.com')",
+  toRust: () => "reqwest::blocking::Client::new()",
+  toPhp: () => "$client = new GuzzleHttp\\Client();",
+  toJava: () => "OkHttpClient client = new OkHttpClient();",
+  toDart: () =>
+    "var response = await http.get(Uri.parse('https://example.com'));",
+  toElixir: () => 'HTTPoison.get!("https://example.com")',
+  toAnsible: () => "- uri: url: https://example.com",
+  toJsonString: () => '{"method":"GET","url":"https://example.com"}',
+}));
+
+describe("Curl Converter", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders the converter interface with input and output editors", () => {
+    render(<Converter />);
+
+    expect(screen.getByText("cURL Command")).toBeInTheDocument();
+    expect(screen.getByText("Python (requests) Output")).toBeInTheDocument();
+    expect(screen.getByTestId("input-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("output-editor")).toBeInTheDocument();
+  });
+
+  it("converts curl command to Python by default", () => {
+    render(<Converter />);
+
+    const input = screen.getByTestId("input-editor");
+
+    act(() => {
+      fireEvent.change(input, {
+        target: { value: "curl https://example.com" },
+      });
     });
 
-    it('converts curl to default language (python)', () => {
-        render(<CurlConverter />);
-        const input = screen.getByTestId('input-editor');
+    expect(screen.getByTestId("output-editor")).toHaveValue(
+      "requests.get('https://example.com')",
+    );
+  });
 
-        fireEvent.change(input, { target: { value: "curl https://example.com" } });
+  it("converts curl to different languages when selected", () => {
+    render(<Converter />);
 
-        expect(screen.getByTestId('output-editor')).toHaveValue("requests.get('https://example.com')");
+    const input = screen.getByTestId("input-editor");
+    const select = screen.getByLabelText("Target Language");
+
+    act(() => {
+      fireEvent.change(input, {
+        target: { value: "curl https://example.com" },
+      });
     });
 
-    it('handles errors gracefully', () => {
-        render(<CurlConverter />);
-        const input = screen.getByTestId('input-editor');
-
-        // Trigger mock error
-        fireEvent.change(input, { target: { value: "curl error" } });
-
-        expect(screen.getByText(/Invalid cURL command/i)).toBeInTheDocument();
+    act(() => {
+      fireEvent.change(select, { target: { value: "go" } });
     });
+
+    expect(screen.getByTestId("output-editor")).toHaveValue(
+      'http.Get("https://example.com")',
+    );
+  });
+
+  it("displays error message for invalid curl command", () => {
+    render(<Converter />);
+
+    const input = screen.getByTestId("input-editor");
+
+    act(() => {
+      fireEvent.change(input, { target: { value: "curl error" } });
+    });
+
+    expect(screen.getByText(/Invalid cURL command/i)).toBeInTheDocument();
+  });
+
+  it("clears output when input is empty", () => {
+    render(<Converter />);
+
+    const input = screen.getByTestId("input-editor");
+
+    act(() => {
+      fireEvent.change(input, {
+        target: { value: "curl https://example.com" },
+      });
+    });
+
+    expect(screen.getByTestId("output-editor")).toHaveValue(
+      "requests.get('https://example.com')",
+    );
+
+    act(() => {
+      fireEvent.change(input, { target: { value: "" } });
+    });
+
+    expect(screen.getByTestId("output-editor")).toHaveValue("");
+  });
+
+  it("has language selector with all options", () => {
+    render(<Converter />);
+
+    const select = screen.getByLabelText("Target Language");
+    expect(select).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("option", { name: "Python (requests)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Node.js (fetch)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Go" })).toBeInTheDocument();
+  });
 });

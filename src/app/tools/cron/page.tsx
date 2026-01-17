@@ -22,7 +22,7 @@ export default function CronTool() {
             if (!expression.trim()) return { description: null, nextRuns: [], error: null };
 
             const description = cronstrue.toString(expression);
-            const interval = (cronParser as any).parseExpression(expression);
+            const interval = (cronParser as any).parse(expression);
 
             const nextRuns: Date[] = [];
             for (let i = 0; i < 5; i++) {
@@ -40,7 +40,7 @@ export default function CronTool() {
         const cleaned = response.trim().replace(/^`+|`+$/g, '');
         // Validate before setting
         try {
-            (cronParser as any).parseExpression(cleaned);
+            (cronParser as any).parse(cleaned);
             setExpression(cleaned);
         } catch (e) {
             console.error('AI returned invalid cron:', cleaned);
