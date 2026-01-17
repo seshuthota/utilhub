@@ -30,14 +30,19 @@
 - **Responsive Design:** Optimized for mobile, tablet, and desktop viewing with fluid layouts.
 
 ### 3. Progressive Web App (PWA)
-- **Offline Support:** Service workers ensure the application remains functional even without an internet connection.
-- **Installable:** Can be installed as a standalone app on desktop and mobile devices.
+- **Offline Support:** Robust offline functionality with advanced caching strategies for Google Fonts and assets.
+- **Status Indicator:** Global "Offline" indicator notifies users of connection loss.
+- **Installable:** Experience matches a native app on desktop and mobile.
 
 ### 4. Performance & Security
-- **Web Workers:** Computationally heavy tasks (JSON formatting, Diffing, Hashing) run in background threads to prevent UI freezing.
-- **Lazy Loading:** Language syntax highlighters and heavy libraries (like Prettier) are loaded on-demand to minimize initial bundle size.
+- **WebAssembly (Wasm):** Critical paths use Wasm for near-native performance:
+  - **Hashing:** `hash-wasm` (10-20x faster than JS).
+  - **Image Processing:** `photon-web` for instant filters.
+  - **Code Formatting:** `dprint` for millisecond-level formatting.
+- **Web Workers:** Computationally heavy tasks run in background threads to prevent UI freezing.
+- **Lazy Loading:** Formatters, highlighters, and heavy libraries are loaded on-demand.
 - **Error Boundaries:** Graceful handling of component-level crashes.
-- **Client-Side Processing:** Standard processing happens entirely in the browser. AI features use a secure server-side implementation but require user acknowledgement via the **AI Disclaimer** system.
+- **Client-Side Processing:** Standard processing happens entirely in the browser. AI features use a secure server-side implementation.
 
 ---
 
@@ -51,7 +56,7 @@ UtilHub features **41 professional tools** categorized for easy discovery:
 | `json` | **JSON Formatter** | Format, validate, and minify JSON. | AI JSON repair, Minification, History. |
 | `sql` | **SQL Formatter** | Beautify messy SQL queries. | Multiple dialects, Format on Enter. |
 | `xml` | **XML Formatter** | Format, minify, and validate XML data. | Minification, Error highlighting. |
-| `beautify` | **Code Beautifier** | Beautify or minify HTML, CSS, and JS. | Multi-language support (Prettier). |
+| `beautify` | **Code Beautifier** | Beautify or minify HTML, CSS, JS. | **Wasm powered (dprint)**, Prettier fallback. |
 | `css-lint` | **CSS Linter** | Check CSS for errors and best practices.| Real-time linting, Accessibility checks. |
 | `html-lint` | **HTML Validator** | Validate HTML and accessibility. | W3C standard compliance checks. |
 | `json-schema`| **JSON Schema** | Validate JSON against schemas. | Schema-based validation reports. |
@@ -81,7 +86,7 @@ UtilHub features **41 professional tools** categorized for easy discovery:
 | `markdown` | **Markdown Viewer** | Real-time markdown editor and preview. | Github-flavored MD support. |
 | `mermaid` | **Mermaid Chart** | Generate diagrams from text. | AI-powered diagram generation. |
 | `diff` | **Diff Checker** | Side-by-side text comparison. | Inline and Side-by-side modes. |
-| `image` | **Image Resizer** | Resize, compress, and convert images. | Local WebP/PNG/JPG conversion. |
+| `image` | **Image Editor** | Resize, filter, and convert images. | **Wasm Filters (Photon)**, Local WebP conversion. |
 | `qrcode` | **QR Code Tool** | Generate or scan QR codes instantly. | Camera scanning, SVG generation. |
 | `svg-optimizer`| **SVG Optimizer** | Minify SVG files using SVGO. | Plugin toggles, size reduction stats. |
 | `favicon-generator`| **Favicon Gen** | Generate full favicon packages. | Multi-size ICO, Apple touch icons. |
@@ -90,7 +95,7 @@ UtilHub features **41 professional tools** categorized for easy discovery:
 | Tool ID | Name | Description | Key Features |
 | :--- | :--- | :--- | :--- |
 | `regex` | **Regex Tester** | Test regular expressions with matching. | Live match highlighting, flag support. |
-| `hash` | **Hash Generator** | Calculate MD5, SHA-1, SHA-256 hashes. | Bulk string hashing, Worker support. |
+| `hash` | **Hash Generator** | Calculate MD5, SHA-1, SHA-256 hashes. | **Wasm powered (100MB+ files)**, Bulk hashing. |
 | `password` | **Password Audit** | Check strength and crack times. | zxcvbn based scoring, entropy stats. |
 | `ip-subnet` | **IP Subnet Calc** | Network masks and IP range calcs. | CIDR notation, Host range table. |
 | `chmod` | **Chmod Calculator** | Visual Unix permissions calculator. | Octal/Symbolic modes, explanation text. |
@@ -138,6 +143,6 @@ Powered by Groq APIs with user-controlled activation.
 - **Framework:** Next.js 16 (App Router).
 - **Styling:** Vanilla CSS Modules with standardized design tokens.
 - **Icons:** Lucide React.
-- **Core Libraries:** `svgo`, `graphql`, `papaparse`, `js-yaml`, `mermaid`, `zxcvbn`, `crypto-js`.
+- **Core Libraries:** `hash-wasm`, `photon-web`, `@dprint/formatter`, `svgo`, `graphql`, `papaparse`, `js-yaml`, `mermaid`, `zxcvbn`.
 - **Testing:** Vitest & React Testing Library (71%+ coverage).
 - **Workers:** Custom Web Worker wrapper for non-blocking UI.
