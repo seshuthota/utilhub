@@ -15,7 +15,7 @@
 | Phase 3: New Tools         | 🟢 Complete | 6     | 6/6       |
 | Phase 4: Performance       | 🟢 Complete | 3     | 3/3       |
 | Phase 5: Advanced Features | 🟢 Complete | 2     | 2/2       |
-| Phase 6: v1.1 Enhancements | 🟡 In Progress | 2     | 1/2       |
+| Phase 6: v1.1 Enhancements | 🟢 Complete | 2     | 2/2       |
 
 ---
 
@@ -300,13 +300,13 @@ These are high-impact, low-effort improvements that can be implemented quickly.
   - [x] Fix all `any` types (mostly resolved, some suppressed with `// @ts-ignore` where necessary) [x]
 
 ### 6.2 Advanced PWA Offline Capabilities
-- [ ] **Custom Service Worker:**
-  - [ ] Cache Google Fonts & Icons
-  - [ ] Runtime caching strategies (StaleWhileRevalidate)
-  - [ ] Handle offline fallbacks for external APIs (if any)
-- [ ] **UX Improvements:**
+- [x] **Custom Service Worker:**
+  - [x] Cache Google Fonts & Icons
+  - [x] Runtime caching strategies (StaleWhileRevalidate)
+  - [x] Handle offline fallbacks for external APIs (if any)
+- [x] **UX Improvements:**
   - [ ] "Offline Ready" toast notification
-  - [ ] Network status indicator
+  - [x] Network status indicator
   - [ ] Install prompt customization
 
 ---

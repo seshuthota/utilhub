@@ -16,12 +16,68 @@
 .title {
     font-size: 1.5rem;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wasmBadge {
+    font-size: 0.7rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .actions {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.formatterToggle {
+    display: flex;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.toggleBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.toggleBtn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.toggleBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.toggleBtnActive {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.toggleBtnActive:hover {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    opacity: 0.9;
 }
 
 .select {
@@ -47,9 +103,33 @@
     transition: all 0.2s;
 }
 
-.button:hover {
-    background: var(--text-primary);
-    color: var(--bg-primary);
+.button:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.benchmarkBar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.benchmarkLabel {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
 }
 
 .editorWrapper {
@@ -58,6 +138,10 @@
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: auto;
+}
+
+.textarea {
+    min-height: 100%;
 }
 
 .errorBanner {
@@ -71,5 +155,4 @@
     border: 1px solid rgba(239, 68, 68, 0.2);
     border-radius: 8px;
     font-size: 0.9rem;
-    animation: fadeIn 0.3s ease-out;
 }

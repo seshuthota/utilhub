@@ -19,6 +19,8 @@ export const metadata = {
   manifest: "/manifest.json",
 };
 
+import { OfflineIndicator } from "@/components/common/OfflineIndicator";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -26,6 +28,7 @@ export default function RootLayout({ children }) {
         <ClientLayout>
           {children}
         </ClientLayout>
+        <OfflineIndicator />
         <Analytics />
       </body>
     </html>

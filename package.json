@@ -16,6 +16,7 @@
   "dependencies": {
     "@babel/parser": "^7.28.6",
     "@babel/standalone": "^7.28.6",
+    "@dprint/formatter": "^0.5.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@iarna/toml": "^2.2.5",
     "@vercel/analytics": "^1.6.1",

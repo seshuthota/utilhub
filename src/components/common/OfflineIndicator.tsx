@@ -1,58 +1,54 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { WifiOff, Wifi } from 'lucide-react';
-import styles from './OfflineIndicator.module.css';
+import { useEffect, useState } from "react";
+import { WifiOff } from "lucide-react";
 
-/**
- * A non-intrusive component that monitors network status and displays
- * an indicator when the user is offline.
- */
-export default function OfflineIndicator() {
-    const [isOnline, setIsOnline] = useState(true);
-    const [showStatus, setShowStatus] = useState(false);
+export function OfflineIndicator() {
+    const [isOffline, setIsOffline] = useState(false);
 
     useEffect(() => {
         // Initial check
-        setIsOnline(window.navigator.onLine);
+        setIsOffline(!navigator.onLine);
 
-        const handleOnline = () => {
-            setIsOnline(true);
-            setShowStatus(true);
-            // Hide "Online" message after a delay
-            setTimeout(() => setShowStatus(false), 3000);
-        };
+        const handleOnline = () => setIsOffline(false);
+        const handleOffline = () => setIsOffline(true);
 
-        const handleOffline = () => {
-            setIsOnline(false);
-            setShowStatus(true);
-        };
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
+        window.addEventListener("online", handleOnline);
+        window.addEventListener("offline", handleOffline);
 
         return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener("online", handleOnline);
+            window.removeEventListener("offline", handleOffline);
         };
     }, []);
 
-    // Only show if offline, or if we just came back online
-    if (!showStatus && isOnline) return null;
+    if (!isOffline) return null;
 
     return (
-        <div className={`${styles.indicator} ${isOnline ? styles.online : styles.offline}`}>
-            {isOnline ? (
-                <>
-                    <Wifi size={14} aria-hidden="true" />
-                    <span>Back Online</span>
-                </>
-            ) : (
-                <>
-                    <WifiOff size={14} aria-hidden="true" />
-                    <span>Offline Mode</span>
-                </>
-            )}
+        <div
+            role="status"
+            aria-live="polite"
+            style={{
+                position: "fixed",
+                bottom: "20px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: "var(--error-bg)",
+                color: "var(--error-color)",
+                border: "1px solid var(--error-color)",
+                padding: "8px 16px",
+                borderRadius: "20px",
+                fontSize: "0.875rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                zIndex: 9999,
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                pointerEvents: "none",
+            }}
+        >
+            <WifiOff size={16} />
+            <span>You are currently offline</span>
         </div>
     );
 }

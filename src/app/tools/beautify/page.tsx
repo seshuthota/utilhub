@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 // @ts-ignore
 import Editor from "react-simple-code-editor";
 import Prism from "prismjs";
@@ -11,9 +11,11 @@ import {
     Minimize2,
     AlertCircle,
     Loader2,
+    Zap,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useInputSize } from "@/hooks/useInputSize";
+import { formatWithDprint, isDprintSupported } from "@/utils/dprintFormatter";
 import styles from "./page.module.css";
 
 interface Language {
@@ -66,7 +68,8 @@ async function getPlugins(language: string) {
 
     const plugin = await pluginFn();
     if (!loadedPlugins) loadedPlugins = {};
-    loadedPlugins[key] = [plugin];
+    const pluginInstance = plugin.default || plugin;
+    loadedPlugins[key] = [pluginInstance];
     return loadedPlugins[key];
 }
 
@@ -80,11 +83,16 @@ async function loadXmlFormatter() {
     return (xmlFormatter as any).default || xmlFormatter;
 }
 
+type FormatterType = "prettier" | "dprint";
+
 export default function BeautifyTool() {
     const [code, setCode] = useState("");
     const [language, setLanguage] = useState("javascript");
+    const [formatter, setFormatter] = useState<FormatterType>("dprint");
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [lastFormatTime, setLastFormatTime] = useState<number | null>(null);
+    const [lastFormatterUsed, setLastFormatterUsed] = useState<FormatterType | "sql" | "xml" | null>(null);
     const { showToast } = useToast();
 
     const inputSize = useInputSize({
@@ -94,22 +102,35 @@ export default function BeautifyTool() {
         maxSize: 5 * 1024 * 1024,
     });
 
+    // Check if dprint supports current language
+    const dprintAvailable = useMemo(() => isDprintSupported(language), [language]);
+    const effectiveFormatter = dprintAvailable ? formatter : "prettier";
+
+    // Reset benchmark when language changes
+    useEffect(() => {
+        setLastFormatTime(null);
+        setLastFormatterUsed(null);
+    }, [language]);
+
     const handleBeautify = useCallback(async () => {
         try {
             setError(null);
             setIsLoading(true);
             inputSize.startProcessing();
+            const startTime = performance.now();
 
             if (!code.trim()) {
                 setIsLoading(false);
                 return;
             }
 
-            let formatted;
+            let formatted: string;
+            let used: any = effectiveFormatter;
 
             if (language === "sql") {
                 const formatSql = await loadSqlFormatter();
                 formatted = formatSql(code);
+                used = "sql";
             } else if (language === "xml") {
                 const xmlFormatter = await loadXmlFormatter();
                 formatted = xmlFormatter(code, {
@@ -117,7 +138,12 @@ export default function BeautifyTool() {
                     collapseContent: true,
                     lineSeparator: "\n",
                 });
+                used = "xml";
+            } else if (effectiveFormatter === "dprint" && dprintAvailable) {
+                formatted = await formatWithDprint(code, language);
+                used = "dprint";
             } else {
+                used = "prettier";
                 const prettier = await getPrettier();
                 const plugins = await getPlugins(language);
                 formatted = await prettier.format(code, {
@@ -130,19 +156,25 @@ export default function BeautifyTool() {
                 });
             }
 
-            if (formatted) {
+            if (formatted !== undefined) {
                 setCode(formatted);
-                showToast("Code beautified successfully", "success");
+                const elapsed = performance.now() - startTime;
+                setLastFormatTime(elapsed);
+                setLastFormatterUsed(used);
+                showToast(
+                    `Formatted successfully in ${elapsed.toFixed(0)}ms`,
+                    "success"
+                );
             }
         } catch (e: any) {
-            console.error(e);
+            console.error("Beautify error:", e);
             setError(e.message);
             showToast("Formatting failed", "error");
         } finally {
             setIsLoading(false);
             inputSize.finishProcessing();
         }
-    }, [code, language, showToast, inputSize]);
+    }, [code, language, effectiveFormatter, dprintAvailable, showToast, inputSize]);
 
     const handleMinify = useCallback(async () => {
         try {
@@ -279,8 +311,30 @@ export default function BeautifyTool() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Code Beautifier</h1>
+                <h1 className={styles.title}>
+                    Code Beautifier
+                    {effectiveFormatter === "dprint" && (
+                        <span className={styles.wasmBadge}>Wasm</span>
+                    )}
+                </h1>
                 <div className={styles.actions}>
+                    <div className={styles.formatterToggle}>
+                        <button
+                            className={`${styles.toggleBtn} ${formatter === "prettier" ? styles.toggleBtnActive : ""}`}
+                            onClick={() => setFormatter("prettier")}
+                        >
+                            Prettier
+                        </button>
+                        <button
+                            className={`${styles.toggleBtn} ${formatter === "dprint" ? styles.toggleBtnActive : ""}`}
+                            onClick={() => setFormatter("dprint")}
+                            disabled={!dprintAvailable}
+                            title={!dprintAvailable ? `dprint doesn't support ${language}` : "Use dprint (Wasm)"}
+                        >
+                            <Zap size={14} /> dprint
+                        </button>
+                    </div>
+
                     <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
@@ -321,6 +375,19 @@ export default function BeautifyTool() {
                     </button>
                 </div>
             </header>
+
+            {lastFormatTime !== null && (
+                <div className={styles.benchmarkBar}>
+                    <Zap size={14} />
+                    <span>Last format: {lastFormatTime.toFixed(1)}ms</span>
+                    <span className={styles.benchmarkLabel}>
+                        {lastFormatterUsed === "dprint" ? "dprint Wasm accelerated" :
+                            lastFormatterUsed === "prettier" ? "Prettier (JS)" :
+                                lastFormatterUsed === "sql" ? "SQL Formatter" :
+                                    lastFormatterUsed === "xml" ? "XML Formatter" : ""}
+                    </span>
+                </div>
+            )}
 
             {SizeWarning}
 
