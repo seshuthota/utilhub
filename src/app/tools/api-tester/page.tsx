@@ -6,8 +6,8 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
 import { parseCurl } from '@/utils/curl';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-json';
+
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import styles from './page.module.css';
 import { useEnvironments, substituteVariables } from '@/hooks/useEnvironments';
 import { useHistory } from '@/hooks/useHistory';
@@ -743,19 +743,16 @@ export default function ApiTesterTool() {
                             <div className={styles.content}>
 
                                 {responseTab === 'body' && (
-                                    <pre className={styles.responseBody}>
-                                        <code
-                                            dangerouslySetInnerHTML={{
-                                                __html: Prism.highlight(
-                                                    typeof response.data === 'string'
-                                                        ? response.data
-                                                        : JSON.stringify(response.data, null, 2),
-                                                    Prism.languages.json,
-                                                    'json'
-                                                )
-                                            }}
+                                    <div className={styles.editorContainer}>
+                                        <CodeMirrorEditor
+                                            value={typeof response.data === 'string'
+                                                ? response.data
+                                                : JSON.stringify(response.data, null, 2)}
+                                            language="json"
+                                            readOnly={true}
+                                            height="400px"
                                         />
-                                    </pre>
+                                    </div>
                                 )}
                                 {responseTab === 'preview' && (
                                     <div className={styles.previewContainer}>

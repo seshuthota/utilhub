@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import * as curlconverter from "curlconverter";
 import { Trash2, Copy } from "lucide-react";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import { useToast } from "@/components/Toast";
 import { useUrlState } from "@/hooks/useUrlState";
 import styles from "./page.module.css";
@@ -107,7 +107,7 @@ export default function Converter() {
                 <div className={styles.column}>
                     <span className={styles.label}>cURL Command</span>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={input}
                             onChange={setInput}
                             language="bash"
@@ -137,7 +137,7 @@ export default function Converter() {
                                 {error}
                             </div>
                         ) : (
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={output}
                                 onChange={() => { }} // Read only
                                 language={currentLang.mode}

@@ -9,7 +9,7 @@ import {
 } from "graphql";
 import { Database, AlertTriangle } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import ActionToolbar from "@/components/common/ActionToolbar";
 import styles from "./page.module.css";
 
@@ -190,7 +190,7 @@ export default function GraphqlSchemaTool() {
                             <span>GraphQL SDL</span>
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={input}
                                 onChange={setInput}
                                 language="graphql"
@@ -226,7 +226,7 @@ export default function GraphqlSchemaTool() {
                             <ActionToolbar content={output} currentToolId="graphql-schema" />
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={output}
                                 readOnly={true}
                                 language={mode === "json" ? "json" : "typescript"}

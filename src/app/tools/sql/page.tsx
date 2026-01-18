@@ -13,7 +13,7 @@ import {
 
 import { format } from "sql-formatter";
 import alasql from "alasql";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import ShareButton from "@/components/common/ShareButton";
 import AiAssistBar from "@/components/common/AiAssistBar";
 
@@ -226,7 +226,7 @@ export default function SqlTool() {
                         </div>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={code}
                             onChange={setCode}
                             language="sql"

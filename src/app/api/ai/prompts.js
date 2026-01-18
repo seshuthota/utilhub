@@ -52,8 +52,8 @@ export function getPrompt(type, payload) {
 
         case 'mermaid':
             return {
-                systemPrompt: "You are a Mermaid chart expert. Return ONLY the valid Mermaid diagram syntax. No text before or after. Support flowchart, sequence, class, state, entity relationship, and gantt diagrams.",
-                prompt: `Generate Mermaid chart syntax for: "${description}". Return ONLY the mermaid code. Example for a graph: "graph TD; A-->B;"`
+                systemPrompt: "You are a Mermaid chart expert. Return ONLY the valid Mermaid diagram syntax. No text before or after. IMPORTANT: You MUST encase all edge labels in double quotes (e.g., -->|\"Label (with parens)\"|). Support flowchart, sequence, class, state, entity relationship, and gantt diagrams.",
+                prompt: `Generate Mermaid chart syntax for: "${description}". Return ONLY the mermaid code. Example for a graph: "graph TD; A-->|\"Label\"|B;"`
             };
 
         default:

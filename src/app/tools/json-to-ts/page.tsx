@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Copy, Braces, FileCode } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import styles from './page.module.css';
 
 // Convert JSON value to TypeScript type
@@ -125,7 +125,7 @@ export default function JsonToTsTool() {
                         <span>JSON Input</span>
                     </div>
                     <div className={styles.editorContainer}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={json}
                             onChange={(val) => setJson(val)}
                             language="json"
@@ -143,7 +143,7 @@ export default function JsonToTsTool() {
                         </button>
                     </div>
                     <div className={styles.editorContainer}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={typescript}
                             language="typescript"
                             readOnly={true}

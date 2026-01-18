@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-// @ts-ignore
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-markup';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import { CheckCircle, XCircle, AlertTriangle, Accessibility } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -95,17 +92,10 @@ export default function HtmlLintTool() {
                 <div className={styles.editorPane}>
                     <div className={styles.paneHeader}>HTML Input</div>
                     <div className={styles.editor}>
-                        <Editor
+                        <CodeMirrorEditor
                             value={html}
-                            onValueChange={setHtml}
-                            highlight={(code: string) => Prism.highlight(code, Prism.languages.markup, 'markup')}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
+                            onChange={setHtml}
+                            language="html"
                         />
                     </div>
                 </div>

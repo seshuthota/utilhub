@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import Ajv from "ajv";
 import { ShieldCheck, AlertTriangle, CheckCircle, Upload } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import styles from "./page.module.css";
 
 // Basic K8s Schema for demonstration (Validation of core fields)
@@ -160,7 +160,7 @@ export default function YamlValidator() {
                             <span>Input YAML</span>
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={input}
                                 onChange={setInput}
                                 language="yaml"

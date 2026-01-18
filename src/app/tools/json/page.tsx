@@ -12,7 +12,7 @@ import {
     Clock,
     Loader2,
 } from "lucide-react";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import ShareButton from "@/components/common/ShareButton";
 import AiAssistBar from "@/components/common/AiAssistBar";
 import HistorySidebar from "@/components/common/HistorySidebar";
@@ -333,7 +333,7 @@ export default function JsonTool() {
                         </div>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={code}
                             onChange={(code) => {
                                 setCode(code);

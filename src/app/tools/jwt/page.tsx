@@ -7,7 +7,7 @@ import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
 import { decodeJwt, getExpirationStatus, signJwt } from '@/utils/jwt';
 import ShareButton from '@/components/common/ShareButton';
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import styles from './page.module.css';
 
@@ -175,7 +175,7 @@ export default function JwtTool() {
                                 <span className={styles.cardTitle}>Header (JSON)</span>
                             </div>
                             <div className={styles.editorContainer}>
-                                <CodeEditor
+                                <CodeMirrorEditor
                                     value={headerInput}
                                     onChange={setHeaderInput}
                                     language="json"
@@ -187,7 +187,7 @@ export default function JwtTool() {
                                 <span className={styles.cardTitle}>Payload (JSON)</span>
                             </div>
                             <div className={styles.editorContainer}>
-                                <CodeEditor
+                                <CodeMirrorEditor
                                     value={payloadInput}
                                     onChange={setPayloadInput}
                                     language="json"

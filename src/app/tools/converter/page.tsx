@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import TOML from "@iarna/toml";
 import { Settings, ArrowRightLeft, AlertCircle } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import ActionToolbar from "@/components/common/ActionToolbar";
 import styles from "./page.module.css";
 
@@ -141,7 +141,7 @@ export default function ConfigConverter() {
                             </button>
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={input}
                                 onChange={setInput}
                                 language={sourceFmt}
@@ -190,7 +190,7 @@ export default function ConfigConverter() {
                             />
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={output}
                                 readOnly={true}
                                 language={targetFmt}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import yaml from "js-yaml";
 import { ArrowLeftRight, Copy, Trash2, Code } from "lucide-react";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import { useToast } from "@/components/Toast";
 import styles from "./page.module.css";
 
@@ -94,7 +94,7 @@ export default function YamlTool() {
                         </div>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={input}
                             onChange={setInput}
                             language={mode === "yaml2json" ? "yaml" : "json"}
@@ -123,7 +123,7 @@ export default function YamlTool() {
                         </div>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={output}
                             onChange={setOutput} // allow editing output
                             language={mode === "yaml2json" ? "json" : "yaml"}

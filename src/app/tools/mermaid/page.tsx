@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import mermaid from 'mermaid';
 import { Download, Trash2 } from 'lucide-react';
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ShareButton from '@/components/common/ShareButton';
 import AiAssistBar from '@/components/common/AiAssistBar';
 import AiDisclaimer from '@/components/common/AiDisclaimer';
@@ -30,9 +30,27 @@ export default function MermaidTool() {
     const [svg, setSvg] = useState('');
     const [error, setError] = useState<string | null>(null);
 
+    // Helper to fix common AI syntax errors (e.g. unquoted parens in labels)
+    const repairMermaidSyntax = (code: string) => {
+        // Regex to find content like: |Label (with parens)|
+        // and replace it with: |"Label (with parens)"|
+        // Only target labels that contain ( or ) and are NOT already quoted
+        return code.replace(/\|([^"|\r\n]*[()][^"|\r\n]*)\|/g, (match, labelContent) => {
+            // Check if it's already properly quoted (the regex above tries to avoid it, but good to be safe)
+            if (labelContent.trim().startsWith('"') && labelContent.trim().endsWith('"')) {
+                return match;
+            }
+            return `|"${labelContent}"|`;
+        });
+    };
+
     const handleAiResult = (response: string) => {
         // Clean markdown code blocks if AI included them
-        const cleaned = response.trim().replace(/^```mermaid\n?|```\n?|```$/g, '');
+        let cleaned = response.trim().replace(/^```mermaid\n?|```\n?|```$/g, '');
+
+        // Apply syntax repair fallback
+        cleaned = repairMermaidSyntax(cleaned);
+
         setCode(cleaned);
     };
 
@@ -90,7 +108,7 @@ export default function MermaidTool() {
 
             <div className={styles.editorContainer}>
                 <div className={styles.pane}>
-                    <div className={styles.paneHeader}>
+                    <div className={styles.paneHeader} style={{ minHeight: '60px' }}>
                         <span>Mermaid Syntax</span>
                         <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
                             <ActionToolbar content={code} currentToolId="mermaid" />
@@ -98,7 +116,7 @@ export default function MermaidTool() {
                         </div>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={code}
                             onChange={setCode}
                             language="markdown"
@@ -109,7 +127,7 @@ export default function MermaidTool() {
                 </div>
 
                 <div className={styles.pane}>
-                    <div className={styles.paneHeader}>Preview</div>
+                    <div className={styles.paneHeader} style={{ minHeight: '60px' }}>Preview</div>
                     <div
                         className={styles.preview}
                         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}

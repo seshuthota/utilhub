@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-// @ts-ignore
-import Editor from "react-simple-code-editor";
-import Prism from "prismjs";
+
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import {
     Wand2,
     Copy,
@@ -214,38 +213,7 @@ export default function BeautifyTool() {
         }
     }, [code, language, showToast, inputSize]);
 
-    const getPrismLang = useCallback((lang: string) => {
-        switch (lang) {
-            case "html":
-            case "xml":
-                return Prism.languages.markup;
-            case "css":
-                return Prism.languages.css;
-            case "javascript":
-                return Prism.languages.javascript;
-            case "typescript":
-                return Prism.languages.typescript || Prism.languages.javascript;
-            case "json":
-                return Prism.languages.json;
-            case "sql":
-                return Prism.languages.sql;
-            case "yaml":
-                return Prism.languages.yaml;
-            case "markdown":
-                return Prism.languages.markdown;
-            default:
-                return Prism.languages.javascript;
-        }
-    }, []);
 
-    const highlight = useCallback(
-        (codeStr: string) => {
-            const lang = Prism.languages[language] || getPrismLang(language);
-            if (!lang) return codeStr;
-            return Prism.highlight(codeStr, lang, language);
-        },
-        [language, getPrismLang],
-    );
 
     const SizeWarning = useMemo(() => {
         if (inputSize.status === "idle" || inputSize.status === "normal")
@@ -399,21 +367,13 @@ export default function BeautifyTool() {
             )}
 
             <div className={styles.editorWrapper}>
-                <Editor
+                <CodeMirrorEditor
                     value={code}
-                    onValueChange={(val: string) => {
+                    onChange={(val) => {
                         setCode(val);
                         inputSize.setInput(val);
                     }}
-                    highlight={highlight}
-                    padding={20}
-                    style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 14,
-                        backgroundColor: "transparent",
-                        minHeight: "100%",
-                    }}
-                    textareaClassName={styles.textarea}
+                    language={language}
                     placeholder={`Paste your ${language} code here...`}
                 />
             </div>

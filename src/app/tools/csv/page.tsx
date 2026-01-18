@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 // @ts-ignore
 import Papa from "papaparse";
-// @ts-ignore
-import Editor from "react-simple-code-editor";
-import Prism from "prismjs";
-import "prismjs/components/prism-csv";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import { Table, FileJson, Download, Trash2, AlertCircle } from "lucide-react";
 import styles from "./page.module.css";
 
@@ -98,27 +95,13 @@ export default function CsvTool() {
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>CSV Input</div>
                     <div className={styles.editor}>
-                        <Editor
+                        <CodeMirrorEditor
                             value={input}
-                            onValueChange={(val: string) => {
+                            onChange={(val) => {
                                 setInput(val);
-                                parseCsv(val);
+                                // parseCsv(val); // Effect already handles this via dependency on input
                             }}
-                            highlight={(code: string) =>
-                                Prism.highlight(
-                                    code,
-                                    Prism.languages.csv || Prism.languages.text,
-                                    "csv",
-                                )
-                            }
-                            padding={20}
-                            style={{
-                                fontFamily: "var(--font-mono)",
-                                fontSize: 14,
-                                backgroundColor: "transparent",
-                                minHeight: "100%",
-                            }}
-                            textareaClassName="focus:outline-none"
+                            language="csv"
                         />
                     </div>
                 </div>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import xmlFormat from 'xml-formatter';
 
 import { Copy, Trash2, Braces, Minimize } from 'lucide-react';
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import { useToast } from '@/components/Toast';
 import styles from '../markdown/page.module.css';
 
@@ -76,7 +76,7 @@ export default function XmlTool() {
                         <span className={styles.languageBadge}>XML</span>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={code}
                             onChange={setCode}
                             language="markup"

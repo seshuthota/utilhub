@@ -2,11 +2,9 @@
 
 import { useState, useMemo } from 'react';
 // @ts-ignore
-import Ajv from 'ajv';
 // @ts-ignore
-import Editor from 'react-simple-code-editor';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-json';
+import Ajv from 'ajv';
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import AiAssistBar from '@/components/common/AiAssistBar';
 import styles from './page.module.css';
@@ -99,17 +97,10 @@ export default function JsonSchemaTool() {
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>JSON Schema</div>
                     <div className={styles.editor}>
-                        <Editor
+                        <CodeMirrorEditor
                             value={schema}
-                            onValueChange={setSchema}
-                            highlight={(code: string) => Prism.highlight(code, Prism.languages.json, 'json')}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
+                            onChange={setSchema}
+                            language="json"
                         />
                     </div>
                 </div>
@@ -117,17 +108,10 @@ export default function JsonSchemaTool() {
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>JSON Data</div>
                     <div className={styles.editor}>
-                        <Editor
+                        <CodeMirrorEditor
                             value={data}
-                            onValueChange={setData}
-                            highlight={(code: string) => Prism.highlight(code, Prism.languages.json, 'json')}
-                            padding={20}
-                            style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 14,
-                                backgroundColor: 'transparent',
-                                minHeight: '100%',
-                            }}
+                            onChange={setData}
+                            language="json"
                         />
                     </div>
                 </div>

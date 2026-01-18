@@ -20,7 +20,7 @@ import {
 import initSqlJs, { Database as SqlJsDatabase, SqlJsStatic } from 'sql.js';
 import { format } from 'sql-formatter';
 
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ShareButton from '@/components/common/ShareButton';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
@@ -370,7 +370,7 @@ export default function SqliteTool() {
                     </div>
                 </div>
                 <div className={styles.editorWrapper}>
-                    <CodeEditor
+                    <CodeMirrorEditor
                         value={code}
                         onChange={setCode}
                         language="sql"

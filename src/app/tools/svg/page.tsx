@@ -6,7 +6,7 @@ import { optimize } from 'svgo/browser';
 import { Upload, Download, RefreshCw, Settings } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useToast } from '@/components/Toast';
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import styles from './page.module.css';
 
@@ -251,7 +251,7 @@ export default function SvgOptimizer() {
                             </div>
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={input}
                                 onChange={setInput}
                                 language="xml"
@@ -281,7 +281,7 @@ export default function SvgOptimizer() {
                         </div>
                         <div className={styles.editorArea} style={{ flex: '0 0 30%', borderTop: '1px solid var(--border-color)' }}>
                             <div className={styles.paneHeader} style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>Code Preview</div>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={output}
                                 readOnly={true}
                                 language="xml"

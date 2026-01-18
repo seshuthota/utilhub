@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 // @ts-ignore
 import { marked } from 'marked';
 import { Copy, Trash2 } from 'lucide-react';
-import CodeEditor from '@/components/common/CodeEditor';
+import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
 
@@ -64,7 +64,7 @@ export default function MarkdownTool() {
                         <span className={styles.languageBadge}>Markdown</span>
                     </div>
                     <div className={styles.editorWrapper}>
-                        <CodeEditor
+                        <CodeMirrorEditor
                             value={code}
                             onChange={setCode}
                             language="markdown"

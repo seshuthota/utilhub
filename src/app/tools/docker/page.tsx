@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 import composerize from "composerize";
 import { Container, Play } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";
-import CodeEditor from "@/components/common/CodeEditor";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import ActionToolbar from "@/components/common/ActionToolbar";
 import styles from "./page.module.css";
 
@@ -74,7 +74,7 @@ export default function DockerConverter() {
                             </button>
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={input}
                                 onChange={setInput}
                                 language="bash"
@@ -98,7 +98,7 @@ export default function DockerConverter() {
                             />
                         </div>
                         <div className={styles.editorArea}>
-                            <CodeEditor
+                            <CodeMirrorEditor
                                 value={output}
                                 readOnly={true}
                                 language="yaml"
