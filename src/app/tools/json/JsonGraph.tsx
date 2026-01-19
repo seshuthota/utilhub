@@ -138,6 +138,7 @@ export default function JsonGraph({ data }: JsonGraphProps) {
                     "elk.spacing.nodeNode": "30",
                     "elk.layered.spacing.nodeNodeBetweenLayers": "50"
                 }}
+                arrow={<MarkerArrow style={{ fill: 'var(--border-color)' }} />}
                 node={(nodeProps) => (
                     <Node
                         {...nodeProps}
@@ -154,7 +155,6 @@ export default function JsonGraph({ data }: JsonGraphProps) {
                 edge={(edgeProps) => (
                     <Edge
                         {...edgeProps}
-                        markerEnd={<MarkerArrow style={{ fill: 'var(--border-color)' }} />}
                         style={{ stroke: 'var(--border-color)' }}
                     />
                 )}
