@@ -27,7 +27,7 @@ import { parseJsonError } from "@/utils/errorParser";
 import { useWorker } from "@/hooks/useWorker";
 import jsonWorkerScript from "@/workers/json.worker.js?raw";
 
-import styles from "../markdown/page.module.css";
+import styles from "./page.module.css";
 
 const HISTORY_KEY = "utilhub_json_history";
 
@@ -119,11 +119,14 @@ interface JsonError {
     suggestion?: string;
 }
 
+import JsonGraph from "./JsonGraph";
+
 export default function JsonTool() {
     const [code, setCode] = useUrlState(
         "code",
         '{"name":"UtilHub","type":"Project","active":true}',
     );
+    const [view, setView] = useUrlState("view", "text"); // 'text' | 'graph'
     const [aiPrompt, setAiPrompt] = useState("");
     const [error, setError] = useState<JsonError | null>(null);
     const { history, addToHistory, clearHistory } = useHistory(HISTORY_KEY, 20);
@@ -326,24 +329,65 @@ export default function JsonTool() {
             <div className={styles.editorContainer}>
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
-                        <span>Input / Output</span>
+                        <div style={{ display: "flex", gap: "1rem" }}>
+                            <button
+                                style={{
+                                    background: view === 'text' ? 'var(--bg-hover)' : 'transparent',
+                                    border: 'none',
+                                    color: view === 'text' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 600
+                                }}
+                                onClick={() => setView('text')}
+                            >
+                                Text
+                            </button>
+                            <button
+                                style={{
+                                    background: view === 'graph' ? 'var(--bg-hover)' : 'transparent',
+                                    border: 'none',
+                                    color: view === 'graph' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 600
+                                }}
+                                onClick={() => setView('graph')}
+                            >
+                                Graph
+                            </button>
+                        </div>
                         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
                             <ActionToolbar content={code} currentToolId="json" />
                             <span className={styles.languageBadge}>JSON</span>
                         </div>
                     </div>
-                    <div className={styles.editorWrapper}>
-                        <CodeMirrorEditor
-                            value={code}
-                            onChange={(code) => {
-                                setCode(code);
-                                inputSize.setInput(code);
-                            }}
-                            language="json"
-                            placeholder="Paste your JSON here..."
-                            onRun={formatJson}
-                        />
-                    </div>
+                    {view === 'text' ? (
+                        <div className={styles.editorWrapper}>
+                            <CodeMirrorEditor
+                                value={code}
+                                onChange={(code) => {
+                                    setCode(code);
+                                    inputSize.setInput(code);
+                                }}
+                                language="json"
+                                placeholder="Paste your JSON here..."
+                                onRun={formatJson}
+                            />
+                        </div>
+                    ) : (
+                        <div className={styles.graphContainer}>
+                            <JsonGraph data={(() => {
+                                try {
+                                    return JSON.parse(code);
+                                } catch (e) {
+                                    return null;
+                                }
+                            })()} />
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -58,6 +58,7 @@
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "reaflow": "^5.4.1",
     "sql-formatter": "^15.6.12",
     "sql.js": "^1.13.0",
     "svgo": "^4.0.0",

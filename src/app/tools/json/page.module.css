@@ -1,0 +1,118 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 4rem);
+    /* Adjust for padding */
+    max-width: 100%;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+.editorContainer {
+    display: flex;
+    flex: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    /* Kept local override if any */
+    border-radius: 8px;
+    /* Kept local override if any */
+    overflow: hidden;
+    position: relative;
+    /* ensure proper pane layout */
+    max-height: 100%;
+}
+
+.paneHeader {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.editorPane {
+    border-right: 1px solid var(--border-color);
+}
+
+.editorWrapper {
+    flex: 1;
+    overflow: hidden;
+}
+
+.graphContainer {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-secondary);
+    flex: 1;
+}
+
+
+/* Error Alert */
+.errorAlert {
+    background: var(--error-bg);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.languageBadge {
+    font-size: 0.75rem;
+    background: var(--bg-hover);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+}
