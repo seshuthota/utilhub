@@ -55,3 +55,74 @@
     display: flex;
     flex-direction: column;
 }
+
+.editorWrapperError {
+    flex: 1;
+    border: 1px solid var(--error-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+}
+
+.outputHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ghostButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.ghostButton:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.ghostButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error {
+    padding: 1rem;
+    color: var(--error-color);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    word-break: break-all;
+}

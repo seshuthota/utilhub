@@ -1,10 +1,4 @@
-import {
-  render,
-  screen,
-  fireEvent,
-  act,
-  waitFor,
-} from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import Converter from "../app/tools/curl/Converter";
 
@@ -28,7 +22,7 @@ vi.mock("@/hooks/useUrlState", async (importOriginal) => {
   };
 });
 
-vi.mock("@/components/common/CodeEditor", () => {
+vi.mock("@/components/common/CodeMirrorEditor", () => {
   return {
     __esModule: true,
     default: ({
@@ -91,11 +85,8 @@ describe("Curl Converter", () => {
     render(<Converter />);
 
     const input = screen.getByTestId("input-editor");
-
-    act(() => {
-      fireEvent.change(input, {
-        target: { value: "curl https://example.com" },
-      });
+    fireEvent.change(input, {
+      target: { value: "curl https://example.com" },
     });
 
     expect(screen.getByTestId("output-editor")).toHaveValue(
@@ -109,15 +100,11 @@ describe("Curl Converter", () => {
     const input = screen.getByTestId("input-editor");
     const select = screen.getByLabelText("Target Language");
 
-    act(() => {
-      fireEvent.change(input, {
-        target: { value: "curl https://example.com" },
-      });
+    fireEvent.change(input, {
+      target: { value: "curl https://example.com" },
     });
 
-    act(() => {
-      fireEvent.change(select, { target: { value: "go" } });
-    });
+    fireEvent.change(select, { target: { value: "go" } });
 
     expect(screen.getByTestId("output-editor")).toHaveValue(
       'http.Get("https://example.com")',
@@ -128,10 +115,7 @@ describe("Curl Converter", () => {
     render(<Converter />);
 
     const input = screen.getByTestId("input-editor");
-
-    act(() => {
-      fireEvent.change(input, { target: { value: "curl error" } });
-    });
+    fireEvent.change(input, { target: { value: "curl error" } });
 
     expect(screen.getByText(/Invalid cURL command/i)).toBeInTheDocument();
   });
@@ -141,19 +125,15 @@ describe("Curl Converter", () => {
 
     const input = screen.getByTestId("input-editor");
 
-    act(() => {
-      fireEvent.change(input, {
-        target: { value: "curl https://example.com" },
-      });
+    fireEvent.change(input, {
+      target: { value: "curl https://example.com" },
     });
 
     expect(screen.getByTestId("output-editor")).toHaveValue(
       "requests.get('https://example.com')",
     );
 
-    act(() => {
-      fireEvent.change(input, { target: { value: "" } });
-    });
+    fireEvent.change(input, { target: { value: "" } });
 
     expect(screen.getByTestId("output-editor")).toHaveValue("");
   });

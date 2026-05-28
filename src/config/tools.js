@@ -448,6 +448,16 @@ export const tools = [
     hasAiFeatures: false,
     category: "networking",
   },
+  {
+    id: "curl-tester",
+    title: "Curl Tester",
+    description: "Parse and execute cURL commands right from the browser.",
+    icon: Network,
+    href: "/tools/curl-tester",
+    isClientSideOnly: false,
+    hasAiFeatures: false,
+    category: "networking",
+  },
 ];
 
 // Helper to get tool by ID

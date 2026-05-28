@@ -49,16 +49,13 @@ export default function Converter() {
 
             const convertFn = curlconverter[langConfig.fn];
             if (!convertFn) {
-                // Fallback or generic error if function misses (shouldn't happen with correct version)
                 throw new Error(`Conversion function for ${langConfig.name} not found`);
             }
 
-            // curlconverter types might need assertion if explicit types are missing
             const result = (convertFn as Function)(curl);
             setOutput(result);
             setError(null);
         } catch (err: any) {
-            console.error(err);
             setError("Invalid cURL command or parsing failed. " + err.message);
             setOutput("");
         }
@@ -93,7 +90,7 @@ export default function Converter() {
                 </select>
 
                 <button
-                    className="btn btn-secondary"
+                    className={styles.button}
                     onClick={() => setInput("")}
                     disabled={!input}
                     title="Clear Input"
@@ -112,17 +109,16 @@ export default function Converter() {
                             onChange={setInput}
                             language="bash"
                             placeholder="curl https://api.example.com/data -H 'Authorization: Bearer token'"
-                            className="h-full"
                         />
                     </div>
                 </div>
 
                 {/* Output Column */}
                 <div className={styles.column}>
-                    <div className="flex justify-between items-center">
+                    <div className={styles.outputHeader}>
                         <span className={styles.label}>{currentLang.name} Output</span>
                         <button
-                            className="btn btn-ghost btn-sm"
+                            className={styles.ghostButton}
                             onClick={copyToClipboard}
                             disabled={!output}
                             title="Copy Output"
@@ -131,18 +127,17 @@ export default function Converter() {
                         </button>
                     </div>
 
-                    <div className={styles.editorWrapper} style={{ borderColor: error ? 'var(--error-color)' : '' }}>
+                    <div className={error ? styles.editorWrapperError : styles.editorWrapper}>
                         {error ? (
-                            <div className="p-4 text-red-500 font-mono text-sm break-all">
+                            <div className={styles.error}>
                                 {error}
                             </div>
                         ) : (
                             <CodeMirrorEditor
                                 value={output}
-                                onChange={() => { }} // Read only
+                                onChange={() => {}}
                                 language={currentLang.mode}
                                 readOnly={true}
-                                className="h-full"
                             />
                         )}
                     </div>
