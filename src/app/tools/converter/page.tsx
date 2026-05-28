@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-// @ts-ignore
 import yaml from "js-yaml";
-// @ts-ignore
 import TOML from "@iarna/toml";
 import { Settings, ArrowRightLeft, AlertCircle } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";
@@ -83,10 +81,7 @@ export default function ConfigConverter() {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            convert(input, sourceFmt, targetFmt);
-        }, 0);
-        return () => clearTimeout(timer);
+        convert(input, sourceFmt, targetFmt);
     }, [input, sourceFmt, targetFmt, convert]);
 
     const handleSwap = () => {

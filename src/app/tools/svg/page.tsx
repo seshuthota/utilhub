@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-// @ts-ignore
 import { optimize } from 'svgo/browser';
 import { Upload, Download, RefreshCw, Settings } from 'lucide-react';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useToast } from '@/components/Toast';
 import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ActionToolbar from '@/components/common/ActionToolbar';
+import { sanitizeHtml } from '@/utils/sanitize';
+import { downloadFile } from '@/utils/download';
 import styles from './page.module.css';
 
 const DEFAULT_SVG = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -67,7 +68,6 @@ export default function SvgOptimizer() {
                 plugins: plugins
             });
 
-            // @ts-ignore
             if (result.error) throw new Error(result.error);
 
             setOutput(result.data);
@@ -124,13 +124,7 @@ export default function SvgOptimizer() {
     };
 
     const downloadSvg = () => {
-        const blob = new Blob([output], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'optimized.svg';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadFile(output, 'optimized.svg', 'image/svg+xml');
     };
 
     const formatSize = (bytes: number) => {
@@ -275,7 +269,7 @@ export default function SvgOptimizer() {
                             ) : (
                                 <div
                                     className={styles.svgWrapper}
-                                    dangerouslySetInnerHTML={{ __html: output }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(output) }}
                                 />
                             )}
                         </div>

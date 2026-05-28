@@ -70,7 +70,9 @@ export async function POST(request) {
     }
 
 
-    console.log(`[${new Date().toISOString()}] AI API Check: Key length=${apiKey.length}, Prefix=${apiKey.substring(0, 4)}***`);
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[${new Date().toISOString()}] AI API key loaded (length=${apiKey.length})`);
+    }
 
     try {
         const { type, payload } = await request.json();

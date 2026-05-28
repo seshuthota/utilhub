@@ -162,7 +162,6 @@ export default function DiffTool() {
             maxConcurrent: 1,
             timeout: 60000,
             onError: (err: any) => {
-                console.error("Diff Worker error:", err);
                 showToast("Diff computation error", "error");
             },
         },
@@ -190,7 +189,6 @@ export default function DiffTool() {
             setDiffResult(result as DiffPart[]);
             showToast("Diff computed successfully", "success");
         } catch (error) {
-            console.error("Diff error:", error);
             showToast("Failed to compute diff", "error");
         } finally {
             oldInputSize.finishProcessing();

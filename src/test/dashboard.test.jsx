@@ -6,8 +6,8 @@ import dashboard from '../app/page';
 // Mock dependencies
 vi.mock('@/config/tools', () => ({
   tools: [
-    { id: 'json-formatter', name: 'JSON Formatter', description: 'Format JSON', category: 'json' },
-    { id: 'base64', name: 'Base64', description: 'Encode/Decode', category: 'text' }
+    { id: 'json-formatter', title: 'JSON Formatter', description: 'Format JSON', category: 'json' },
+    { id: 'base64', title: 'Base64', description: 'Encode/Decode', category: 'text' }
   ]
 }));
 
@@ -20,7 +20,7 @@ vi.mock('@/components/FavoritesProvider', () => ({
 
 vi.mock('@/components/common/ToolCard', () => {
   return {
-    default: ({ name }) => <div data-testid="tool-card">{name}</div>
+    default: ({ title }) => <div data-testid="tool-card">{title}</div>
   };
 });
 

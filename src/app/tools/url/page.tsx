@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowRightLeft, Copy, Trash2 } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 import styles from './page.module.css';
 
 export default function UrlTool() {
     const [input, setInput] = useState('https://utilhub.vercel.app/tools?query=hello world');
     const [mode, setMode] = useState<'encode' | 'decode'>('encode');
     const [output, setOutput] = useState('');
+    const { showToast } = useToast();
 
     const process = (val: string, currentMode: 'encode' | 'decode') => {
         try {
@@ -63,7 +65,7 @@ export default function UrlTool() {
                 <div className={styles.pane}>
                     <div className={styles.paneHeader}>
                         {mode === 'encode' ? 'Encoded Output' : 'Decoded Output'}
-                        <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(output)}>
+                        <button className={styles.copyBtn} onClick={() => { navigator.clipboard.writeText(output); showToast('Copied!', 'success'); }}>
                             <Copy size={14} />
                         </button>
                     </div>

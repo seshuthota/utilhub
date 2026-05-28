@@ -25,6 +25,7 @@ import ShareButton from '@/components/common/ShareButton';
 import { useUrlState } from '@/hooks/useUrlState';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useToast } from '@/components/Toast';
+import { downloadFile } from '@/utils/download';
 
 import styles from './page.module.css';
 
@@ -219,15 +220,10 @@ export default function SqliteTool() {
         if (!db) return;
         try {
             const data = db.export();
-            // Create a proper ArrayBuffer copy for Blob compatibility
             const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
             const blob = new Blob([arrayBuffer], { type: 'application/x-sqlite3' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = dbName.endsWith('.sqlite') || dbName.endsWith('.db') ? dbName : `${dbName}.sqlite`;
-            link.click();
-            URL.revokeObjectURL(url);
+            const filename = dbName.endsWith('.sqlite') || dbName.endsWith('.db') ? dbName : `${dbName}.sqlite`;
+            downloadFile(blob, filename);
             showToast('Database exported', 'success');
         } catch (e: any) {
             showToast(`Export failed: ${e.message}`, 'error');
@@ -243,13 +239,7 @@ export default function SqliteTool() {
             });
             return obj;
         });
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'query_results.json';
-        link.click();
-        URL.revokeObjectURL(url);
+        downloadFile(JSON.stringify(data, null, 2), 'query_results.json', 'application/json');
         showToast('Exported as JSON', 'success');
     };
 
@@ -260,13 +250,7 @@ export default function SqliteTool() {
             row.map((val) => (typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val)).join(',')
         );
         const csv = [headers, ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'query_results.csv';
-        link.click();
-        URL.revokeObjectURL(url);
+        downloadFile(csv, 'query_results.csv', 'text/csv');
         showToast('Exported as CSV', 'success');
     };
 

@@ -3,9 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import JsonToTsTool from '../app/tools/json-to-ts/page';
 
-// Mock CodeEditor since it uses Prism which might cause issues in JSDOM, 
-// and we just want to test logic integration.
-vi.mock('@/components/common/CodeEditor', () => ({
+// Mock CodeMirrorEditor to avoid JSDOM issues with CodeMirror
+vi.mock('@/components/common/CodeMirrorEditor', () => ({
     default: ({ value, onChange, placeholder, readOnly }) => (
         <textarea
             data-testid="code-editor"

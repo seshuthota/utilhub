@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// @ts-ignore
 import Papa from "papaparse";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import { Table, FileJson, Download, Trash2, AlertCircle } from "lucide-react";
+import { downloadFile } from "@/utils/download";
 import styles from "./page.module.css";
 
 export default function CsvTool() {
@@ -44,22 +44,13 @@ export default function CsvTool() {
         });
     }
 
-    // Auto-parse
     useEffect(() => {
-        const timer = setTimeout(() => {
-            parseCsv(input);
-        }, 0);
-        return () => clearTimeout(timer);
+        parseCsv(input);
     }, [input]);
 
     const downloadJson = () => {
         const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "data.json";
-        link.click();
+        downloadFile(json, "data.json", "application/json");
     };
 
     return (

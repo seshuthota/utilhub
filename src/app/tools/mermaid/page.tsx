@@ -9,6 +9,8 @@ import AiAssistBar from '@/components/common/AiAssistBar';
 import AiDisclaimer from '@/components/common/AiDisclaimer';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import { useUrlState } from '@/hooks/useUrlState';
+import { sanitizeHtml } from '@/utils/sanitize';
+import { downloadFile } from '@/utils/download';
 import styles from '../markdown/page.module.css';
 
 // Initialize mermaid
@@ -72,12 +74,7 @@ export default function MermaidTool() {
     }, [code]);
 
     const handleDownload = () => {
-        const blob = new Blob([svg], { type: 'image/svg+xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'chart.svg';
-        a.click();
+        downloadFile(svg, 'chart.svg', 'image/svg+xml');
     };
 
     return (
@@ -131,13 +128,12 @@ export default function MermaidTool() {
                     <div
                         className={styles.preview}
                         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}
-                        dangerouslySetInnerHTML={{ __html: svg }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(svg) }}
                     />
                 </div>
             </div>
 
             <div style={{ marginTop: '2rem' }}>
-                {/* @ts-ignore */}
                 <AiDisclaimer featureName="Mermaid AI Generation" />
             </div>
         </div>

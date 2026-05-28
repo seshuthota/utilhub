@@ -30,6 +30,7 @@ export function useWorker(workerScript: string, options: WorkerOptions = {}) {
     } = options;
 
     const workerRef = useRef<Worker | null>(null);
+    const workerUrlRef = useRef<string | null>(null);
     const pendingRequests = useRef(new Map<number, PendingRequest>());
     const queueRef = useRef<{ task: WorkerTask; resolve: Function; reject: Function }[]>([]);
     const activeCount = useRef(0);
@@ -52,6 +53,7 @@ export function useWorker(workerScript: string, options: WorkerOptions = {}) {
         if (typeof workerScript === "string") {
             const blob = new Blob([workerScript], { type: "application/javascript" });
             const url = URL.createObjectURL(blob);
+            workerUrlRef.current = url;
             workerRef.current = new Worker(url);
 
             workerRef.current.onmessage = (e) => {
@@ -132,8 +134,12 @@ export function useWorker(workerScript: string, options: WorkerOptions = {}) {
         if (workerRef.current) {
             workerRef.current.terminate();
             workerRef.current = null;
-            setIsReady(false);
         }
+        if (workerUrlRef.current) {
+            URL.revokeObjectURL(workerUrlRef.current);
+            workerUrlRef.current = null;
+        }
+        setIsReady(false);
         pendingRequests.current.clear();
         queueRef.current = [];
         activeCount.current = 0;

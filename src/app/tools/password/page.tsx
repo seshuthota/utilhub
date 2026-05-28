@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// @ts-ignore
 import zxcvbn from "zxcvbn";
 import {
     Eye,
@@ -16,14 +15,11 @@ export default function PasswordTool() {
     const [result, setResult] = useState<any>(null);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (password) {
-                setResult(zxcvbn(password));
-            } else {
-                setResult(null);
-            }
-        }, 0);
-        return () => clearTimeout(timer);
+        if (password) {
+            setResult(zxcvbn(password));
+        } else {
+            setResult(null);
+        }
     }, [password]);
 
     const getScoreColor = (score: number) => {

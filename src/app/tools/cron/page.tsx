@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import cronstrue from 'cronstrue';
 import cronParser from 'cron-parser';
 import { Clock, Calendar, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 import AiAssistBar from '@/components/common/AiAssistBar';
 import styles from './page.module.css';
 
@@ -16,6 +17,7 @@ interface CronResult {
 export default function CronTool() {
     const [expression, setExpression] = useState('*/5 * * * *');
     const [aiPrompt, setAiPrompt] = useState('');
+    const { showToast } = useToast();
 
     const result = useMemo<CronResult>(() => {
         try {
@@ -43,7 +45,7 @@ export default function CronTool() {
             (cronParser as any).parse(cleaned);
             setExpression(cleaned);
         } catch (e) {
-            console.error('AI returned invalid cron:', cleaned);
+            showToast('AI returned an invalid cron expression', 'error');
         }
     };
 

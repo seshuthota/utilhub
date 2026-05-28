@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-// @ts-ignore
 import composerize from "composerize";
 import { Container, Play } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";

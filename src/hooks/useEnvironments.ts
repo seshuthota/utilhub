@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const ENV_KEY = "utilhub_api_envs";
 const ACTIVE_ENV_KEY = "utilhub_api_active_env";
@@ -15,29 +15,26 @@ export interface Environment {
     variables: EnvVariable[];
 }
 
+function loadEnvironments(): Environment[] {
+    try {
+        const saved = localStorage.getItem(ENV_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
+function loadActiveEnv(): string | null {
+    try {
+        return localStorage.getItem(ACTIVE_ENV_KEY);
+    } catch {
+        return null;
+    }
+}
+
 export function useEnvironments() {
-    const [environments, setEnvironments] = useState<Environment[]>([]);
-    const [activeEnvId, setActiveEnvId] = useState<string | null>(null);
-
-    // Load from localStorage on mount
-    useEffect(() => {
-        try {
-            const savedEnvs = localStorage.getItem(ENV_KEY);
-            const savedActive = localStorage.getItem(ACTIVE_ENV_KEY);
-
-            const timer = setTimeout(() => {
-                if (savedEnvs) {
-                    setEnvironments(JSON.parse(savedEnvs));
-                }
-                if (savedActive) {
-                    setActiveEnvId(savedActive);
-                }
-            }, 0);
-            return () => clearTimeout(timer);
-        } catch (e) {
-            console.error("Failed to load environments:", e);
-        }
-    }, []);
+    const [environments, setEnvironments] = useState<Environment[]>(() => loadEnvironments());
+    const [activeEnvId, setActiveEnvId] = useState<string | null>(() => loadActiveEnv());
 
     // Save helpers
     const saveEnvs = (newEnvs: Environment[]) => {

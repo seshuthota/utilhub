@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useRef } from 'react';
-// @ts-ignore
 import JSZip from 'jszip';
 import { Image as ImageIcon, Upload, Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { downloadFile } from '@/utils/download';
 import styles from './page.module.css';
 
 interface FaviconConfig {
@@ -136,12 +136,7 @@ export default function FaviconGenerator() {
 
         // Generate and Download
         const content = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(content);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'favicons.zip';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadFile(content, 'favicons.zip');
     };
 
     return (

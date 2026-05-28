@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-// @ts-ignore
 import yaml from "js-yaml";
-// @ts-ignore
 import Ajv from "ajv";
 import { ShieldCheck, AlertTriangle, CheckCircle, Upload } from "lucide-react";
 import { useUrlState } from "@/hooks/useUrlState";
@@ -99,10 +97,7 @@ export default function YamlValidator() {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            validate(input);
-        }, 0);
-        return () => clearTimeout(timer);
+        validate(input);
     }, [input, validate]);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

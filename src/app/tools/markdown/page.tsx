@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// @ts-ignore
 import { marked } from 'marked';
 import { Copy, Trash2 } from 'lucide-react';
 import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import { useToast } from '@/components/Toast';
+import { sanitizeHtml } from '@/utils/sanitize';
 import styles from './page.module.css';
 
 const defaultMarkdown = `# Welcome to Markdown Viewer
@@ -29,7 +29,11 @@ export default function MarkdownTool() {
 
     useEffect(() => {
         const parsed = marked.parse(code);
-        setHtml(parsed);
+        if (typeof parsed === 'string') {
+            setHtml(sanitizeHtml(parsed));
+        } else {
+            parsed.then((val: string) => setHtml(sanitizeHtml(val)));
+        }
     }, [code]);
 
     const handleCopy = () => {
@@ -77,7 +81,7 @@ export default function MarkdownTool() {
                     <div className={styles.paneHeader}>Preview</div>
                     <div
                         className={styles.preview}
-                        dangerouslySetInnerHTML={{ __html: typeof html === 'string' ? html : '' }}
+                        dangerouslySetInnerHTML={{ __html: typeof html === 'string' ? sanitizeHtml(html) : '' }}
                     />
                 </div>
             </div>

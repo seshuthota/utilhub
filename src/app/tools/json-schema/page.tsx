@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-// @ts-ignore
-// @ts-ignore
 import Ajv from 'ajv';
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';

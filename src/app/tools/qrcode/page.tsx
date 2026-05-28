@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// @ts-ignore
 import { QRCodeCanvas } from 'qrcode.react';
-// @ts-ignore
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QrCode, Scan } from 'lucide-react';
 import styles from './page.module.css';

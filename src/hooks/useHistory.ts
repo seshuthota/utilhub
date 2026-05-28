@@ -1,26 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 /**
  * Custom hook to manage history in localStorage
  * @param key - LocalStorage key
  * @param maxItems - Maximum number of items to keep
  */
-export function useHistory<T = any>(key: string, maxItems: number = 20) {
-    const [history, setHistory] = useState<T[]>([]);
+function loadHistory<T>(key: string): T[] {
+    try {
+        const saved = localStorage.getItem(key);
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        console.error(`Failed to load history for key "${key}":`, e);
+        return [];
+    }
+}
 
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem(key);
-            const timer = setTimeout(() => {
-                if (saved) {
-                    setHistory(JSON.parse(saved));
-                }
-            }, 0);
-            return () => clearTimeout(timer);
-        } catch (e) {
-            console.error(`Failed to load history for key "${key}":`, e);
-        }
-    }, [key]);
+export function useHistory<T = any>(key: string, maxItems: number = 20) {
+    const [history, setHistory] = useState<T[]>(() => loadHistory(key));
 
     const addToHistory = (item: T) => {
         setHistory((prev) => {
