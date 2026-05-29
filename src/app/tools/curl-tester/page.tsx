@@ -1,94 +1,116 @@
 'use client';
 
 import { useState } from "react";
-import {
-    Play,
-    Trash2,
-    Copy,
-    Clock,
-    Network,
-    AlertTriangle,
-    Loader2,
-} from "lucide-react";
+import { Play, Trash2, X, Loader2, Network, Braces } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { parseCurl } from "@/utils/curl";
+import RequestBuilder, { RequestState } from "@/components/common/RequestBuilder";
+import ResponseViewer, { ResponseData } from "@/components/common/ResponseViewer";
+import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import styles from "./page.module.css";
 
-const EXAMPLE_CURL = `curl 'https://jsonplaceholder.typicode.com/posts' \\
-  -H 'Content-Type: application/json' \\
-  -d '{"title":"foo","body":"bar","userId":1}'`;
+const EXAMPLE: RequestState = {
+    method: "POST",
+    url: "https://jsonplaceholder.typicode.com/posts",
+    headers: [
+        { key: "Content-Type", value: "application/json", active: true },
+    ],
+    body: '{\n  "title": "foo",\n  "body": "bar",\n  "userId": 1\n}',
+};
 
-function methodBadgeClass(method: string): string {
-    switch (method.toUpperCase()) {
-        case "GET": return styles.badgeGet;
-        case "POST": return styles.badgePost;
-        case "PUT": return styles.badgePut;
-        case "DELETE": return styles.badgeDelete;
-        case "PATCH": return styles.badgePatch;
-        default: return styles.badgePost;
-    }
-}
-
-function statusClass(status: number): string {
-    if (status < 300) return styles.statusSuccess;
-    if (status < 400) return styles.statusRedirect;
-    if (status < 500) return styles.statusClientError;
-    return styles.statusServerError;
-}
+const EMPTY: RequestState = {
+    method: "GET",
+    url: "",
+    headers: [],
+    body: "",
+};
 
 export default function CurlTester() {
-    const [input, setInput] = useState(EXAMPLE_CURL);
+    const [request, setRequest] = useState<RequestState>(EXAMPLE);
+    const [response, setResponse] = useState<ResponseData | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [parsed, setParsed] = useState<ReturnType<typeof parseCurl> | null>(null);
-    const [response, setResponse] = useState<any>(null);
+    const [showCurlModal, setShowCurlModal] = useState(false);
+    const [curlInput, setCurlInput] = useState("");
     const { showToast } = useToast();
 
-    const handleParse = () => {
-        if (!input.trim()) return;
-        const result = parseCurl(input);
-        setParsed(result);
-        setResponse(null);
-        if (result.error) {
-            showToast(result.error, "error");
+    const handleSend = async () => {
+        if (!request.url.trim()) {
+            showToast("Enter a URL first", "error");
+            return;
         }
-    };
-
-    const handleExecute = async () => {
-        if (!parsed || parsed.error || !parsed.url) return;
 
         setIsLoading(true);
+        setResponse(null);
+        setError(null);
+
         try {
             const reqHeaders: Record<string, string> = {};
-            parsed.headers.forEach((h) => {
-                reqHeaders[h.key] = h.value;
+            request.headers.forEach((h) => {
+                if (h.active !== false && h.key) {
+                    reqHeaders[h.key] = h.value;
+                }
             });
 
             const res = await fetch("/api/tester/proxy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    url: parsed.url,
-                    method: parsed.method,
+                    url: request.url,
+                    method: request.method,
                     headers: reqHeaders,
-                    body: parsed.body || undefined,
+                    body: request.body || undefined,
                 }),
             });
 
             const data = await res.json();
-            setResponse(data);
             if (data.error) {
+                setError(data.error);
                 showToast(data.error, "error");
             } else {
-                showToast(`Response received: ${data.status}`, "success");
+                setResponse(data);
+                showToast(`${data.status} in ${data.time}ms`, "success");
             }
         } catch (e: any) {
-            showToast(e.message || "Request failed", "error");
+            setError(e.message || "Request failed");
+            showToast("Request failed", "error");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const copyResponse = () => {
+    const handleImportCurl = () => {
+        setShowCurlModal(true);
+        setCurlInput("");
+    };
+
+    const applyCurlImport = () => {
+        const parsed = parseCurl(curlInput);
+        if (parsed.error) {
+            showToast(parsed.error, "error");
+            return;
+        }
+        setRequest({
+            method: parsed.method || "GET",
+            url: parsed.url || "",
+            headers: parsed.headers.map((h: any) => ({
+                key: h.key,
+                value: h.value,
+                active: true,
+            })),
+            body: parsed.body || "",
+        });
+        setShowCurlModal(false);
+        showToast("cURL parsed successfully", "success");
+    };
+
+    const clearAll = () => {
+        setRequest(EMPTY);
+        setResponse(null);
+        setError(null);
+    };
+
+    const copyResponseBody = () => {
         if (!response) return;
         const text = typeof response.data === "string"
             ? response.data
@@ -97,145 +119,92 @@ export default function CurlTester() {
         showToast("Response body copied", "success");
     };
 
-    const loadExample = () => {
-        setInput(EXAMPLE_CURL);
-        setParsed(null);
-        setResponse(null);
-    };
-
     return (
         <div className={styles.container}>
             <header className={styles.header}>
                 <h1 className={styles.title}>
                     <Network size={24} style={{ marginRight: "0.5rem", verticalAlign: "middle" }} />
-                    Curl Tester
+                    API Client
                 </h1>
                 <div className={styles.actions}>
-                    <button className={styles.button} onClick={loadExample} title="Load example">
-                        <Trash2 size={16} /> Example
-                    </button>
                     <button
                         className={styles.button}
-                        onClick={() => { setInput(""); setParsed(null); setResponse(null); }}
-                        title="Clear"
+                        onClick={() => setRequest(EXAMPLE)}
+                        title="Load example"
                     >
+                        <Braces size={16} /> Example
+                    </button>
+                    <button className={styles.button} onClick={clearAll} title="Clear all">
                         <Trash2 size={16} /> Clear
                     </button>
                 </div>
             </header>
 
-            <div className={styles.inputSection}>
-                <textarea
-                    className={styles.textarea}
-                    value={input}
-                    onChange={(e) => {
-                        setInput(e.target.value);
-                        setParsed(null);
-                        setResponse(null);
-                    }}
-                    placeholder="Paste a cURL command here..."
-                    spellCheck={false}
+            <div className={styles.requestPane}>
+                <RequestBuilder
+                    value={request}
+                    onChange={setRequest}
+                    onImportCurl={handleImportCurl}
                 />
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button
-                        className={styles.button}
-                        onClick={handleParse}
-                        disabled={!input.trim()}
-                    >
-                        Parse
-                    </button>
+                <div className={styles.sendRow}>
                     <button
                         className={styles.primaryBtn}
-                        onClick={handleExecute}
-                        disabled={!parsed || !!parsed.error || !parsed.url || isLoading}
+                        onClick={handleSend}
+                        disabled={!request.url.trim() || isLoading}
                     >
                         {isLoading ? (
                             <><Loader2 size={16} className="animate-spin" /> Sending...</>
                         ) : (
-                            <><Play size={16} /> Execute</>
+                            <><Play size={16} /> Send</>
                         )}
                     </button>
                 </div>
             </div>
 
-            {parsed && parsed.url && (
-                <div className={styles.parsedSection}>
-                    <div className={styles.parsedCard}>
-                        <div className={styles.parsedLabel}>Method</div>
-                        <span className={`${styles.badge} ${methodBadgeClass(parsed.method)}`}>
-                            {parsed.method}
-                        </span>
-                    </div>
+            <div className={styles.responsePane}>
+                <ResponseViewer
+                    response={response}
+                    error={error || undefined}
+                    onCopyBody={copyResponseBody}
+                />
+            </div>
 
-                    <div className={styles.parsedCard}>
-                        <div className={styles.parsedLabel}>URL</div>
-                        <div className={styles.urlDisplay}>{parsed.url}</div>
-                    </div>
-
-                    {parsed.headers.length > 0 && (
-                        <div className={styles.parsedCard}>
-                            <div className={styles.parsedLabel}>
-                                Headers ({parsed.headers.length})
-                            </div>
-                            <div className={styles.headersList}>
-                                {parsed.headers.map((h, i) => (
-                                    <div key={i} className={styles.headerItem}>
-                                        <span className={styles.headerKey}>{h.key}:</span>
-                                        <span className={styles.headerValue}>{h.value}</span>
-                                    </div>
-                                ))}
-                            </div>
+            {showCurlModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowCurlModal(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3>Import from cURL</h3>
+                            <button className={styles.closeBtn} onClick={() => setShowCurlModal(false)}>
+                                <X size={18} />
+                            </button>
                         </div>
-                    )}
-
-                    {parsed.body && (
-                        <div className={styles.parsedCard}>
-                            <div className={styles.parsedLabel}>Body</div>
-                            <pre className={styles.bodyPreview}>{parsed.body}</pre>
+                        <div className={styles.modalBody}>
+                            <p className={styles.modalHint}>
+                                Paste a cURL command below to populate the request fields.
+                            </p>
+                            <CodeMirrorEditor
+                                value={curlInput}
+                                onChange={setCurlInput}
+                                language="bash"
+                                placeholder="curl https://api.example.com/data -H 'Authorization: Bearer token'"
+                                height="150px"
+                            />
                         </div>
-                    )}
-                </div>
-            )}
-
-            {parsed && parsed.error && (
-                <div className={styles.error}>
-                    <AlertTriangle size={14} /> {parsed.error}
-                </div>
-            )}
-
-            {response && (
-                <div className={styles.responseSection}>
-                    <div className={styles.responseMeta}>
-                        <span className={`${styles.statusBadge} ${statusClass(response.status)}`}>
-                            {response.status} {response.statusText}
-                        </span>
-                        <span className={styles.timeDisplay}>
-                            <Clock size={14} />
-                            {response.time}ms
-                        </span>
-                        <button className={styles.button} onClick={copyResponse}>
-                            <Copy size={14} /> Copy Body
-                        </button>
-                    </div>
-
-                    {response.headers && Object.keys(response.headers).length > 0 && (
-                        <details className={styles.responseHeadersSection}>
-                            <summary>Response Headers</summary>
-                            <div className={styles.headersList}>
-                                {Object.entries(response.headers).map(([key, value]: [string, any]) => (
-                                    <div key={key} className={styles.headerItem}>
-                                        <span className={styles.headerKey}>{key}:</span>
-                                        <span className={styles.headerValue}>{String(value)}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </details>
-                    )}
-
-                    <div className={styles.responseBody}>
-                        {typeof response.data === "string"
-                            ? response.data
-                            : JSON.stringify(response.data, null, 2)}
+                        <div className={styles.modalActions}>
+                            <button
+                                className={styles.button}
+                                onClick={() => setShowCurlModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.primaryBtn}
+                                onClick={applyCurlImport}
+                                disabled={!curlInput.trim()}
+                            >
+                                Import
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
