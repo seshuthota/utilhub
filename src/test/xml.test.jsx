@@ -27,12 +27,39 @@ describe('XmlTool', () => {
         expect(screen.getByText('Format')).toBeInTheDocument();
         expect(screen.getByText('Minify')).toBeInTheDocument();
         expect(screen.getByText('Copy')).toBeInTheDocument();
+        expect(screen.getByText('Clear')).toBeInTheDocument();
     });
 
-    it('formats XML', () => {
+    it('formats XML on format click', () => {
         render(<XmlTool />);
-        fireEvent.click(screen.getByText('Format'));
         const editor = screen.getAllByTestId('code-editor')[0];
-        expect(editor).toHaveValue;
+        const initial = editor.getAttribute('value') || '';
+        fireEvent.click(screen.getByText('Format'));
+        const formatted = editor.getAttribute('value') || '';
+        expect(formatted.length).toBeGreaterThanOrEqual(initial.length);
+    });
+
+    it('minifies XML on minify click', () => {
+        render(<XmlTool />);
+        const editor = screen.getAllByTestId('code-editor')[0];
+        fireEvent.click(screen.getByText('Minify'));
+        const value = editor.getAttribute('value') || '';
+        expect(value).not.toContain('  ');
+    });
+
+    it('clears content on clear', () => {
+        render(<XmlTool />);
+        const editor = screen.getAllByTestId('code-editor')[0];
+        fireEvent.click(screen.getByText('Clear'));
+        expect(editor).toHaveValue('');
+    });
+
+    it('shows error for invalid XML', () => {
+        render(<XmlTool />);
+        const editor = screen.getAllByTestId('code-editor')[0];
+        fireEvent.change(editor, { target: { value: 'not xml at all' } });
+        fireEvent.click(screen.getByText('Format'));
+        const errorTexts = screen.queryAllByText(/error|invalid/i);
+        expect(errorTexts.length).toBeGreaterThan(0);
     });
 });

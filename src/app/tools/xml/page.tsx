@@ -6,7 +6,7 @@ import xmlFormat from 'xml-formatter';
 import { Copy, Trash2, Braces, Minimize } from 'lucide-react';
 import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import { useToast } from '@/components/Toast';
-import styles from '../markdown/page.module.css';
+import styles from './page.module.css';
 
 export default function XmlTool() {
     const [code, setCode] = useState('<root><child id="1">Hello World</child></root>');
@@ -43,8 +43,10 @@ export default function XmlTool() {
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(code);
-        showToast('Copied to clipboard', 'success');
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('Copied to clipboard', 'success');
+        });
     };
 
     return (
