@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Clock, Copy } from "lucide-react";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import styles from "./ResponseViewer.module.css";
@@ -31,7 +31,26 @@ function formatBody(data: any): string {
     return JSON.stringify(data, null, 2);
 }
 
-type Tab = "body" | "headers";
+function detectLanguage(headers: Record<string, string>): string {
+    const ct = (headers["content-type"] || headers["Content-Type"] || "").toLowerCase();
+    if (ct.includes("json")) return "json";
+    if (ct.includes("html")) return "html";
+    if (ct.includes("xml") || ct.includes("svg")) return "xml";
+    if (ct.includes("yaml")) return "yaml";
+    if (ct.includes("css")) return "css";
+    if (ct.includes("javascript") || ct.includes("ecmascript")) return "javascript";
+    return "json";
+}
+
+function isPreviewable(headers: Record<string, string>): { preview: boolean; type: string } {
+    const ct = (headers["content-type"] || headers["Content-Type"] || "").toLowerCase();
+    if (ct.includes("html")) return { preview: true, type: "html" };
+    if (ct.includes("svg")) return { preview: true, type: "svg" };
+    if (ct.startsWith("image/")) return { preview: true, type: "image" };
+    return { preview: false, type: "none" };
+}
+
+type Tab = "body" | "preview" | "headers";
 
 export default function ResponseViewer({ response, error, onCopyBody }: ResponseViewerProps) {
     const [activeTab, setActiveTab] = useState<Tab>("body");
@@ -44,6 +63,10 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
 
     const responseHeaders = Object.entries(response.headers || {});
     const bodyText = formatBody(response.data);
+    const lang = detectLanguage(response.headers || {});
+    const { preview: canPreview, type: previewType } = isPreviewable(response.headers || {});
+
+    const tabs: Tab[] = ["body", ...(canPreview ? ["preview" as Tab] : []), "headers"];
 
     return (
         <div className={styles.container}>
@@ -63,28 +86,51 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
             </div>
 
             <div className={styles.tabs}>
-                <button
-                    className={`${styles.tab} ${activeTab === "body" ? styles.activeTab : ""}`}
-                    onClick={() => setActiveTab("body")}
-                >
-                    Body
-                </button>
-                <button
-                    className={`${styles.tab} ${activeTab === "headers" ? styles.activeTab : ""}`}
-                    onClick={() => setActiveTab("headers")}
-                >
-                    Headers {responseHeaders.length > 0 && `(${responseHeaders.length})`}
-                </button>
+                {tabs.map((tab) => (
+                    <button
+                        key={tab}
+                        className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ""}`}
+                        onClick={() => setActiveTab(tab)}
+                    >
+                        {tab === "body" ? "Body" : tab === "preview" ? "Preview" : `Headers (${responseHeaders.length})`}
+                    </button>
+                ))}
             </div>
 
             {activeTab === "body" && (
                 <div className={styles.bodyContainer}>
                     <CodeMirrorEditor
                         value={bodyText}
-                        language="json"
+                        language={lang}
                         readOnly
                         height="350px"
                     />
+                </div>
+            )}
+
+            {activeTab === "preview" && (
+                <div className={styles.previewContainer}>
+                    {previewType === "html" && (
+                        <iframe
+                            className={styles.iframe}
+                            srcDoc={bodyText}
+                            title="Response preview"
+                            sandbox="allow-same-origin"
+                        />
+                    )}
+                    {previewType === "svg" && (
+                        <div
+                            className={styles.svgPreview}
+                            dangerouslySetInnerHTML={{ __html: bodyText }}
+                        />
+                    )}
+                    {previewType === "image" && (
+                        <img
+                            className={styles.imagePreview}
+                            src={`data:${response.headers["content-type"] || response.headers["Content-Type"] || "image/png"};base64,${btoa(bodyText)}`}
+                            alt="Response preview"
+                        />
+                    )}
                 </div>
             )}
 
