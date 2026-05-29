@@ -170,14 +170,15 @@ export default function CurlTester() {
             showToast(parsed.error, "error");
             return;
         }
-        const headers = parsed.headers.map((h: any) => ({
+        const headers = (parsed.headers || []).map((h: any) => ({
             key: h.key, value: h.value, active: true,
         }));
         let auth: AuthState = { type: "none" };
-        if (parsed.auth?.type === "bearer") {
-            auth = { type: "bearer", bearerToken: parsed.auth.token };
-        } else if (parsed.auth?.type === "basic") {
-            auth = { type: "basic", basicUsername: parsed.auth.username, basicPassword: parsed.auth.password };
+        const pa = parsed.auth as any;
+        if (pa?.type === "bearer") {
+            auth = { type: "bearer", bearerToken: pa.token };
+        } else if (pa?.type === "basic") {
+            auth = { type: "basic", basicUsername: pa.username, basicPassword: pa.password };
         }
         setRequest({
             method: parsed.method || "GET",

@@ -27,7 +27,7 @@ declare module 'html5-qrcode' {
     export class Html5QrcodeScanner {
         constructor(elementId: string, config: any, verbose?: boolean);
         render(onScanSuccess: (text: string, result?: any) => void, onScanFailure?: (error: string) => void): void;
-        clear(): void;
+        clear(): Promise<void>;
     }
 }
 
@@ -53,8 +53,10 @@ declare module 'svgo/browser' {
 }
 
 declare module 'marked' {
-    function marked(src: string): string | Promise<string>;
-    export default marked;
+    interface Marked {
+        parse(src: string): string | Promise<string>;
+    }
+    export const marked: Marked;
 }
 
 declare module 'papaparse' {

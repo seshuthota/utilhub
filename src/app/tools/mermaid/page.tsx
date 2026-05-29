@@ -6,7 +6,6 @@ import { Download, Trash2 } from 'lucide-react';
 import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ShareButton from '@/components/common/ShareButton';
 import AiAssistBar from '@/components/common/AiAssistBar';
-import AiDisclaimer from '@/components/common/AiDisclaimer';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import { useUrlState } from '@/hooks/useUrlState';
 import { sanitizeHtml } from '@/utils/sanitize';
@@ -134,7 +133,6 @@ export default function MermaidTool() {
             </div>
 
             <div style={{ marginTop: '2rem' }}>
-                <AiDisclaimer featureName="Mermaid AI Generation" />
             </div>
         </div>
     );
