@@ -2,18 +2,21 @@
 
 import { useState } from "react";
 import {
-    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code,
+    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code, Save,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useHistory } from "@/hooks/useHistory";
+import { useEnvironments, substituteVariables } from "@/hooks/useEnvironments";
 import { parseCurl } from "@/utils/curl";
 import RequestBuilder, { RequestState, AuthState } from "@/components/common/RequestBuilder";
 import ResponseViewer, { ResponseData } from "@/components/common/ResponseViewer";
 import HistorySidebar from "@/components/common/HistorySidebar";
+import EnvironmentManager from "../api-tester/EnvironmentManager";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import styles from "./page.module.css";
 
 const HISTORY_KEY = "utilhub_curl_tester_history";
+const COLLECTIONS_KEY = "utilhub_curl_tester_collections";
 
 interface HistoryEntry {
     method: string;
@@ -22,6 +25,26 @@ interface HistoryEntry {
     status?: number;
     request: RequestState;
     response?: ResponseData;
+}
+
+interface SavedRequest {
+    id: string;
+    name: string;
+    timestamp: number;
+    request: RequestState;
+}
+
+function loadSaved(): SavedRequest[] {
+    try {
+        const val = localStorage.getItem(COLLECTIONS_KEY);
+        return val ? JSON.parse(val) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveSaved(items: SavedRequest[]) {
+    localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(items));
 }
 
 const EXAMPLE: RequestState = {
@@ -67,10 +90,17 @@ export default function CurlTester() {
     const [curlInput, setCurlInput] = useState("");
     const [showHistory, setShowHistory] = useState(false);
     const { history, addToHistory, clearHistory, removeFromHistory } = useHistory<HistoryEntry>(HISTORY_KEY, 50);
+    const env = useEnvironments();
     const { showToast } = useToast();
 
+    // Resolve variables from active environment
+    const activeEnv = env.getActiveEnvironment();
+    const resolve = (text: string) =>
+        activeEnv ? substituteVariables(text, activeEnv.variables) : text;
+
     const handleSend = async () => {
-        if (!request.url.trim()) {
+        const resolvedUrl = resolve(request.url);
+        if (!resolvedUrl.trim()) {
             showToast("Enter a URL first", "error");
             return;
         }
@@ -83,14 +113,14 @@ export default function CurlTester() {
             const reqHeaders: Record<string, string> = {};
             request.headers.forEach((h) => {
                 if (h.active !== false && h.key) {
-                    reqHeaders[h.key] = h.value;
+                    reqHeaders[h.key] = resolve(h.value);
                 }
             });
 
             if (request.auth.type === "bearer" && request.auth.bearerToken) {
-                reqHeaders["Authorization"] = `Bearer ${request.auth.bearerToken}`;
+                reqHeaders["Authorization"] = `Bearer ${resolve(request.auth.bearerToken)}`;
             } else if (request.auth.type === "basic" && request.auth.basicUsername) {
-                const encoded = btoa(`${request.auth.basicUsername}:${request.auth.basicPassword || ""}`);
+                const encoded = btoa(`${resolve(request.auth.basicUsername)}:${resolve(request.auth.basicPassword || "")}`);
                 reqHeaders["Authorization"] = `Basic ${encoded}`;
             }
 
@@ -98,10 +128,10 @@ export default function CurlTester() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    url: request.url,
+                    url: resolvedUrl,
                     method: request.method,
                     headers: reqHeaders,
-                    body: request.body || undefined,
+                    body: request.body ? resolve(request.body) : undefined,
                 }),
             });
 
@@ -193,22 +223,54 @@ export default function CurlTester() {
         return d.toLocaleDateString();
     };
 
+    const handleSaveRequest = () => {
+        if (!saveName.trim()) return;
+        const newItem: SavedRequest = {
+            id: crypto.randomUUID(),
+            name: saveName.trim(),
+            timestamp: Date.now(),
+            request: JSON.parse(JSON.stringify(request)),
+        };
+        const next = [newItem, ...savedRequests];
+        setSavedRequests(next);
+        saveSaved(next);
+        setShowSaveModal(false);
+        setSaveName("");
+        showToast("Request saved", "success");
+    };
+
+    const deleteSaved = (id: string) => {
+        const next = savedRequests.filter((r) => r.id !== id);
+        setSavedRequests(next);
+        saveSaved(next);
+    };
+
+    const openSaveModal = () => {
+        setSaveName(request.url.replace(/https?:\/\//, "").split(/[?#]/)[0] || "Untitled");
+        setShowSaveModal(true);
+    };
+
     const buildHeaders = (): Record<string, string> => {
         const h: Record<string, string> = {};
         request.headers.forEach((header) => {
             if (header.active !== false && header.key) {
-                h[header.key] = header.value;
+                h[header.key] = resolve(header.value);
             }
         });
         if (request.auth.type === "bearer" && request.auth.bearerToken) {
-            h["Authorization"] = `Bearer ${request.auth.bearerToken}`;
+            h["Authorization"] = `Bearer ${resolve(request.auth.bearerToken)}`;
         } else if (request.auth.type === "basic" && request.auth.basicUsername) {
-            h["Authorization"] = `Basic ${btoa(`${request.auth.basicUsername}:${request.auth.basicPassword || ""}`)}`;
+            h["Authorization"] = `Basic ${btoa(`${resolve(request.auth.basicUsername)}:${resolve(request.auth.basicPassword || "")}`)}`;
         }
         return h;
     };
 
     const [showSnippets, setShowSnippets] = useState(false);
+    const [showEnvManager, setShowEnvManager] = useState(false);
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [saveName, setSaveName] = useState("");
+    const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => loadSaved());
+    const [showCollections, setShowCollections] = useState(false);
 
     const generateSnippets = (): Record<string, string> => {
         const headers = buildHeaders();
@@ -260,6 +322,40 @@ export default function CurlTester() {
                         title="History"
                     >
                         <HistoryIcon size={16} /> History
+                    </button>
+                    <button
+                        className={styles.button}
+                        onClick={openSaveModal}
+                        title="Save request"
+                    >
+                        <Save size={16} /> Save
+                    </button>
+                    <button
+                        className={styles.button}
+                        onClick={() => setShowCollections(true)}
+                        title="Saved requests"
+                    >
+                        <Braces size={16} /> Saved
+                    </button>
+                    {env.environments.length > 0 && (
+                        <select
+                            className={styles.envSelect}
+                            value={env.activeEnvId || ""}
+                            onChange={(e) => env.setActiveEnvId(e.target.value || null)}
+                            title="Active environment"
+                        >
+                            <option value="">No env</option>
+                            {env.environments.map((e) => (
+                                <option key={e.id} value={e.id}>{e.name}</option>
+                            ))}
+                        </select>
+                    )}
+                    <button
+                        className={styles.button}
+                        onClick={() => setShowEnvManager(true)}
+                        title="Manage environments"
+                    >
+                        {env.activeEnvId ? env.environments.find(e => e.id === env.activeEnvId)?.name || "Env" : "Env"}
                     </button>
                     <button
                         className={styles.button}
@@ -388,6 +484,90 @@ export default function CurlTester() {
                                     Copy
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <HistorySidebar
+                history={savedRequests}
+                isOpen={showCollections}
+                onClose={() => setShowCollections(false)}
+                onSelect={(item: SavedRequest) => {
+                    setRequest(item.request);
+                    setResponse(null);
+                    setError(null);
+                    setShowCollections(false);
+                }}
+                onClear={() => { setSavedRequests([]); localStorage.removeItem(COLLECTIONS_KEY); }}
+                onDelete={(i) => deleteSaved(savedRequests[i].id)}
+                title="Saved Requests"
+                renderItem={(item: SavedRequest) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                            {item.name}
+                        </div>
+                        <div style={{
+                            fontSize: "0.7rem",
+                            color: "var(--text-secondary)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                        }}>
+                            {item.request.method} {item.request.url}
+                        </div>
+                        <div style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>
+                            {formatTime(item.timestamp)}
+                        </div>
+                    </div>
+                )}
+            />
+
+            <EnvironmentManager
+                isOpen={showEnvManager}
+                onClose={() => setShowEnvManager(false)}
+                environments={env.environments}
+                activeEnvId={env.activeEnvId}
+                setActiveEnvId={env.setActiveEnvId}
+                addEnvironment={env.addEnvironment}
+                updateEnvironment={env.updateEnvironment}
+                deleteEnvironment={env.deleteEnvironment}
+                duplicateEnvironment={env.duplicateEnvironment}
+            />
+
+            {showSaveModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowSaveModal(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3>Save Request</h3>
+                            <button className={styles.closeBtn} onClick={() => setShowSaveModal(false)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p className={styles.modalHint}>
+                                Give your request a name to save it for later.
+                            </p>
+                            <input
+                                className={styles.saveNameInput}
+                                value={saveName}
+                                onChange={(e) => setSaveName(e.target.value)}
+                                placeholder="Request name"
+                                autoFocus
+                                onKeyDown={(e) => { if (e.key === "Enter") handleSaveRequest(); }}
+                            />
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button className={styles.button} onClick={() => setShowSaveModal(false)}>
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.primaryBtn}
+                                onClick={handleSaveRequest}
+                                disabled={!saveName.trim()}
+                            >
+                                Save
+                            </button>
                         </div>
                     </div>
                 </div>
