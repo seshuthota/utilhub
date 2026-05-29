@@ -115,4 +115,24 @@ describe('CurlTester', () => {
         fireEvent.click(screen.getByText('Send'));
         expect(vi.mocked(global.fetch)).not.toHaveBeenCalled();
     });
+
+    it('opens history sidebar', () => {
+        render(<CurlTester />);
+        fireEvent.click(screen.getByTitle('History'));
+        const historyTexts = screen.getAllByText('History');
+        expect(historyTexts.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('saves request to history after send', async () => {
+        render(<CurlTester />);
+        fireEvent.click(screen.getByText('Send'));
+        await waitFor(() => {
+            expect(screen.getByText(/Created/)).toBeInTheDocument();
+        }, { timeout: 3000 });
+        fireEvent.click(screen.getByTitle('History'));
+        const postElements = screen.getAllByText(/POST/);
+        expect(postElements.length).toBeGreaterThanOrEqual(1);
+        const urlElements = screen.getAllByText(/jsonplaceholder/);
+        expect(urlElements.length).toBeGreaterThanOrEqual(1);
+    });
 });

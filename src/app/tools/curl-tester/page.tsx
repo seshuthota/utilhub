@@ -1,13 +1,28 @@
 'use client';
 
 import { useState } from "react";
-import { Play, Trash2, X, Loader2, Network, Braces } from "lucide-react";
+import {
+    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon,
+} from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { useHistory } from "@/hooks/useHistory";
 import { parseCurl } from "@/utils/curl";
 import RequestBuilder, { RequestState, AuthState } from "@/components/common/RequestBuilder";
 import ResponseViewer, { ResponseData } from "@/components/common/ResponseViewer";
+import HistorySidebar from "@/components/common/HistorySidebar";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import styles from "./page.module.css";
+
+const HISTORY_KEY = "utilhub_curl_tester_history";
+
+interface HistoryEntry {
+    method: string;
+    url: string;
+    timestamp: number;
+    status?: number;
+    request: RequestState;
+    response?: ResponseData;
+}
 
 const EXAMPLE: RequestState = {
     method: "POST",
@@ -29,6 +44,20 @@ const EMPTY: RequestState = {
     body: "",
 };
 
+function methodBadgeStyle(method: string): React.CSSProperties {
+    const colors: Record<string, string> = {
+        GET: "#22c55e", POST: "#3b82f6", PUT: "#f59e0b",
+        PATCH: "#a855f7", DELETE: "#ef4444", HEAD: "#64748b", OPTIONS: "#64748b",
+    };
+    return {
+        color: colors[method] || "#fff",
+        fontWeight: 700,
+        fontSize: "0.7rem",
+        marginRight: "0.5rem",
+        minWidth: "42px",
+    };
+}
+
 export default function CurlTester() {
     const [request, setRequest] = useState<RequestState>(EXAMPLE);
     const [response, setResponse] = useState<ResponseData | null>(null);
@@ -36,6 +65,8 @@ export default function CurlTester() {
     const [isLoading, setIsLoading] = useState(false);
     const [showCurlModal, setShowCurlModal] = useState(false);
     const [curlInput, setCurlInput] = useState("");
+    const [showHistory, setShowHistory] = useState(false);
+    const { history, addToHistory, clearHistory, removeFromHistory } = useHistory<HistoryEntry>(HISTORY_KEY, 50);
     const { showToast } = useToast();
 
     const handleSend = async () => {
@@ -56,7 +87,6 @@ export default function CurlTester() {
                 }
             });
 
-            // Add auth header
             if (request.auth.type === "bearer" && request.auth.bearerToken) {
                 reqHeaders["Authorization"] = `Bearer ${request.auth.bearerToken}`;
             } else if (request.auth.type === "basic" && request.auth.basicUsername) {
@@ -81,6 +111,14 @@ export default function CurlTester() {
                 showToast(data.error, "error");
             } else {
                 setResponse(data);
+                addToHistory({
+                    method: request.method,
+                    url: request.url,
+                    timestamp: Date.now(),
+                    status: data.status,
+                    request: JSON.parse(JSON.stringify(request)),
+                    response: data,
+                });
                 showToast(`${data.status} in ${data.time}ms`, "success");
             }
         } catch (e: any) {
@@ -103,9 +141,7 @@ export default function CurlTester() {
             return;
         }
         const headers = parsed.headers.map((h: any) => ({
-            key: h.key,
-            value: h.value,
-            active: true,
+            key: h.key, value: h.value, active: true,
         }));
         let auth: AuthState = { type: "none" };
         if (parsed.auth?.type === "bearer") {
@@ -140,6 +176,23 @@ export default function CurlTester() {
         showToast("Response body copied", "success");
     };
 
+    const loadFromHistory = (entry: HistoryEntry) => {
+        setRequest(entry.request);
+        setResponse(entry.response || null);
+        setError(null);
+        setShowHistory(false);
+    };
+
+    const formatTime = (ts: number) => {
+        const d = new Date(ts);
+        const now = new Date();
+        const diff = now.getTime() - d.getTime();
+        if (diff < 60000) return "Just now";
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+        return d.toLocaleDateString();
+    };
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -148,6 +201,13 @@ export default function CurlTester() {
                     API Client
                 </h1>
                 <div className={styles.actions}>
+                    <button
+                        className={styles.button}
+                        onClick={() => setShowHistory(true)}
+                        title="History"
+                    >
+                        <HistoryIcon size={16} /> History
+                    </button>
                     <button
                         className={styles.button}
                         onClick={() => setRequest(EXAMPLE)}
@@ -190,6 +250,48 @@ export default function CurlTester() {
                 />
             </div>
 
+            <HistorySidebar
+                history={history}
+                isOpen={showHistory}
+                onClose={() => setShowHistory(false)}
+                onSelect={loadFromHistory}
+                onClear={clearHistory}
+                onDelete={removeFromHistory}
+                renderItem={(item: HistoryEntry) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                            <span style={methodBadgeStyle(item.method)}>{item.method}</span>
+                            <span style={{
+                                fontSize: "0.8rem",
+                                color: "var(--text-primary)",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            }}>
+                                {item.url}
+                            </span>
+                        </div>
+                        <div style={{
+                            fontSize: "0.7rem",
+                            color: "var(--text-secondary)",
+                            display: "flex",
+                            gap: "0.5rem",
+                        }}>
+                            <span>{formatTime(item.timestamp)}</span>
+                            {item.status && (
+                                <span style={{
+                                    color: item.status < 300 ? "#22c55e" :
+                                        item.status < 400 ? "#3b82f6" :
+                                        item.status < 500 ? "#f59e0b" : "#ef4444",
+                                }}>
+                                    {item.status}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+            />
+
             {showCurlModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowCurlModal(false)}>
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -212,10 +314,7 @@ export default function CurlTester() {
                             />
                         </div>
                         <div className={styles.modalActions}>
-                            <button
-                                className={styles.button}
-                                onClick={() => setShowCurlModal(false)}
-                            >
+                            <button className={styles.button} onClick={() => setShowCurlModal(false)}>
                                 Cancel
                             </button>
                             <button
