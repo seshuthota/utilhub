@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Play, Trash2, X, Loader2, Network, Braces } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { parseCurl } from "@/utils/curl";
-import RequestBuilder, { RequestState } from "@/components/common/RequestBuilder";
+import RequestBuilder, { RequestState, AuthState } from "@/components/common/RequestBuilder";
 import ResponseViewer, { ResponseData } from "@/components/common/ResponseViewer";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
 import styles from "./page.module.css";
@@ -12,16 +12,20 @@ import styles from "./page.module.css";
 const EXAMPLE: RequestState = {
     method: "POST",
     url: "https://jsonplaceholder.typicode.com/posts",
+    params: [],
     headers: [
         { key: "Content-Type", value: "application/json", active: true },
     ],
+    auth: { type: "none" },
     body: '{\n  "title": "foo",\n  "body": "bar",\n  "userId": 1\n}',
 };
 
 const EMPTY: RequestState = {
     method: "GET",
     url: "",
+    params: [],
     headers: [],
+    auth: { type: "none" },
     body: "",
 };
 
@@ -51,6 +55,14 @@ export default function CurlTester() {
                     reqHeaders[h.key] = h.value;
                 }
             });
+
+            // Add auth header
+            if (request.auth.type === "bearer" && request.auth.bearerToken) {
+                reqHeaders["Authorization"] = `Bearer ${request.auth.bearerToken}`;
+            } else if (request.auth.type === "basic" && request.auth.basicUsername) {
+                const encoded = btoa(`${request.auth.basicUsername}:${request.auth.basicPassword || ""}`);
+                reqHeaders["Authorization"] = `Basic ${encoded}`;
+            }
 
             const res = await fetch("/api/tester/proxy", {
                 method: "POST",
@@ -90,14 +102,23 @@ export default function CurlTester() {
             showToast(parsed.error, "error");
             return;
         }
+        const headers = parsed.headers.map((h: any) => ({
+            key: h.key,
+            value: h.value,
+            active: true,
+        }));
+        let auth: AuthState = { type: "none" };
+        if (parsed.auth?.type === "bearer") {
+            auth = { type: "bearer", bearerToken: parsed.auth.token };
+        } else if (parsed.auth?.type === "basic") {
+            auth = { type: "basic", basicUsername: parsed.auth.username, basicPassword: parsed.auth.password };
+        }
         setRequest({
             method: parsed.method || "GET",
             url: parsed.url || "",
-            headers: parsed.headers.map((h: any) => ({
-                key: h.key,
-                value: h.value,
-                active: true,
-            })),
+            params: [],
+            headers,
+            auth,
             body: parsed.body || "",
         });
         setShowCurlModal(false);

@@ -94,3 +94,49 @@
 .tabContent {
     min-height: 100px;
 }
+
+.authForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.authSelect {
+    padding: 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    width: fit-content;
+    min-width: 160px;
+}
+
+.authField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.authLabel {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.authInput {
+    padding: 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.authInput:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}

@@ -44,6 +44,14 @@ describe('CurlTester', () => {
         expect(screen.getByDisplayValue(/jsonplaceholder/)).toBeInTheDocument();
     });
 
+    it('shows tabs for params, headers, auth, body', () => {
+        render(<CurlTester />);
+        expect(screen.getByText(/Params/)).toBeInTheDocument();
+        expect(screen.getByText(/Headers/)).toBeInTheDocument();
+        expect(screen.getByText(/Auth/)).toBeInTheDocument();
+        expect(screen.getByText(/Body/)).toBeInTheDocument();
+    });
+
     it('sends request to proxy endpoint', async () => {
         render(<CurlTester />);
         fireEvent.click(screen.getByText('Send'));
@@ -89,6 +97,16 @@ describe('CurlTester', () => {
         });
         fireEvent.click(screen.getByText('Import'));
         expect(screen.getByDisplayValue(/api.example.com/)).toBeInTheDocument();
+    });
+
+    it('shows auth tab with Bearer token option', () => {
+        render(<CurlTester />);
+        fireEvent.click(screen.getByText('Auth'));
+        expect(screen.getByText('No Auth')).toBeInTheDocument();
+        const selects = screen.getAllByRole('combobox');
+        const authSelect = selects[selects.length - 1];
+        fireEvent.change(authSelect, { target: { value: 'bearer' } });
+        expect(screen.getByPlaceholderText('eyJhbGciOiJIUzI1NiIs...')).toBeInTheDocument();
     });
 
     it('shows error when sending with empty URL', () => {
