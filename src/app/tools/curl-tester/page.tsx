@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon,
+    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useHistory } from "@/hooks/useHistory";
@@ -193,6 +193,52 @@ export default function CurlTester() {
         return d.toLocaleDateString();
     };
 
+    const buildHeaders = (): Record<string, string> => {
+        const h: Record<string, string> = {};
+        request.headers.forEach((header) => {
+            if (header.active !== false && header.key) {
+                h[header.key] = header.value;
+            }
+        });
+        if (request.auth.type === "bearer" && request.auth.bearerToken) {
+            h["Authorization"] = `Bearer ${request.auth.bearerToken}`;
+        } else if (request.auth.type === "basic" && request.auth.basicUsername) {
+            h["Authorization"] = `Basic ${btoa(`${request.auth.basicUsername}:${request.auth.basicPassword || ""}`)}`;
+        }
+        return h;
+    };
+
+    const [showSnippets, setShowSnippets] = useState(false);
+
+    const generateSnippets = (): Record<string, string> => {
+        const headers = buildHeaders();
+        const headerLines = Object.entries(headers)
+            .map(([k, v]) => `  -H '${k}: ${v}'`).join(" \\\n");
+        const bodyFlag = request.body && request.method !== "GET"
+            ? ` \\\n  -d '${request.body.replace(/'/g, "\\'")}'`
+            : "";
+        const curl = `curl -X ${request.method} \\\n${headerLines}${bodyFlag} \\\n  '${request.url}'`;
+
+        const fetchHeaders = Object.entries(headers)
+            .map(([k, v]) => `    '${k}': '${v}'`).join(",\n");
+        const fetchBody = request.body && request.method !== "GET"
+            ? `,\n  body: JSON.stringify(${request.body})`
+            : "";
+        const fetch = `fetch('${request.url}', {\n  method: '${request.method}',\n  headers: {\n${fetchHeaders}\n  }${fetchBody}\n})`;
+
+        const pyHeaders = Object.entries(headers)
+            .map(([k, v]) => `    "${k}": "${v}"`).join(",\n");
+        const pyBody = request.body && request.method !== "GET"
+            ? `,\n    "${request.body.replace(/"/g, '\\"')}"`
+            : "";
+        const python = `import requests\n\nresponse = requests.${request.method.toLowerCase()}("${request.url}"${pyBody}, headers={\n${pyHeaders}\n})\n\nprint(response.status_code)\nprint(response.text)`;
+
+        return { curl, fetch: fetch, python };
+    };
+
+    const snippetLabels: Record<string, string> = { curl: "cURL", fetch: "JavaScript (fetch)", python: "Python" };
+    const [snippetLang, setSnippetLang] = useState("curl");
+
     return (
         <div className={styles.container}>
             <header className={styles.header}>
@@ -201,6 +247,13 @@ export default function CurlTester() {
                     API Client
                 </h1>
                 <div className={styles.actions}>
+                    <button
+                        className={styles.button}
+                        onClick={() => { setShowSnippets(true); setSnippetLang("curl"); }}
+                        title="View code snippets"
+                    >
+                        <Code size={16} /> Code
+                    </button>
                     <button
                         className={styles.button}
                         onClick={() => setShowHistory(true)}
@@ -291,6 +344,54 @@ export default function CurlTester() {
                     </div>
                 )}
             />
+
+            {showSnippets && (
+                <div className={styles.modalOverlay} onClick={() => setShowSnippets(false)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "720px" }}>
+                        <div className={styles.modalHeader}>
+                            <h3>Code Snippets</h3>
+                            <button className={styles.closeBtn} onClick={() => setShowSnippets(false)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+                                {Object.entries(snippetLabels).map(([key, label]) => (
+                                    <button
+                                        key={key}
+                                        className={snippetLang === key ? styles.primaryBtn : styles.button}
+                                        onClick={() => setSnippetLang(key)}
+                                        style={{ fontSize: "0.8rem", padding: "0.35rem 0.75rem" }}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={{ position: "relative" }}>
+                                <CodeMirrorEditor
+                                    value={generateSnippets()[snippetLang]}
+                                    language={
+                                        snippetLang === "python" ? "python" :
+                                        snippetLang === "fetch" ? "javascript" : "bash"
+                                    }
+                                    readOnly
+                                    height="250px"
+                                />
+                                <button
+                                    className={styles.button}
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(generateSnippets()[snippetLang]);
+                                        showToast("Snippet copied!", "success");
+                                    }}
+                                    style={{ position: "absolute", top: "0.5rem", right: "0.5rem", fontSize: "0.8rem", padding: "0.25rem 0.5rem" }}
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showCurlModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowCurlModal(false)}>
