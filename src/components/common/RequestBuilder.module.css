@@ -140,3 +140,156 @@
     outline: none;
     border-color: var(--accent-primary);
 }
+
+.bodyModeRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.bodyModeBtn {
+    padding: 0.3rem 0.65rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.bodyModeBtn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.bodyModeActive {
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+
+.bodyHint {
+    padding: 1.25rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+}
+
+.formFields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.formRow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.formCheckbox {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.formTypeSelect {
+    padding: 0.4rem 0.35rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    min-width: 70px;
+}
+
+.formInput {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.fileField {
+    flex: 1;
+    min-width: 0;
+}
+
+.fileBtn {
+    width: 100%;
+    padding: 0.45rem 0.5rem;
+    background: var(--bg-primary);
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fileBtn:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.hiddenFile {
+    display: none;
+}
+
+.formRemove {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+}
+
+.formRemove:hover {
+    color: var(--error-color, #ef4444);
+    background: var(--bg-hover);
+}
+
+.formActions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.addFormBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.65rem;
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.addFormBtn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}

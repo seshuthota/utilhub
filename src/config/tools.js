@@ -451,7 +451,7 @@ export const tools = [
   {
     id: "curl-tester",
     title: "API Client",
-    description: "Build and send HTTP requests with a Postman-style interface. Parse cURL commands, manage headers/body, view responses.",
+    description: "Postman-style HTTP client: body modes, auth, environments, cURL import/export, history, and response tools.",
     icon: Network,
     href: "/tools/curl-tester",
     isClientSideOnly: false,

@@ -1,14 +1,23 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
-    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code, Save,
+    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code, Save, Square,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useHistory } from "@/hooks/useHistory";
 import { useEnvironments, substituteVariables } from "@/hooks/useEnvironments";
-import { parseCurl } from "@/utils/curl";
-import RequestBuilder, { RequestState, AuthState } from "@/components/common/RequestBuilder";
+import { useHotkeys } from "@/hooks/useHotkeys";
+import {
+    type RequestState,
+    DEFAULT_TIMEOUT_MS,
+    buildProxyPayload,
+    migrateRequestState,
+    stripFilePayloads,
+    requestStateFromCurl,
+} from "@/utils/apiClientRequest";
+import { generateSnippets, type SnippetLang } from "@/utils/codeSnippets";
+import RequestBuilder from "@/components/common/RequestBuilder";
 import ResponseViewer, { ResponseData } from "@/components/common/ResponseViewer";
 import HistorySidebar from "@/components/common/HistorySidebar";
 import EnvironmentManager from "../api-tester/EnvironmentManager";
@@ -37,7 +46,11 @@ interface SavedRequest {
 function loadSaved(): SavedRequest[] {
     try {
         const val = localStorage.getItem(COLLECTIONS_KEY);
-        return val ? JSON.parse(val) : [];
+        const items: SavedRequest[] = val ? JSON.parse(val) : [];
+        return items.map((item) => ({
+            ...item,
+            request: migrateRequestState(item.request || {}),
+        }));
     } catch {
         return [];
     }
@@ -55,7 +68,9 @@ const EXAMPLE: RequestState = {
         { key: "Content-Type", value: "application/json", active: true },
     ],
     auth: { type: "none" },
+    bodyMode: "json",
     body: '{\n  "title": "foo",\n  "body": "bar",\n  "userId": 1\n}',
+    formFields: [],
 };
 
 const EMPTY: RequestState = {
@@ -64,7 +79,9 @@ const EMPTY: RequestState = {
     params: [],
     headers: [],
     auth: { type: "none" },
+    bodyMode: "none",
     body: "",
+    formFields: [],
 };
 
 function methodBadgeStyle(method: string): React.CSSProperties {
@@ -92,72 +109,101 @@ export default function CurlTester() {
     const { history, addToHistory, clearHistory, removeFromHistory } = useHistory<HistoryEntry>(HISTORY_KEY, 50);
     const env = useEnvironments();
     const { showToast } = useToast();
+    const abortRef = useRef<AbortController | null>(null);
 
-    // Resolve variables from active environment
+    const [showSnippets, setShowSnippets] = useState(false);
+    const [showEnvManager, setShowEnvManager] = useState(false);
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [saveName, setSaveName] = useState("");
+    const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => loadSaved());
+    const [showCollections, setShowCollections] = useState(false);
+    const [snippetLang, setSnippetLang] = useState<SnippetLang>("curl");
+
     const activeEnv = env.getActiveEnvironment();
-    const resolve = (text: string) =>
-        activeEnv ? substituteVariables(text, activeEnv.variables) : text;
+    const resolve = useCallback(
+        (text: string) =>
+            activeEnv ? substituteVariables(text, activeEnv.variables) : text,
+        [activeEnv],
+    );
 
-    const handleSend = async () => {
-        const resolvedUrl = resolve(request.url);
-        if (!resolvedUrl.trim()) {
+    const handleSend = useCallback(async () => {
+        const payload = buildProxyPayload(request, resolve, DEFAULT_TIMEOUT_MS);
+        if (!payload.url.trim()) {
             showToast("Enter a URL first", "error");
             return;
         }
+
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
 
         setIsLoading(true);
         setResponse(null);
         setError(null);
 
         try {
-            const reqHeaders: Record<string, string> = {};
-            request.headers.forEach((h) => {
-                if (h.active !== false && h.key) {
-                    reqHeaders[h.key] = resolve(h.value);
-                }
-            });
-
-            if (request.auth.type === "bearer" && request.auth.bearerToken) {
-                reqHeaders["Authorization"] = `Bearer ${resolve(request.auth.bearerToken)}`;
-            } else if (request.auth.type === "basic" && request.auth.basicUsername) {
-                const encoded = btoa(`${resolve(request.auth.basicUsername)}:${resolve(request.auth.basicPassword || "")}`);
-                reqHeaders["Authorization"] = `Basic ${encoded}`;
-            }
-
             const res = await fetch("/api/tester/proxy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    url: resolvedUrl,
-                    method: request.method,
-                    headers: reqHeaders,
-                    body: request.body ? resolve(request.body) : undefined,
-                }),
+                body: JSON.stringify(payload),
+                signal: controller.signal,
             });
 
             const data = await res.json();
-            if (data.error) {
+            if (controller.signal.aborted) return;
+
+            if (data.error && !data.status) {
+                setError(data.error);
+                showToast(data.error, "error");
+            } else if (data.error && res.status >= 400 && !data.headers) {
+                // Proxy-level error (timeout, bad gateway)
                 setError(data.error);
                 showToast(data.error, "error");
             } else {
                 setResponse(data);
+                if (data.error) {
+                    setError(data.error);
+                }
                 addToHistory({
                     method: request.method,
                     url: request.url,
                     timestamp: Date.now(),
                     status: data.status,
-                    request: JSON.parse(JSON.stringify(request)),
+                    request: stripFilePayloads(JSON.parse(JSON.stringify(request))),
                     response: data,
                 });
-                showToast(`${data.status} in ${data.time}ms`, "success");
+                if (data.status) {
+                    showToast(`${data.status} in ${data.time}ms`, "success");
+                }
             }
-        } catch (e: any) {
-            setError(e.message || "Request failed");
+        } catch (e: unknown) {
+            if (e instanceof DOMException && e.name === "AbortError") {
+                showToast("Request cancelled", "error");
+                setError("Request cancelled");
+                return;
+            }
+            const message = e instanceof Error ? e.message : "Request failed";
+            setError(message);
             showToast("Request failed", "error");
         } finally {
+            if (abortRef.current === controller) {
+                abortRef.current = null;
+            }
             setIsLoading(false);
         }
+    }, [request, resolve, showToast, addToHistory]);
+
+    const handleCancel = () => {
+        abortRef.current?.abort();
+        abortRef.current = null;
+        setIsLoading(false);
+        showToast("Request cancelled", "error");
+        setError("Request cancelled");
     };
+
+    useHotkeys("Enter", () => {
+        if (!isLoading) handleSend();
+    }, { meta: true });
 
     const handleImportCurl = () => {
         setShowCurlModal(true);
@@ -165,32 +211,26 @@ export default function CurlTester() {
     };
 
     const applyCurlImport = () => {
-        const parsed = parseCurl(curlInput);
-        if (parsed.error) {
-            showToast(parsed.error, "error");
+        const { request: next, error: parseError } = requestStateFromCurl(curlInput);
+        if (parseError || !next) {
+            showToast(parseError || "Failed to parse cURL", "error");
             return;
         }
-        const headers = (parsed.headers || []).map((h: any) => ({
-            key: h.key, value: h.value, active: true,
-        }));
-        let auth: AuthState = { type: "none" };
-        const pa = parsed.auth as any;
-        if (pa?.type === "bearer") {
-            auth = { type: "bearer", bearerToken: pa.token };
-        } else if (pa?.type === "basic") {
-            auth = { type: "basic", basicUsername: pa.username, basicPassword: pa.password };
-        }
-        setRequest({
-            method: parsed.method || "GET",
-            url: parsed.url || "",
-            params: [],
-            headers,
-            auth,
-            body: parsed.body || "",
-        });
+        setRequest(next);
         setShowCurlModal(false);
         showToast("cURL parsed successfully", "success");
     };
+
+    const handleCurlAutoImport = useCallback(
+        (result: { ok: boolean; message?: string }) => {
+            if (result.ok) {
+                showToast(result.message || "cURL imported", "success");
+            } else {
+                showToast(result.message || "Failed to parse cURL", "error");
+            }
+        },
+        [showToast],
+    );
 
     const clearAll = () => {
         setRequest(EMPTY);
@@ -200,15 +240,20 @@ export default function CurlTester() {
 
     const copyResponseBody = () => {
         if (!response) return;
-        const text = typeof response.data === "string"
-            ? response.data
-            : JSON.stringify(response.data, null, 2);
-        navigator.clipboard.writeText(text);
+        if (response.encoding === "base64" && typeof response.data === "string") {
+            navigator.clipboard.writeText(response.data);
+        } else {
+            const text =
+                typeof response.data === "string"
+                    ? response.data
+                    : JSON.stringify(response.data, null, 2);
+            navigator.clipboard.writeText(text);
+        }
         showToast("Response body copied", "success");
     };
 
     const loadFromHistory = (entry: HistoryEntry) => {
-        setRequest(entry.request);
+        setRequest(migrateRequestState(entry.request || {}));
         setResponse(entry.response || null);
         setError(null);
         setShowHistory(false);
@@ -230,7 +275,7 @@ export default function CurlTester() {
             id: crypto.randomUUID(),
             name: saveName.trim(),
             timestamp: Date.now(),
-            request: JSON.parse(JSON.stringify(request)),
+            request: stripFilePayloads(JSON.parse(JSON.stringify(request))),
         };
         const next = [newItem, ...savedRequests];
         setSavedRequests(next);
@@ -251,56 +296,12 @@ export default function CurlTester() {
         setShowSaveModal(true);
     };
 
-    const buildHeaders = (): Record<string, string> => {
-        const h: Record<string, string> = {};
-        request.headers.forEach((header) => {
-            if (header.active !== false && header.key) {
-                h[header.key] = resolve(header.value);
-            }
-        });
-        if (request.auth.type === "bearer" && request.auth.bearerToken) {
-            h["Authorization"] = `Bearer ${resolve(request.auth.bearerToken)}`;
-        } else if (request.auth.type === "basic" && request.auth.basicUsername) {
-            h["Authorization"] = `Basic ${btoa(`${resolve(request.auth.basicUsername)}:${resolve(request.auth.basicPassword || "")}`)}`;
-        }
-        return h;
+    const snippets = generateSnippets(request, resolve);
+    const snippetLabels: Record<SnippetLang, string> = {
+        curl: "cURL",
+        fetch: "JavaScript (fetch)",
+        python: "Python",
     };
-
-    const [showSnippets, setShowSnippets] = useState(false);
-    const [showEnvManager, setShowEnvManager] = useState(false);
-    const [showSaveModal, setShowSaveModal] = useState(false);
-    const [saveName, setSaveName] = useState("");
-    const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => loadSaved());
-    const [showCollections, setShowCollections] = useState(false);
-
-    const generateSnippets = (): Record<string, string> => {
-        const headers = buildHeaders();
-        const headerLines = Object.entries(headers)
-            .map(([k, v]) => `  -H '${k}: ${v}'`).join(" \\\n");
-        const bodyFlag = request.body && request.method !== "GET"
-            ? ` \\\n  -d '${request.body.replace(/'/g, "\\'")}'`
-            : "";
-        const curl = `curl -X ${request.method} \\\n${headerLines}${bodyFlag} \\\n  '${request.url}'`;
-
-        const fetchHeaders = Object.entries(headers)
-            .map(([k, v]) => `    '${k}': '${v}'`).join(",\n");
-        const fetchBody = request.body && request.method !== "GET"
-            ? `,\n  body: JSON.stringify(${request.body})`
-            : "";
-        const fetch = `fetch('${request.url}', {\n  method: '${request.method}',\n  headers: {\n${fetchHeaders}\n  }${fetchBody}\n})`;
-
-        const pyHeaders = Object.entries(headers)
-            .map(([k, v]) => `    "${k}": "${v}"`).join(",\n");
-        const pyBody = request.body && request.method !== "GET"
-            ? `,\n    "${request.body.replace(/"/g, '\\"')}"`
-            : "";
-        const python = `import requests\n\nresponse = requests.${request.method.toLowerCase()}("${request.url}"${pyBody}, headers={\n${pyHeaders}\n})\n\nprint(response.status_code)\nprint(response.text)`;
-
-        return { curl, fetch: fetch, python };
-    };
-
-    const snippetLabels: Record<string, string> = { curl: "cURL", fetch: "JavaScript (fetch)", python: "Python" };
-    const [snippetLang, setSnippetLang] = useState("curl");
 
     return (
         <div className={styles.container}>
@@ -344,6 +345,7 @@ export default function CurlTester() {
                             value={env.activeEnvId || ""}
                             onChange={(e) => env.setActiveEnvId(e.target.value || null)}
                             title="Active environment"
+                            aria-label="Active environment"
                         >
                             <option value="">No env</option>
                             {env.environments.map((e) => (
@@ -376,12 +378,24 @@ export default function CurlTester() {
                     value={request}
                     onChange={setRequest}
                     onImportCurl={handleImportCurl}
+                    onCurlAutoImport={handleCurlAutoImport}
                 />
                 <div className={styles.sendRow}>
+                    <span className={styles.shortcutHint}>Ctrl/⌘ + Enter</span>
+                    {isLoading ? (
+                        <button
+                            className={styles.cancelBtn}
+                            onClick={handleCancel}
+                            aria-label="Cancel request"
+                        >
+                            <Square size={14} /> Cancel
+                        </button>
+                    ) : null}
                     <button
                         className={styles.primaryBtn}
                         onClick={handleSend}
                         disabled={!request.url.trim() || isLoading}
+                        aria-label="Send request"
                     >
                         {isLoading ? (
                             <><Loader2 size={16} className="animate-spin" /> Sending...</>
@@ -447,13 +461,16 @@ export default function CurlTester() {
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "720px" }}>
                         <div className={styles.modalHeader}>
                             <h3>Code Snippets</h3>
-                            <button className={styles.closeBtn} onClick={() => setShowSnippets(false)}>
+                            <button className={styles.closeBtn} onClick={() => setShowSnippets(false)} aria-label="Close">
                                 <X size={18} />
                             </button>
                         </div>
                         <div className={styles.modalBody}>
+                            <p className={styles.modalHint}>
+                                Snippets use resolved environment values. Avoid sharing if they contain secrets.
+                            </p>
                             <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-                                {Object.entries(snippetLabels).map(([key, label]) => (
+                                {(Object.entries(snippetLabels) as [SnippetLang, string][]).map(([key, label]) => (
                                     <button
                                         key={key}
                                         className={snippetLang === key ? styles.primaryBtn : styles.button}
@@ -466,7 +483,7 @@ export default function CurlTester() {
                             </div>
                             <div style={{ position: "relative" }}>
                                 <CodeMirrorEditor
-                                    value={generateSnippets()[snippetLang]}
+                                    value={snippets[snippetLang]}
                                     language={
                                         snippetLang === "python" ? "python" :
                                         snippetLang === "fetch" ? "javascript" : "bash"
@@ -477,7 +494,7 @@ export default function CurlTester() {
                                 <button
                                     className={styles.button}
                                     onClick={() => {
-                                        navigator.clipboard.writeText(generateSnippets()[snippetLang]);
+                                        navigator.clipboard.writeText(snippets[snippetLang]);
                                         showToast("Snippet copied!", "success");
                                     }}
                                     style={{ position: "absolute", top: "0.5rem", right: "0.5rem", fontSize: "0.8rem", padding: "0.25rem 0.5rem" }}
@@ -495,7 +512,7 @@ export default function CurlTester() {
                 isOpen={showCollections}
                 onClose={() => setShowCollections(false)}
                 onSelect={(item: SavedRequest) => {
-                    setRequest(item.request);
+                    setRequest(migrateRequestState(item.request || {}));
                     setResponse(null);
                     setError(null);
                     setShowCollections(false);
@@ -541,7 +558,7 @@ export default function CurlTester() {
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
                             <h3>Save Request</h3>
-                            <button className={styles.closeBtn} onClick={() => setShowSaveModal(false)}>
+                            <button className={styles.closeBtn} onClick={() => setShowSaveModal(false)} aria-label="Close">
                                 <X size={18} />
                             </button>
                         </div>
@@ -579,7 +596,7 @@ export default function CurlTester() {
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
                             <h3>Import from cURL</h3>
-                            <button className={styles.closeBtn} onClick={() => setShowCurlModal(false)}>
+                            <button className={styles.closeBtn} onClick={() => setShowCurlModal(false)} aria-label="Close">
                                 <X size={18} />
                             </button>
                         </div>

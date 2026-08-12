@@ -49,6 +49,13 @@
     gap: 0.35rem;
 }
 
+.metaActions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
 .copyBtn {
     display: flex;
     align-items: center;
@@ -60,12 +67,21 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.8rem;
-    margin-left: auto;
 }
 
 .copyBtn:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
+}
+
+.emptyState {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
 }
 
 .tabs {

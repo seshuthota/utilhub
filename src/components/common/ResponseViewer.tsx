@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from "react";
-import { Clock, Copy } from "lucide-react";
+import { useState } from "react";
+import { Clock, Copy, Download, HardDrive } from "lucide-react";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
+import { formatBytes } from "@/utils/apiClientRequest";
+import { downloadFile } from "@/utils/download";
 import styles from "./ResponseViewer.module.css";
 
 export interface ResponseData {
@@ -10,7 +12,10 @@ export interface ResponseData {
     statusText: string;
     time: number;
     headers: Record<string, string>;
-    data: any;
+    data: unknown;
+    size?: number;
+    contentType?: string;
+    encoding?: "text" | "base64";
 }
 
 interface ResponseViewerProps {
@@ -26,12 +31,22 @@ function statusClass(status: number): string {
     return styles.statusServerError;
 }
 
-function formatBody(data: any): string {
+function formatBody(data: unknown, encoding?: string): string {
+    if (encoding === "base64" && typeof data === "string") {
+        return `[Binary data — ${formatBytes(Math.floor((data.length * 3) / 4))} base64-encoded]\n\n${data.slice(0, 200)}${data.length > 200 ? "…" : ""}`;
+    }
     if (typeof data === "string") return data;
     return JSON.stringify(data, null, 2);
 }
 
-function detectLanguage(headers: Record<string, string>): string {
+function getCopyText(data: unknown, encoding?: string): string {
+    if (encoding === "base64" && typeof data === "string") return data;
+    if (typeof data === "string") return data;
+    return JSON.stringify(data, null, 2);
+}
+
+function detectLanguage(headers: Record<string, string>, encoding?: string): string {
+    if (encoding === "base64") return "text";
     const ct = (headers["content-type"] || headers["Content-Type"] || "").toLowerCase();
     if (ct.includes("json")) return "json";
     if (ct.includes("html")) return "html";
@@ -42,12 +57,68 @@ function detectLanguage(headers: Record<string, string>): string {
     return "json";
 }
 
-function isPreviewable(headers: Record<string, string>): { preview: boolean; type: string } {
+function isPreviewable(
+    headers: Record<string, string>,
+    encoding?: string,
+): { preview: boolean; type: string } {
     const ct = (headers["content-type"] || headers["Content-Type"] || "").toLowerCase();
     if (ct.includes("html")) return { preview: true, type: "html" };
     if (ct.includes("svg")) return { preview: true, type: "svg" };
-    if (ct.startsWith("image/")) return { preview: true, type: "image" };
+    if (ct.startsWith("image/") || (encoding === "base64" && ct.startsWith("image/"))) {
+        return { preview: true, type: "image" };
+    }
     return { preview: false, type: "none" };
+}
+
+function getContentType(headers: Record<string, string>, fallback?: string): string {
+    return headers["content-type"] || headers["Content-Type"] || fallback || "application/octet-stream";
+}
+
+function estimateSize(response: ResponseData): number {
+    if (typeof response.size === "number") return response.size;
+    if (response.encoding === "base64" && typeof response.data === "string") {
+        return Math.floor((response.data.length * 3) / 4);
+    }
+    const text =
+        typeof response.data === "string"
+            ? response.data
+            : JSON.stringify(response.data ?? "");
+    return new TextEncoder().encode(text).length;
+}
+
+function downloadBody(response: ResponseData) {
+    const ct = getContentType(response.headers, response.contentType);
+    const ext = ct.includes("json")
+        ? "json"
+        : ct.includes("html")
+          ? "html"
+          : ct.includes("xml")
+            ? "xml"
+            : ct.includes("png")
+              ? "png"
+              : ct.includes("jpeg") || ct.includes("jpg")
+                ? "jpg"
+                : ct.includes("gif")
+                  ? "gif"
+                  : ct.includes("webp")
+                    ? "webp"
+                    : ct.includes("svg")
+                      ? "svg"
+                      : "txt";
+
+    if (response.encoding === "base64" && typeof response.data === "string") {
+        const binary = atob(response.data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        downloadFile(new Blob([bytes], { type: ct }), `response.${ext}`, ct);
+        return;
+    }
+
+    const text =
+        typeof response.data === "string"
+            ? response.data
+            : JSON.stringify(response.data, null, 2);
+    downloadFile(text, `response.${ext}`, ct.includes("json") ? "application/json" : ct);
 }
 
 type Tab = "body" | "preview" | "headers";
@@ -56,17 +127,40 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
     const [activeTab, setActiveTab] = useState<Tab>("body");
 
     if (error && !response) {
-        return <div className={styles.errorBox}><span className={styles.errorLabel}>Error:</span> {error}</div>;
+        return (
+            <div className={styles.errorBox}>
+                <span className={styles.errorLabel}>Error:</span> {error}
+            </div>
+        );
     }
 
-    if (!response) return null;
+    if (!response) {
+        return (
+            <div className={styles.emptyState}>
+                Response will appear here after you send a request.
+            </div>
+        );
+    }
 
     const responseHeaders = Object.entries(response.headers || {});
-    const bodyText = formatBody(response.data);
-    const lang = detectLanguage(response.headers || {});
-    const { preview: canPreview, type: previewType } = isPreviewable(response.headers || {});
+    const bodyText = formatBody(response.data, response.encoding);
+    const lang = detectLanguage(response.headers || {}, response.encoding);
+    const { preview: canPreview, type: previewType } = isPreviewable(
+        response.headers || {},
+        response.encoding,
+    );
+    const size = estimateSize(response);
+    const contentType = getContentType(response.headers, response.contentType);
 
-    const tabs: Tab[] = ["body", ...(canPreview ? ["preview" as Tab] : []), "headers"];
+    const tabs: Tab[] = ["body", ...(canPreview ? (["preview"] as Tab[]) : []), "headers"];
+
+    const handleCopy = () => {
+        if (onCopyBody) {
+            onCopyBody();
+            return;
+        }
+        navigator.clipboard.writeText(getCopyText(response.data, response.encoding));
+    };
 
     return (
         <div className={styles.container}>
@@ -75,14 +169,31 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                     {response.status} {response.statusText}
                 </span>
                 <span className={styles.timeDisplay}>
-                    <Clock size={14} />
+                    <Clock size={14} aria-hidden />
                     {response.time}ms
                 </span>
-                {onCopyBody && (
-                    <button className={styles.copyBtn} onClick={onCopyBody} title="Copy body">
-                        <Copy size={14} /> Copy
+                <span className={styles.timeDisplay} title="Response size">
+                    <HardDrive size={14} aria-hidden />
+                    {formatBytes(size)}
+                </span>
+                <div className={styles.metaActions}>
+                    <button
+                        className={styles.copyBtn}
+                        onClick={handleCopy}
+                        title="Copy body"
+                        aria-label="Copy response body"
+                    >
+                        <Copy size={14} aria-hidden /> Copy
                     </button>
-                )}
+                    <button
+                        className={styles.copyBtn}
+                        onClick={() => downloadBody(response)}
+                        title="Download body"
+                        aria-label="Download response body"
+                    >
+                        <Download size={14} aria-hidden /> Download
+                    </button>
+                </div>
             </div>
 
             <div className={styles.tabs}>
@@ -92,7 +203,11 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                         className={`${styles.tab} ${activeTab === tab ? styles.activeTab : ""}`}
                         onClick={() => setActiveTab(tab)}
                     >
-                        {tab === "body" ? "Body" : tab === "preview" ? "Preview" : `Headers (${responseHeaders.length})`}
+                        {tab === "body"
+                            ? "Body"
+                            : tab === "preview"
+                              ? "Preview"
+                              : `Headers (${responseHeaders.length})`}
                     </button>
                 ))}
             </div>
@@ -113,7 +228,7 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                     {previewType === "html" && (
                         <iframe
                             className={styles.iframe}
-                            srcDoc={bodyText}
+                            srcDoc={typeof response.data === "string" ? response.data : bodyText}
                             title="Response preview"
                             sandbox="allow-same-origin"
                         />
@@ -121,15 +236,22 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                     {previewType === "svg" && (
                         <div
                             className={styles.svgPreview}
-                            dangerouslySetInnerHTML={{ __html: bodyText }}
+                            dangerouslySetInnerHTML={{
+                                __html:
+                                    typeof response.data === "string" ? response.data : bodyText,
+                            }}
                         />
                     )}
-                    {previewType === "image" && (
+                    {previewType === "image" && response.encoding === "base64" && typeof response.data === "string" && (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                             className={styles.imagePreview}
-                            src={`data:${response.headers["content-type"] || response.headers["Content-Type"] || "image/png"};base64,${btoa(bodyText)}`}
+                            src={`data:${contentType};base64,${response.data}`}
                             alt="Response preview"
                         />
+                    )}
+                    {previewType === "image" && response.encoding !== "base64" && (
+                        <div className={styles.empty}>Image preview requires binary encoding</div>
                     )}
                 </div>
             )}
