@@ -18,7 +18,7 @@ export interface ResponseData {
     encoding?: "text" | "base64";
     /** Headers this client/proxy intentionally set on the upstream request */
     requestHeadersSent?: Record<string, string>;
-    transport?: "proxy" | "browser";
+    transport?: "proxy" | "browser" | "local-proxy";
 }
 
 interface ResponseViewerProps {
@@ -287,8 +287,10 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                     <div className={styles.requestHint}>
                         Headers we set on the upstream request
                         {response.transport === "proxy"
-                            ? " (via server proxy). Host is added by the HTTP stack. If your API is hosted on Vercel, Vercel’s edge may still inject x-vercel-id when the request arrives — that is not sent by UtilHub."
-                            : " (browser direct). Browsers may add a few restricted headers (e.g. Accept) that pages cannot remove."}
+                            ? " (via hosted proxy). Host is added by the HTTP stack. If your API is on Vercel, the edge may still inject x-vercel-id on arrival — use Local proxy or allowlist that header."
+                            : response.transport === "local-proxy"
+                              ? " (via local proxy on your machine — no Vercel hop)."
+                              : " (browser direct). Browsers may add a few restricted headers (e.g. Accept) that pages cannot remove."}
                     </div>
                     {sentHeaders.length === 0 ? (
                         <div className={styles.empty}>No custom headers were set</div>

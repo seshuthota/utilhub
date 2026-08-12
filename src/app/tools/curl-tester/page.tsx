@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
     Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code, Save, Square,
 } from "lucide-react";
@@ -27,6 +27,40 @@ import styles from "./page.module.css";
 
 const HISTORY_KEY = "utilhub_curl_tester_history";
 const COLLECTIONS_KEY = "utilhub_curl_tester_collections";
+const SEND_MODE_KEY = "utilhub_curl_tester_send_mode";
+const LOCAL_PROXY_DEFAULT = "http://127.0.0.1:3927/proxy";
+
+type SendMode = "proxy" | "browser" | "local";
+
+function loadSendMode(): SendMode {
+    try {
+        const v = localStorage.getItem(SEND_MODE_KEY);
+        if (v === "proxy" || v === "browser" || v === "local") return v;
+    } catch { /* ignore */ }
+    return "proxy";
+}
+
+function explainTransportError(sendMode: SendMode, message: string, responseText?: string): string {
+    const combined = `${message} ${responseText || ""}`.toLowerCase();
+    if (sendMode === "browser" && /failed to fetch|networkerror|cors/i.test(message)) {
+        return (
+            "CORS blocked this browser-direct request. Options: " +
+            "(1) Enable CORS on your API for this origin, or " +
+            "(2) Use Local proxy — run `npm run proxy:local` then Send via → Local proxy."
+        );
+    }
+    if (/x-vercel-id|vercel-id|header.*(not allowed|forbidden|restricted|not permitted)/i.test(combined)) {
+        return (
+            "Your API rejected a restricted header (often x-vercel-id). " +
+            "The hosted Proxy runs on Vercel, which can surface platform headers on Vercel-hosted APIs. " +
+            "Fix: run `npm run proxy:local` and choose Send via → Local proxy " +
+            "(requests leave from your machine, not Vercel). " +
+            "Or allowlist x-vercel-id on the API if it is deployed on Vercel " +
+            "(Vercel injects that header on all inbound traffic to Vercel apps)."
+        );
+    }
+    return message;
+}
 
 interface HistoryEntry {
     method: string;
@@ -119,8 +153,16 @@ export default function CurlTester() {
     const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => loadSaved());
     const [showCollections, setShowCollections] = useState(false);
     const [snippetLang, setSnippetLang] = useState<SnippetLang>("curl");
-    /** proxy = server-side (CORS bypass). browser = direct from your browser (no Vercel hop). */
-    const [sendMode, setSendMode] = useState<"proxy" | "browser">("proxy");
+    /**
+     * proxy  = hosted Next route (CORS bypass; runs on Vercel in production)
+     * browser = direct from your browser (needs CORS on the API)
+     * local   = local Node proxy on :3927 (no Vercel hop; run `npm run proxy:local`)
+     */
+    const [sendMode, setSendMode] = useState<SendMode>("proxy");
+
+    useEffect(() => {
+        setSendMode(loadSendMode());
+    }, []);
 
     const activeEnv = env.getActiveEnvironment();
     const resolve = useCallback(
@@ -128,6 +170,16 @@ export default function CurlTester() {
             activeEnv ? substituteVariables(text, activeEnv.variables) : text,
         [activeEnv],
     );
+
+    const handleSendModeChange = (mode: SendMode) => {
+        setSendMode(mode);
+        try {
+            localStorage.setItem(SEND_MODE_KEY, mode);
+        } catch { /* ignore */ }
+        if (mode === "local") {
+            showToast("Start local proxy with: npm run proxy:local", "success");
+        }
+    };
 
     const handleSend = useCallback(async () => {
         if (!request.url.trim()) {
@@ -201,32 +253,64 @@ export default function CurlTester() {
                 };
             } else {
                 const payload = buildProxyPayload(request, resolve, DEFAULT_TIMEOUT_MS);
-                const res = await fetch("/api/tester/proxy", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                    signal: controller.signal,
-                });
+                const proxyUrl =
+                    sendMode === "local" ? LOCAL_PROXY_DEFAULT : "/api/tester/proxy";
+
+                let res: Response;
+                try {
+                    res = await fetch(proxyUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal,
+                    });
+                } catch (fetchErr) {
+                    if (sendMode === "local") {
+                        throw new Error(
+                            "Could not reach local proxy at http://127.0.0.1:3927. " +
+                                "Run: npm run proxy:local",
+                        );
+                    }
+                    throw fetchErr;
+                }
 
                 data = await res.json();
                 if (controller.signal.aborted) return;
 
+                // Surface API body text for header-restriction detection
+                const bodyStr =
+                    typeof data.data === "string"
+                        ? data.data
+                        : data.data
+                          ? JSON.stringify(data.data)
+                          : data.error || "";
+
                 if (data.error && !data.status) {
-                    setError(data.error);
+                    const msg = explainTransportError(sendMode, data.error, bodyStr);
+                    setError(msg);
                     showToast(data.error, "error");
                     return;
                 }
                 if (data.error && res.status >= 400 && !data.headers) {
-                    setError(data.error);
+                    const msg = explainTransportError(sendMode, data.error, bodyStr);
+                    setError(msg);
                     showToast(data.error, "error");
                     return;
+                }
+
+                // Even on HTTP 4xx/5xx from upstream, show guidance if body mentions header rules
+                if (
+                    data.status >= 400 &&
+                    /x-vercel-id|header/i.test(bodyStr)
+                ) {
+                    const hint = explainTransportError(sendMode, bodyStr, bodyStr);
+                    if (hint !== bodyStr) {
+                        setError(hint);
+                    }
                 }
             }
 
             setResponse(data);
-            if (data.error) {
-                setError(data.error);
-            }
             addToHistory({
                 method: request.method,
                 url: request.url,
@@ -236,7 +320,7 @@ export default function CurlTester() {
                 response: data,
             });
             if (data.status) {
-                showToast(`${data.status} in ${data.time}ms`, "success");
+                showToast(`${data.status} in ${data.time}ms`, data.status < 400 ? "success" : "error");
             }
         } catch (e: unknown) {
             if (e instanceof DOMException && e.name === "AbortError") {
@@ -245,13 +329,9 @@ export default function CurlTester() {
                 return;
             }
             const message = e instanceof Error ? e.message : "Request failed";
-            // Common when using browser mode without CORS on the target API
-            const corsHint =
-                sendMode === "browser" && /failed to fetch|networkerror|cors/i.test(message)
-                    ? " (CORS blocked — switch Send mode to Proxy, or enable CORS on the API)"
-                    : "";
-            setError(message + corsHint);
-            showToast(message + corsHint, "error");
+            const explained = explainTransportError(sendMode, message);
+            setError(explained);
+            showToast(explained, "error");
         } finally {
             if (abortRef.current === controller) {
                 abortRef.current = null;
@@ -449,17 +529,21 @@ export default function CurlTester() {
                 />
                 <div className={styles.sendRow}>
                     <span className={styles.shortcutHint}>Ctrl/⌘ + Enter</span>
-                    <label className={styles.sendModeLabel} title="Proxy bypasses CORS via server. Browser sends directly from your machine (no Vercel hop).">
+                    <label
+                        className={styles.sendModeLabel}
+                        title="Proxy: hosted server (Vercel in prod). Browser: needs CORS. Local: run npm run proxy:local — no Vercel hop."
+                    >
                         <span className={styles.sendModeText}>Send via</span>
                         <select
                             className={styles.sendModeSelect}
                             value={sendMode}
-                            onChange={(e) => setSendMode(e.target.value as "proxy" | "browser")}
+                            onChange={(e) => handleSendModeChange(e.target.value as SendMode)}
                             aria-label="Send mode"
                             disabled={isLoading}
                         >
-                            <option value="proxy">Proxy (CORS bypass)</option>
+                            <option value="proxy">Proxy (hosted)</option>
                             <option value="browser">Browser (direct)</option>
+                            <option value="local">Local proxy (:3927)</option>
                         </select>
                     </label>
                     {isLoading ? (
