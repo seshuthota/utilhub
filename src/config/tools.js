@@ -208,8 +208,8 @@ export const tools = [
   },
   {
     id: "jwt",
-    title: "JWT Decoder",
-    description: "Decode and inspect JSON Web Tokens.",
+    title: "JWT Tool",
+    description: "Decode, verify HS* signatures, inspect claims, and sign JWTs client-side.",
     icon: ShieldCheck,
     href: "/tools/jwt",
     isClientSideOnly: true,

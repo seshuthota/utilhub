@@ -211,15 +211,23 @@
     color: var(--text-primary);
 }
 
-/* Status variants */
-.active .statusIcon {
+/* Status variants — apply on statusCard */
+.active .statusIcon,
+.statusCard.active .statusIcon {
     background: rgba(16, 185, 129, 0.2);
     color: var(--success-color);
 }
 
-.expired .statusIcon {
+.expired .statusIcon,
+.statusCard.expired .statusIcon {
     background: rgba(239, 68, 68, 0.2);
     color: var(--error-color);
+}
+
+.neutral .statusIcon,
+.statusCard.neutral .statusIcon {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
 }
 
 .placeholder {
@@ -246,8 +254,143 @@
     color: var(--primary);
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.textBtn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.textBtn:hover:not(:disabled) {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.textBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.neutral .statusIcon {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+}
+
+.statusHint {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-top: 0.15rem;
+}
+
+.claimsCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.claimsTitle {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.claimsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.claimRow {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.9fr) 1fr 1.2fr;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    align-items: baseline;
+}
+
+.claimLabel {
+    color: var(--accent-primary, var(--text-secondary));
+    font-weight: 600;
+}
+
+.claimRelative {
+    color: var(--text-primary);
+}
+
+.claimAbsolute {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.claimAlert .claimRelative {
+    color: var(--error-color, #ef4444);
+}
+
+.warnings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.warningItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.warn_danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--error-color, #ef4444);
+    border: 1px solid var(--error-color, #ef4444);
+}
+
+.warn_warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--warning-color, #f59e0b);
+    border: 1px solid var(--warning-color, #f59e0b);
+}
+
+.warn_info {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+}
+
+.errorBox {
+    color: var(--error-color, #ef4444);
+    padding: 0.5rem 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
     .grid {
         grid-template-columns: 1fr;
+    }
+
+    .claimRow {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
     }
 }
