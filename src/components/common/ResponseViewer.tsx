@@ -16,6 +16,9 @@ export interface ResponseData {
     size?: number;
     contentType?: string;
     encoding?: "text" | "base64";
+    /** Headers this client/proxy intentionally set on the upstream request */
+    requestHeadersSent?: Record<string, string>;
+    transport?: "proxy" | "browser";
 }
 
 interface ResponseViewerProps {
@@ -121,7 +124,7 @@ function downloadBody(response: ResponseData) {
     downloadFile(text, `response.${ext}`, ct.includes("json") ? "application/json" : ct);
 }
 
-type Tab = "body" | "preview" | "headers";
+type Tab = "body" | "preview" | "headers" | "request";
 
 export default function ResponseViewer({ response, error, onCopyBody }: ResponseViewerProps) {
     const [activeTab, setActiveTab] = useState<Tab>("body");
@@ -152,7 +155,13 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
     const size = estimateSize(response);
     const contentType = getContentType(response.headers, response.contentType);
 
-    const tabs: Tab[] = ["body", ...(canPreview ? (["preview"] as Tab[]) : []), "headers"];
+    const sentHeaders = Object.entries(response.requestHeadersSent || {});
+    const tabs: Tab[] = [
+        "body",
+        ...(canPreview ? (["preview"] as Tab[]) : []),
+        "headers",
+        ...(sentHeaders.length > 0 || response.transport ? (["request"] as Tab[]) : []),
+    ];
 
     const handleCopy = () => {
         if (onCopyBody) {
@@ -207,7 +216,9 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                             ? "Body"
                             : tab === "preview"
                               ? "Preview"
-                              : `Headers (${responseHeaders.length})`}
+                              : tab === "request"
+                                ? `Request sent${response.transport ? ` (${response.transport})` : ""}`
+                                : `Headers (${responseHeaders.length})`}
                     </button>
                 ))}
             </div>
@@ -262,6 +273,27 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                         <div className={styles.empty}>No response headers</div>
                     ) : (
                         responseHeaders.map(([key, value]) => (
+                            <div key={key} className={styles.headerRow}>
+                                <span className={styles.headerKey}>{key}:</span>
+                                <span className={styles.headerValue}>{String(value)}</span>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {activeTab === "request" && (
+                <div className={styles.headersContainer}>
+                    <div className={styles.requestHint}>
+                        Headers we set on the upstream request
+                        {response.transport === "proxy"
+                            ? " (via server proxy). Host is added by the HTTP stack. If your API is hosted on Vercel, Vercel’s edge may still inject x-vercel-id when the request arrives — that is not sent by UtilHub."
+                            : " (browser direct). Browsers may add a few restricted headers (e.g. Accept) that pages cannot remove."}
+                    </div>
+                    {sentHeaders.length === 0 ? (
+                        <div className={styles.empty}>No custom headers were set</div>
+                    ) : (
+                        sentHeaders.map(([key, value]) => (
                             <div key={key} className={styles.headerRow}>
                                 <span className={styles.headerKey}>{key}:</span>
                                 <span className={styles.headerValue}>{String(value)}</span>

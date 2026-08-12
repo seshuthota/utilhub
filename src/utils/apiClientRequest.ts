@@ -289,6 +289,73 @@ export function buildFinalUrl(request: RequestState, resolve: ResolveFn): string
     return url;
 }
 
+/**
+ * Build browser-native fetch init for "direct" (no proxy) sends.
+ * Only user/auth headers are set. Browsers may still add a few restricted
+ * headers (Accept, etc.) that pages cannot suppress.
+ */
+export function buildBrowserFetchInit(
+    request: RequestState,
+    resolve: ResolveFn,
+): { url: string; init: RequestInit; headersSent: Record<string, string> } {
+    const method = (request.method || "GET").toUpperCase();
+    const url = buildFinalUrl(request, resolve);
+    const headers = buildRequestHeaders(request, resolve);
+    const bodyMode = request.bodyMode || "none";
+
+    const init: RequestInit = { method };
+    let body: BodyInit | undefined;
+    const headersSent: Record<string, string> = { ...headers };
+
+    if (method !== "GET" && method !== "HEAD" && bodyMode !== "none") {
+        if (bodyMode === "json" || bodyMode === "raw") {
+            body = request.body ? resolve(request.body) : undefined;
+        } else if (bodyMode === "urlencoded") {
+            const params = new URLSearchParams();
+            (request.formFields || [])
+                .filter((f) => f.active !== false && f.key)
+                .forEach((f) => {
+                    params.append(resolve(f.key), resolve(f.value || ""));
+                });
+            body = params.toString();
+        } else if (bodyMode === "multipart") {
+            const form = new FormData();
+            (request.formFields || [])
+                .filter((f) => f.active !== false && f.key)
+                .forEach((f) => {
+                    const key = resolve(f.key);
+                    if (f.type === "file" && f.contentBase64) {
+                        const binary = atob(f.contentBase64);
+                        const bytes = new Uint8Array(binary.length);
+                        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                        const blob = new Blob([bytes], {
+                            type: f.contentType || "application/octet-stream",
+                        });
+                        form.append(key, blob, f.filename || "file");
+                    } else if (f.type !== "file") {
+                        form.append(key, resolve(f.value || ""));
+                    }
+                });
+            body = form;
+            // Browser sets multipart Content-Type + boundary — remove user CT
+            delete headers["Content-Type"];
+            delete headers["content-type"];
+            delete headersSent["Content-Type"];
+            delete headersSent["content-type"];
+            headersSent["Content-Type"] = "multipart/form-data; boundary=<set by browser>";
+        }
+    }
+
+    if (Object.keys(headers).length > 0) {
+        init.headers = headers;
+    }
+    if (body !== undefined) {
+        init.body = body;
+    }
+
+    return { url, init, headersSent };
+}
+
 export function buildProxyPayload(
     request: RequestState,
     resolve: ResolveFn,

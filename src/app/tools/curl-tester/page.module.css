@@ -107,6 +107,34 @@
     margin-right: auto;
 }
 
+.sendModeLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.sendModeText {
+    white-space: nowrap;
+}
+
+.sendModeSelect {
+    padding: 0.35rem 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    max-width: 180px;
+}
+
+.sendModeSelect:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
 .cancelBtn {
     display: flex;
     align-items: center;

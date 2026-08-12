@@ -12,6 +12,7 @@ import {
     type RequestState,
     DEFAULT_TIMEOUT_MS,
     buildProxyPayload,
+    buildBrowserFetchInit,
     migrateRequestState,
     stripFilePayloads,
     requestStateFromCurl,
@@ -118,6 +119,8 @@ export default function CurlTester() {
     const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => loadSaved());
     const [showCollections, setShowCollections] = useState(false);
     const [snippetLang, setSnippetLang] = useState<SnippetLang>("curl");
+    /** proxy = server-side (CORS bypass). browser = direct from your browser (no Vercel hop). */
+    const [sendMode, setSendMode] = useState<"proxy" | "browser">("proxy");
 
     const activeEnv = env.getActiveEnvironment();
     const resolve = useCallback(
@@ -127,8 +130,7 @@ export default function CurlTester() {
     );
 
     const handleSend = useCallback(async () => {
-        const payload = buildProxyPayload(request, resolve, DEFAULT_TIMEOUT_MS);
-        if (!payload.url.trim()) {
+        if (!request.url.trim()) {
             showToast("Enter a URL first", "error");
             return;
         }
@@ -142,39 +144,99 @@ export default function CurlTester() {
         setError(null);
 
         try {
-            const res = await fetch("/api/tester/proxy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-                signal: controller.signal,
-            });
+            let data: ResponseData & { error?: string };
 
-            const data = await res.json();
-            if (controller.signal.aborted) return;
+            if (sendMode === "browser") {
+                const { url, init, headersSent } = buildBrowserFetchInit(request, resolve);
+                const start = performance.now();
+                const res = await fetch(url, { ...init, signal: controller.signal });
+                const end = performance.now();
+                if (controller.signal.aborted) return;
 
-            if (data.error && !data.status) {
-                setError(data.error);
-                showToast(data.error, "error");
-            } else if (data.error && res.status >= 400 && !data.headers) {
-                // Proxy-level error (timeout, bad gateway)
-                setError(data.error);
-                showToast(data.error, "error");
-            } else {
-                setResponse(data);
-                if (data.error) {
-                    setError(data.error);
-                }
-                addToHistory({
-                    method: request.method,
-                    url: request.url,
-                    timestamp: Date.now(),
-                    status: data.status,
-                    request: stripFilePayloads(JSON.parse(JSON.stringify(request))),
-                    response: data,
+                const contentType = res.headers.get("content-type") || "";
+                const buf = await res.arrayBuffer();
+                const size = buf.byteLength;
+                const responseHeaders: Record<string, string> = {};
+                res.headers.forEach((value, key) => {
+                    responseHeaders[key] = value;
                 });
-                if (data.status) {
-                    showToast(`${data.status} in ${data.time}ms`, "success");
+
+                let encoding: "text" | "base64" = "text";
+                let bodyData: unknown;
+                const isText =
+                    !contentType ||
+                    contentType.startsWith("text/") ||
+                    contentType.includes("json") ||
+                    contentType.includes("xml") ||
+                    contentType.includes("javascript") ||
+                    contentType.includes("html") ||
+                    contentType.includes("css");
+
+                if (isText) {
+                    const text = new TextDecoder("utf-8").decode(buf);
+                    try {
+                        bodyData = JSON.parse(text);
+                    } catch {
+                        bodyData = text;
+                    }
+                } else {
+                    encoding = "base64";
+                    const bytes = new Uint8Array(buf);
+                    let binary = "";
+                    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+                    bodyData = btoa(binary);
                 }
+
+                data = {
+                    status: res.status,
+                    statusText: res.statusText,
+                    headers: responseHeaders,
+                    data: bodyData,
+                    time: Math.round(end - start),
+                    size,
+                    contentType,
+                    encoding,
+                    requestHeadersSent: headersSent,
+                    transport: "browser",
+                };
+            } else {
+                const payload = buildProxyPayload(request, resolve, DEFAULT_TIMEOUT_MS);
+                const res = await fetch("/api/tester/proxy", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal,
+                });
+
+                data = await res.json();
+                if (controller.signal.aborted) return;
+
+                if (data.error && !data.status) {
+                    setError(data.error);
+                    showToast(data.error, "error");
+                    return;
+                }
+                if (data.error && res.status >= 400 && !data.headers) {
+                    setError(data.error);
+                    showToast(data.error, "error");
+                    return;
+                }
+            }
+
+            setResponse(data);
+            if (data.error) {
+                setError(data.error);
+            }
+            addToHistory({
+                method: request.method,
+                url: request.url,
+                timestamp: Date.now(),
+                status: data.status,
+                request: stripFilePayloads(JSON.parse(JSON.stringify(request))),
+                response: data,
+            });
+            if (data.status) {
+                showToast(`${data.status} in ${data.time}ms`, "success");
             }
         } catch (e: unknown) {
             if (e instanceof DOMException && e.name === "AbortError") {
@@ -183,15 +245,20 @@ export default function CurlTester() {
                 return;
             }
             const message = e instanceof Error ? e.message : "Request failed";
-            setError(message);
-            showToast("Request failed", "error");
+            // Common when using browser mode without CORS on the target API
+            const corsHint =
+                sendMode === "browser" && /failed to fetch|networkerror|cors/i.test(message)
+                    ? " (CORS blocked — switch Send mode to Proxy, or enable CORS on the API)"
+                    : "";
+            setError(message + corsHint);
+            showToast(message + corsHint, "error");
         } finally {
             if (abortRef.current === controller) {
                 abortRef.current = null;
             }
             setIsLoading(false);
         }
-    }, [request, resolve, showToast, addToHistory]);
+    }, [request, resolve, showToast, addToHistory, sendMode]);
 
     const handleCancel = () => {
         abortRef.current?.abort();
@@ -382,6 +449,19 @@ export default function CurlTester() {
                 />
                 <div className={styles.sendRow}>
                     <span className={styles.shortcutHint}>Ctrl/⌘ + Enter</span>
+                    <label className={styles.sendModeLabel} title="Proxy bypasses CORS via server. Browser sends directly from your machine (no Vercel hop).">
+                        <span className={styles.sendModeText}>Send via</span>
+                        <select
+                            className={styles.sendModeSelect}
+                            value={sendMode}
+                            onChange={(e) => setSendMode(e.target.value as "proxy" | "browser")}
+                            aria-label="Send mode"
+                            disabled={isLoading}
+                        >
+                            <option value="proxy">Proxy (CORS bypass)</option>
+                            <option value="browser">Browser (direct)</option>
+                        </select>
+                    </label>
                     {isLoading ? (
                         <button
                             className={styles.cancelBtn}

@@ -53,6 +53,44 @@ function removeHeader(headers, name) {
 }
 
 /**
+ * Strip platform / hop-by-hop headers that must never be forwarded upstream.
+ * Note: if the TARGET is hosted on Vercel, Vercel's edge will still inject
+ * x-vercel-id on the inbound request to that deployment — that is outside our control.
+ */
+function sanitizeOutboundHeaders(headers) {
+    const clean = {};
+    for (const [key, value] of Object.entries(headers || {})) {
+        if (value === undefined || value === null) continue;
+        const lower = key.toLowerCase();
+        if (
+            lower.startsWith("x-vercel-") ||
+            lower === "x-forwarded-for" ||
+            lower === "x-forwarded-host" ||
+            lower === "x-forwarded-proto" ||
+            lower === "x-forwarded-port" ||
+            lower === "x-real-ip" ||
+            lower === "forwarded" ||
+            lower === "via" ||
+            lower === "transfer-encoding" ||
+            lower === "connection" ||
+            lower === "keep-alive" ||
+            lower === "proxy-connection" ||
+            lower === "proxy-authorization" ||
+            lower === "te" ||
+            lower === "trailer" ||
+            lower === "upgrade" ||
+            // Never forward the proxy's own content-type from the client→proxy hop
+            // (client JSON body uses application/json; upstream is separate)
+            lower === "content-length" // we recompute below when body is present
+        ) {
+            continue;
+        }
+        clean[key] = String(value);
+    }
+    return clean;
+}
+
+/**
  * Build upstream body using ONLY headers the client provided.
  * Exception: multipart needs a boundary Content-Type to be valid HTTP form data
  * (not an extra tracking/platform header — required for the body encoding).
@@ -248,18 +286,28 @@ export async function POST(req) {
         const methodUpper = (method || "GET").toUpperCase();
 
         // Start from client-supplied headers only — never copy inbound proxy request headers
-        let headers = { ...(reqHeaders || {}) };
+        // (incoming Vercel platform headers like x-vercel-id must not be forwarded)
+        let headers = sanitizeOutboundHeaders(reqHeaders || {});
 
         let upstreamBody;
         try {
             const built = buildUpstreamBody(bodyMode, body, formFields, headers);
             upstreamBody = built.body;
-            headers = built.headers;
+            headers = sanitizeOutboundHeaders(built.headers);
         } catch (e) {
             return NextResponse.json(
                 { error: e.message || "Failed to build request body" },
                 { status: 400 },
             );
+        }
+
+        // Snapshot of headers we intentionally send (before Node adds Host)
+        const requestHeadersSent = { ...headers };
+        if (upstreamBody && methodUpper !== "GET" && methodUpper !== "HEAD") {
+            const len = Buffer.isBuffer(upstreamBody)
+                ? upstreamBody.length
+                : Buffer.byteLength(String(upstreamBody));
+            requestHeadersSent["Content-Length"] = String(len);
         }
 
         const startTime = performance.now();
@@ -349,6 +397,9 @@ export async function POST(req) {
             size,
             contentType,
             encoding,
+            // Exact headers this proxy set on the upstream request (Host is added by Node HTTP)
+            requestHeadersSent,
+            transport: "proxy",
         });
     } catch (error) {
         return NextResponse.json(
