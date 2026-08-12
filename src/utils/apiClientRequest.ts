@@ -62,14 +62,6 @@ export const DEFAULT_TIMEOUT_MS = 30000;
 export const MAX_TIMEOUT_MS = 120000;
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-const BODY_MODE_CONTENT_TYPES: Record<BodyMode, string | null> = {
-    none: null,
-    json: "application/json",
-    raw: "text/plain",
-    urlencoded: "application/x-www-form-urlencoded",
-    multipart: null,
-};
-
 export function parseParamsFromUrl(url: string): KVItem[] {
     try {
         const qIndex = url.indexOf("?");
@@ -222,30 +214,21 @@ export function stripFilePayloads(request: RequestState): RequestState {
     };
 }
 
+/**
+ * Adjust headers when body mode changes.
+ * Does NOT inject new Content-Type headers — only removes Content-Type for multipart
+ * so the proxy can set the correct boundary. Users own all other headers.
+ */
 export function applyBodyModeContentType(
     headers: KVItem[],
     bodyMode: BodyMode,
 ): KVItem[] {
-    const defaultCt = BODY_MODE_CONTENT_TYPES[bodyMode];
-    const withoutCt = headers.filter((h) => h.key.toLowerCase() !== "content-type");
-
-    if (bodyMode === "multipart" || bodyMode === "none") {
-        // Multipart: let proxy/fetch set boundary. None: leave other headers, drop auto CT if we set it.
-        if (bodyMode === "multipart") return withoutCt;
-        return headers;
+    if (bodyMode === "multipart") {
+        // Proxy sets multipart Content-Type with boundary; drop any user CT to avoid conflicts
+        return headers.filter((h) => h.key.toLowerCase() !== "content-type");
     }
-
-    if (!defaultCt) return headers;
-
-    const hasActiveCt = headers.some(
-        (h) => h.key.toLowerCase() === "content-type" && h.key && h.active !== false,
-    );
-    if (hasActiveCt) return headers;
-
-    return [
-        ...withoutCt,
-        { key: "Content-Type", value: defaultCt, active: true },
-    ];
+    // Keep headers exactly as the user set them for all other modes
+    return headers;
 }
 
 type ResolveFn = (text: string) => string;

@@ -230,9 +230,17 @@ describe('apiClientRequest', () => {
         expect(payload.headers.Authorization).toBe('Bearer abc');
     });
 
-    it('applies default content-type for json when missing', () => {
+    it('does not inject content-type for json body mode', () => {
         const headers = applyBodyModeContentType([], 'json');
-        expect(headers.find((h) => h.key === 'Content-Type')?.value).toBe('application/json');
+        expect(headers).toEqual([]);
+    });
+
+    it('preserves user headers when switching to json', () => {
+        const headers = applyBodyModeContentType(
+            [{ key: 'X-Custom', value: '1', active: true }],
+            'json',
+        );
+        expect(headers).toEqual([{ key: 'X-Custom', value: '1', active: true }]);
     });
 
     it('removes content-type for multipart', () => {

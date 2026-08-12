@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import http from "node:http";
+import https from "node:https";
+import { randomBytes } from "node:crypto";
 
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_TIMEOUT_MS = 120000;
@@ -26,15 +29,49 @@ function base64ByteLength(b64) {
     return Math.floor((b64.length * 3) / 4) - padding;
 }
 
-async function buildUpstreamBody(bodyMode, body, formFields, headers) {
+function hasHeader(headers, name) {
+    const lower = name.toLowerCase();
+    return Object.keys(headers || {}).some((k) => k.toLowerCase() === lower);
+}
+
+function setHeader(headers, name, value) {
+    // Prefer preserving original casing if key already exists
+    const existing = Object.keys(headers).find((k) => k.toLowerCase() === name.toLowerCase());
+    if (existing) {
+        headers[existing] = value;
+    } else {
+        headers[name] = value;
+    }
+}
+
+function removeHeader(headers, name) {
+    for (const key of Object.keys(headers)) {
+        if (key.toLowerCase() === name.toLowerCase()) {
+            delete headers[key];
+        }
+    }
+}
+
+/**
+ * Build upstream body using ONLY headers the client provided.
+ * Exception: multipart needs a boundary Content-Type to be valid HTTP form data
+ * (not an extra tracking/platform header — required for the body encoding).
+ */
+function buildUpstreamBody(bodyMode, body, formFields, headers) {
     const mode = bodyMode || (body ? "raw" : "none");
+    const nextHeaders = { ...(headers || {}) };
 
     if (mode === "none") {
-        return { body: undefined, headers };
+        return { body: undefined, headers: nextHeaders };
     }
 
     if (mode === "json" || mode === "raw") {
-        return { body: body || undefined, headers };
+        if (!body) return { body: undefined, headers: nextHeaders };
+        const buf = Buffer.from(String(body), "utf8");
+        if (buf.length > MAX_UPLOAD_BYTES) {
+            throw new Error(`Request body exceeds ${MAX_UPLOAD_BYTES} byte limit`);
+        }
+        return { body: buf, headers: nextHeaders };
     }
 
     if (mode === "urlencoded") {
@@ -49,56 +86,132 @@ async function buildUpstreamBody(bodyMode, body, formFields, headers) {
             }
             params.append(field.key, value);
         }
-        const nextHeaders = { ...headers };
-        if (!Object.keys(nextHeaders).some((k) => k.toLowerCase() === "content-type")) {
-            nextHeaders["Content-Type"] = "application/x-www-form-urlencoded";
-        }
-        return { body: params.toString(), headers: nextHeaders };
+        // Do NOT auto-add Content-Type — only send what the user set
+        const buf = Buffer.from(params.toString(), "utf8");
+        return { body: buf, headers: nextHeaders };
     }
 
     if (mode === "multipart") {
-        const form = new FormData();
+        const boundary = `----UtilHubFormBoundary${randomBytes(12).toString("hex")}`;
+        const chunks = [];
         let total = 0;
 
         for (const field of formFields || []) {
             if (!field?.key) continue;
 
             if (field.type === "file") {
-                if (!field.contentBase64) {
-                    // Allow empty placeholder (user re-select needed)
-                    continue;
-                }
+                if (!field.contentBase64) continue;
                 const size = base64ByteLength(field.contentBase64);
                 total += size;
                 if (total > MAX_UPLOAD_BYTES) {
                     throw new Error(`Request body exceeds ${MAX_UPLOAD_BYTES} byte limit`);
                 }
-                const buffer = Buffer.from(field.contentBase64, "base64");
-                const blob = new Blob([buffer], {
-                    type: field.contentType || "application/octet-stream",
-                });
-                form.append(field.key, blob, field.filename || "file");
+                const fileBuf = Buffer.from(field.contentBase64, "base64");
+                const filename = (field.filename || "file").replace(/"/g, "");
+                const ctype = field.contentType || "application/octet-stream";
+                chunks.push(
+                    Buffer.from(
+                        `--${boundary}\r\n` +
+                            `Content-Disposition: form-data; name="${field.key}"; filename="${filename}"\r\n` +
+                            `Content-Type: ${ctype}\r\n\r\n`,
+                        "utf8",
+                    ),
+                );
+                chunks.push(fileBuf);
+                chunks.push(Buffer.from("\r\n", "utf8"));
             } else {
                 const value = field.value ?? "";
                 total += Buffer.byteLength(String(value), "utf8");
                 if (total > MAX_UPLOAD_BYTES) {
                     throw new Error(`Request body exceeds ${MAX_UPLOAD_BYTES} byte limit`);
                 }
-                form.append(field.key, value);
+                chunks.push(
+                    Buffer.from(
+                        `--${boundary}\r\n` +
+                            `Content-Disposition: form-data; name="${field.key}"\r\n\r\n` +
+                            `${value}\r\n`,
+                        "utf8",
+                    ),
+                );
             }
         }
+        chunks.push(Buffer.from(`--${boundary}--\r\n`, "utf8"));
+        const buf = Buffer.concat(chunks);
 
-        // Let fetch set multipart boundary — strip any Content-Type
-        const nextHeaders = { ...headers };
-        for (const key of Object.keys(nextHeaders)) {
-            if (key.toLowerCase() === "content-type") {
-                delete nextHeaders[key];
-            }
-        }
-        return { body: form, headers: nextHeaders };
+        // Multipart requires boundary in Content-Type; replace any user CT
+        removeHeader(nextHeaders, "content-type");
+        setHeader(nextHeaders, "Content-Type", `multipart/form-data; boundary=${boundary}`);
+
+        return { body: buf, headers: nextHeaders };
     }
 
-    return { body: body || undefined, headers };
+    if (body) {
+        return { body: Buffer.from(String(body), "utf8"), headers: nextHeaders };
+    }
+    return { body: undefined, headers: nextHeaders };
+}
+
+/**
+ * Perform HTTP(S) request with exact headers only.
+ * Node's http/https modules do not inject Accept / User-Agent like fetch/undici.
+ * Host is set by Node from the URL (required by HTTP/1.1) unless the user provided Host.
+ */
+function exactHeaderRequest(parsedUrl, { method, headers, body, timeoutMs }) {
+    return new Promise((resolve, reject) => {
+        const isHttps = parsedUrl.protocol === "https:";
+        const lib = isHttps ? https : http;
+
+        const requestHeaders = { ...(headers || {}) };
+
+        // Content-Length only when we have a body and user didn't set it
+        if (body && !hasHeader(requestHeaders, "content-length")) {
+            const len = Buffer.isBuffer(body) ? body.length : Buffer.byteLength(String(body));
+            setHeader(requestHeaders, "Content-Length", String(len));
+        }
+
+        // Never forward connection-management headers that could confuse intermediaries
+        removeHeader(requestHeaders, "transfer-encoding");
+        removeHeader(requestHeaders, "connection");
+        removeHeader(requestHeaders, "keep-alive");
+        removeHeader(requestHeaders, "proxy-connection");
+
+        const options = {
+            protocol: parsedUrl.protocol,
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (isHttps ? 443 : 80),
+            path: `${parsedUrl.pathname}${parsedUrl.search}`,
+            method,
+            headers: requestHeaders,
+            // No agent pooling — avoids extra Connection: keep-alive from the default agent
+            agent: false,
+        };
+
+        const req = lib.request(options, (res) => {
+            const chunks = [];
+            res.on("data", (chunk) => chunks.push(chunk));
+            res.on("end", () => {
+                resolve({
+                    status: res.statusCode || 0,
+                    statusText: res.statusMessage || "",
+                    headers: res.headers,
+                    body: Buffer.concat(chunks),
+                });
+            });
+        });
+
+        req.setTimeout(timeoutMs, () => {
+            req.destroy(Object.assign(new Error(`Request timed out after ${timeoutMs}ms`), {
+                name: "TimeoutError",
+            }));
+        });
+
+        req.on("error", reject);
+
+        if (body && method !== "GET" && method !== "HEAD") {
+            req.write(body);
+        }
+        req.end();
+    });
 }
 
 export async function POST(req) {
@@ -133,11 +246,13 @@ export async function POST(req) {
 
         const timeout = clampTimeout(timeoutMs);
         const methodUpper = (method || "GET").toUpperCase();
+
+        // Start from client-supplied headers only — never copy inbound proxy request headers
         let headers = { ...(reqHeaders || {}) };
 
         let upstreamBody;
         try {
-            const built = await buildUpstreamBody(bodyMode, body, formFields, headers);
+            const built = buildUpstreamBody(bodyMode, body, formFields, headers);
             upstreamBody = built.body;
             headers = built.headers;
         } catch (e) {
@@ -147,20 +262,15 @@ export async function POST(req) {
             );
         }
 
-        const options = {
-            method: methodUpper,
-            headers,
-            signal: AbortSignal.timeout(timeout),
-        };
-
-        if (methodUpper !== "GET" && methodUpper !== "HEAD" && upstreamBody !== undefined) {
-            options.body = upstreamBody;
-        }
-
         const startTime = performance.now();
         let response;
         try {
-            response = await fetch(url, options);
+            response = await exactHeaderRequest(parsedUrl, {
+                method: methodUpper,
+                headers,
+                body: methodUpper === "GET" || methodUpper === "HEAD" ? undefined : upstreamBody,
+                timeoutMs: timeout,
+            });
         } catch (err) {
             const endTime = performance.now();
             const name = err?.name || "";
@@ -190,20 +300,35 @@ export async function POST(req) {
         }
         const endTime = performance.now();
 
-        const arrayBuffer = await response.arrayBuffer();
+        const arrayBuffer = response.body;
         const size = arrayBuffer.byteLength;
-        const contentType = response.headers.get("content-type") || "";
 
+        // Node lowercases incoming header names; normalize for the client
         const responseHeaders = {};
-        response.headers.forEach((value, key) => {
-            responseHeaders[key] = value;
-        });
+        for (const [key, value] of Object.entries(response.headers || {})) {
+            if (value === undefined) continue;
+            // Skip hop-by-hop / internal framing headers that aren't useful in a client UI
+            const lower = key.toLowerCase();
+            if (
+                lower === "transfer-encoding" ||
+                lower === "connection" ||
+                lower === "keep-alive"
+            ) {
+                continue;
+            }
+            responseHeaders[key] = Array.isArray(value) ? value.join(", ") : String(value);
+        }
+
+        const contentType =
+            responseHeaders["content-type"] ||
+            responseHeaders["Content-Type"] ||
+            "";
 
         let encoding = "text";
         let data;
 
         if (isTextContentType(contentType)) {
-            const text = new TextDecoder("utf-8").decode(arrayBuffer);
+            const text = arrayBuffer.toString("utf8");
             try {
                 data = JSON.parse(text);
             } catch {
@@ -212,7 +337,7 @@ export async function POST(req) {
             encoding = "text";
         } else {
             encoding = "base64";
-            data = Buffer.from(arrayBuffer).toString("base64");
+            data = arrayBuffer.toString("base64");
         }
 
         return NextResponse.json({
