@@ -14,8 +14,10 @@ import {
     FileSpreadsheet,
     Trash2,
     AlertCircle,
-    CheckCircle2,
     HardDrive,
+    Sparkles,
+    Eye,
+    HelpCircle,
 } from 'lucide-react';
 import initSqlJs, { Database as SqlJsDatabase, SqlJsStatic } from 'sql.js';
 import { format } from 'sql-formatter';
@@ -45,6 +47,34 @@ interface HistoryItem {
     status: 'success' | 'error';
     rowCount?: number;
 }
+
+function quoteIdent(name: string): string {
+    return `"${name.replace(/"/g, '""')}"`;
+}
+
+const SAMPLE_SQL = `
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE posts (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  title TEXT NOT NULL,
+  body TEXT,
+  published INTEGER DEFAULT 0
+);
+INSERT INTO users (name, email) VALUES
+  ('Ada Lovelace', 'ada@example.com'),
+  ('Alan Turing', 'alan@example.com'),
+  ('Grace Hopper', 'grace@example.com');
+INSERT INTO posts (user_id, title, body, published) VALUES
+  (1, 'Notes on the Analytical Engine', 'First programmer notes.', 1),
+  (2, 'On Computable Numbers', 'Entscheidungsproblem.', 1),
+  (3, 'COBOL and compilers', 'A-0 and beyond.', 0);
+`.trim();
 
 export default function SqliteTool() {
     const [code, setCode] = useUrlState('code', 'SELECT sqlite_version();');
@@ -266,6 +296,49 @@ export default function SqliteTool() {
         showToast('New database created', 'success');
     };
 
+    const loadSampleDb = () => {
+        if (!sqlJs) return;
+        try {
+            db?.close();
+            const newDb = new sqlJs.Database();
+            newDb.exec(SAMPLE_SQL);
+            setDb(newDb);
+            setDbName('sample.sqlite');
+            setResult(null);
+            setError(null);
+            refreshSchema(newDb);
+            const browse = `SELECT * FROM users LIMIT 100;`;
+            setCode(browse);
+            const results = newDb.exec(browse);
+            setResult(results as QueryResult[]);
+            setActiveTab('results');
+            showToast('Loaded sample database (users + posts)', 'success');
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Failed to load sample';
+            showToast(message, 'error');
+        }
+    };
+
+    const browseTable = (tableName: string) => {
+        const sql = `SELECT * FROM ${quoteIdent(tableName)} LIMIT 100;`;
+        setCode(sql);
+        setActiveTab('results');
+        runQuery(sql);
+    };
+
+    const countTable = (tableName: string) => {
+        const sql = `SELECT COUNT(*) AS count FROM ${quoteIdent(tableName)};`;
+        setCode(sql);
+        setActiveTab('results');
+        runQuery(sql);
+    };
+
+    const explainQuery = () => {
+        const sql = `EXPLAIN QUERY PLAN ${code}`;
+        runQuery(sql, true);
+        setActiveTab('results');
+    };
+
     // Keyboard shortcuts
     useHotkeys('Enter', () => runQuery(), { meta: true });
     useHotkeys('f', formatSql, { meta: true, shift: true });
@@ -292,6 +365,9 @@ export default function SqliteTool() {
                 <div className={styles.actions}>
                     <button className={styles.button} onClick={createNewDb} title="New Database">
                         <Trash2 size={16} /> New
+                    </button>
+                    <button className={styles.button} onClick={loadSampleDb} title="Load sample users/posts database">
+                        <Sparkles size={16} /> Sample
                     </button>
                     <button className={styles.button} onClick={() => fileInputRef.current?.click()} title="Upload DB">
                         <Upload size={16} /> Upload
@@ -347,6 +423,9 @@ export default function SqliteTool() {
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button onClick={formatSql} className={styles.button} title="Format SQL (⌘+Shift+F)">
                             <Zap size={14} /> Format
+                        </button>
+                        <button onClick={explainQuery} className={styles.button} title="EXPLAIN QUERY PLAN" disabled={!db}>
+                            <HelpCircle size={14} /> Explain
                         </button>
                         <button onClick={() => runQuery()} className={styles.primaryBtn} title="Run Query (⌘+Enter)">
                             <Play size={14} /> Run
@@ -452,6 +531,24 @@ export default function SqliteTool() {
                                             <h4>
                                                 <Table size={16} /> {table.name}
                                             </h4>
+                                            <div className={styles.schemaActions}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.schemaBtn}
+                                                    onClick={() => browseTable(table.name)}
+                                                    title={`SELECT * FROM ${table.name}`}
+                                                >
+                                                    <Eye size={12} /> Browse
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.schemaBtn}
+                                                    onClick={() => countTable(table.name)}
+                                                    title={`COUNT(*) FROM ${table.name}`}
+                                                >
+                                                    Count
+                                                </button>
+                                            </div>
                                             <div className={styles.schemaColumns}>
                                                 {table.columns.map((col) => (
                                                     <div key={col.name} className={styles.schemaColumn}>
@@ -484,13 +581,31 @@ export default function SqliteTool() {
                                     <div
                                         key={i}
                                         className={`${styles.historyItem} ${item.status === 'success' ? styles.historySuccess : styles.historyError}`}
-                                        onClick={() => setCode(item.query)}
                                     >
-                                        <div className={styles.historyQuery}>{item.query}</div>
-                                        <div className={styles.historyTime}>
-                                            {item.timestamp}
-                                            {item.rowCount !== undefined && ` • ${item.rowCount} rows`}
-                                        </div>
+                                        <button
+                                            type="button"
+                                            className={styles.historyMain}
+                                            onClick={() => setCode(item.query)}
+                                            title="Load into editor"
+                                        >
+                                            <div className={styles.historyQuery}>{item.query}</div>
+                                            <div className={styles.historyTime}>
+                                                {item.timestamp}
+                                                {item.rowCount !== undefined && ` • ${item.rowCount} rows`}
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.schemaBtn}
+                                            onClick={() => {
+                                                setCode(item.query);
+                                                runQuery(item.query);
+                                                setActiveTab('results');
+                                            }}
+                                            title="Run this query"
+                                        >
+                                            <Play size={12} /> Run
+                                        </button>
                                     </div>
                                 ))
                             ) : (

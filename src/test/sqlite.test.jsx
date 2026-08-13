@@ -44,7 +44,7 @@ vi.mock('@/components/Toast', () => ({
     }),
 }));
 
-vi.mock('@/components/common/CodeEditor', () => ({
+vi.mock('@/components/common/CodeMirrorEditor', () => ({
     default: ({ value, onChange, placeholder }) => (
         <textarea
             data-testid="code-editor"
@@ -189,4 +189,19 @@ describe('SQLite Studio Tool', () => {
         // Default query should be present
         expect(screen.getByTestId('code-editor')).toHaveValue('SELECT sqlite_version();');
     });
+
+    it('has sample database button', async () => {
+        render(<SqliteTool />);
+        await waitFor(() => {
+            expect(screen.getByTitle(/Load sample/i)).toBeInTheDocument();
+        });
+    });
+
+    it('has explain query button', async () => {
+        render(<SqliteTool />);
+        await waitFor(() => {
+            expect(screen.getByTitle(/EXPLAIN QUERY PLAN/i)).toBeInTheDocument();
+        });
+    });
+
 });
