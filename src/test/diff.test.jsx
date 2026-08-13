@@ -1,37 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import DiffTool from '../app/tools/diff/page';
-
-vi.mock('@/hooks/useInputSize', () => ({
-    useInputSize: () => ({
-        setInput: vi.fn(),
-        startProcessing: vi.fn(),
-        finishProcessing: vi.fn(),
-        isProcessing: false,
-        status: 'idle',
-    }),
-}));
 
 vi.mock('@/components/Toast', () => ({
     useToast: () => ({ showToast: vi.fn() }),
 }));
 
-vi.mock('@/workers/diff.worker.js?raw', () => ({
-    default: '',
-}));
-
-vi.mock('@/hooks/useWorker', () => ({
-    useWorker: () => ({
-        execute: vi.fn(),
-        isReady: false,
-        terminate: vi.fn(),
-        clearQueue: vi.fn(),
-    }),
-}));
-
 describe('DiffTool', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        Object.assign(navigator, {
+            clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+        });
     });
 
     it('renders correctly', () => {
@@ -39,25 +19,57 @@ describe('DiffTool', () => {
         expect(screen.getByText('Diff Checker')).toBeInTheDocument();
     });
 
-    it('computes diff for different texts', () => {
+    it('shows live stats for default sample', async () => {
         render(<DiffTool />);
-        const oldInput = screen.getByPlaceholderText('Paste original text here...');
-        const newInput = screen.getByPlaceholderText('Paste new text here...');
-        fireEvent.change(oldInput, { target: { value: 'aaa\nbbb' } });
-        fireEvent.change(newInput, { target: { value: 'aaa\nccc' } });
-        fireEvent.click(screen.getByText('Compute Diff'));
-        const results = screen.getAllByText(/aaa|bbb|ccc/);
-        expect(results.length).toBeGreaterThanOrEqual(2);
+        await waitFor(() => {
+            expect(screen.getByText(/added/)).toBeInTheDocument();
+        });
     });
 
-    it('shows diff result for completely different texts', () => {
+    it('computes live diff when text changes', async () => {
         render(<DiffTool />);
-        const oldInput = screen.getByPlaceholderText('Paste original text here...');
-        const newInput = screen.getByPlaceholderText('Paste new text here...');
-        fireEvent.change(oldInput, { target: { value: 'old' } });
-        fireEvent.change(newInput, { target: { value: 'new' } });
-        fireEvent.click(screen.getByText('Compute Diff'));
-        const results = screen.getAllByText(/old|new/);
-        expect(results.length).toBeGreaterThanOrEqual(2);
+        fireEvent.change(screen.getByLabelText('Original text'), {
+            target: { value: 'aaa\nbbb' },
+        });
+        fireEvent.change(screen.getByLabelText('Changed text'), {
+            target: { value: 'aaa\nccc' },
+        });
+        await waitFor(() => {
+            expect(screen.getAllByText(/aaa/).length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    it('has granularity and view controls', () => {
+        render(<DiffTool />);
+        expect(screen.getByText('Lines')).toBeInTheDocument();
+        expect(screen.getByText('Words')).toBeInTheDocument();
+        expect(screen.getByText('Chars')).toBeInTheDocument();
+        expect(screen.getByText('Split')).toBeInTheDocument();
+        expect(screen.getByText('Unified')).toBeInTheDocument();
+    });
+
+    it('switches to unified view', async () => {
+        render(<DiffTool />);
+        fireEvent.click(screen.getByText('Unified'));
+        expect(screen.getByLabelText('Unified diff')).toBeInTheDocument();
+    });
+
+    it('copies a unified patch', async () => {
+        render(<DiffTool />);
+        fireEvent.click(screen.getByText('Patch'));
+        await waitFor(() => {
+            expect(navigator.clipboard.writeText).toHaveBeenCalled();
+        });
+        const patch = navigator.clipboard.writeText.mock.calls[0][0];
+        expect(patch).toContain('--- original');
+    });
+
+    it('shows find difference when live is off', () => {
+        render(<DiffTool />);
+        fireEvent.click(screen.getByLabelText ? screen.getByText('Live').previousSibling || screen.getByText('Live') : screen.getByText('Live'));
+        const live = screen.getByText('Live').closest('label');
+        const checkbox = live.querySelector('input[type="checkbox"]');
+        fireEvent.click(checkbox);
+        expect(screen.getByText('Find difference')).toBeInTheDocument();
     });
 });

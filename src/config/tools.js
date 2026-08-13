@@ -58,7 +58,7 @@ export const tools = [
   {
     id: "diff",
     title: "Diff Checker",
-    description: "Compare text files side-by-side to spot differences.",
+    description: "Live side-by-side and unified text diff — words, chars, ignore whitespace, and patch export.",
     icon: FileDiff,
     href: "/tools/diff",
     isClientSideOnly: true,

@@ -1,301 +1,445 @@
 'use client';
 
-import { useState, useCallback } from "react";
-import { Split, AlertTriangle, Clock, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    Split,
+    Columns2,
+    AlignJustify,
+    ArrowLeftRight,
+    Trash2,
+    Upload,
+    Copy,
+    FileJson,
+    Plus,
+    Minus,
+    Equal,
+} from "lucide-react";
+import { useToast } from "@/components/Toast";
+import {
+    computeTextDiff,
+    collapseUnchanged,
+    tryPrettyJson,
+    type DiffGranularity,
+    type DiffViewMode,
+    type DiffRow,
+    type InnerPart,
+} from "@/utils/textDiff";
 import styles from "./page.module.css";
 
-import { useInputSize } from "@/hooks/useInputSize";
-import { useToast } from "@/components/Toast";
+const DEFAULT_OLD = `const greet = (name) => {
+  console.log("Hello, " + name);
+};
 
-import diffWorkerScript from "@/workers/diff.worker.js?raw";
-import { useWorker } from "@/hooks/useWorker";
+greet("world");`;
 
-interface SizeWarningProps {
-    inputSize: {
-        status: 'idle' | 'normal' | 'warning' | 'heavy' | 'critical';
-        estimatedTime?: string;
-        isProcessing?: boolean;
-    }
-}
+const DEFAULT_NEW = `const greet = (name) => {
+  console.log(\`Hello, \${name}!\`);
+};
 
-function SizeWarning({ inputSize }: SizeWarningProps) {
-    if (inputSize.status === "idle" || inputSize.status === "normal") return null;
+greet("UtilHub");
+greet("friend");`;
 
-    const warningStyles = {
-        warning: {
-            background: "var(--warning-bg)",
-            color: "var(--warning-color)",
-            border: "1px solid var(--warning-color)",
-        },
-        heavy: {
-            background: "rgba(255, 165, 0, 0.15)",
-            color: "orange",
-            border: "1px solid orange",
-        },
-        critical: {
-            background: "var(--error-bg)",
-            color: "var(--error-color)",
-            border: "1px solid var(--error-color)",
-        },
-    };
-
-    const style = warningStyles[inputSize.status] || warningStyles.warning;
-    const messages = {
-        warning: "Large input - using background processing",
-        heavy: "Very large input - processing may take several seconds",
-        critical: "Input size exceeds recommended limit",
-    };
-
-    return (
-        <div
-            style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.5rem 0.75rem",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-                marginTop: "0.5rem",
-                ...style,
-            }}
-        >
-            <AlertTriangle size={12} />
-            <span>{messages[inputSize.status]}</span>
-            {inputSize.estimatedTime && (
-                <span
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.25rem",
-                        marginLeft: "auto",
-                    }}
-                >
-                    <Clock size={10} />
-                    {inputSize.estimatedTime}
-                </span>
-            )}
-        </div>
-    );
-}
-
-interface DiffPart {
-    value: string;
-    added?: boolean;
-    removed?: boolean;
-}
-
-function computeDiffSync(oldStr: string, newStr: string): DiffPart[] {
-    const oldLines = oldStr.split("\n");
-    const newLines = newStr.split("\n");
-
-    const result: DiffPart[] = [];
-    let oldI = 0,
-        newI = 0;
-
-    while (oldI < oldLines.length || newI < newLines.length) {
-        if (oldI >= oldLines.length) {
-            result.push({ value: newLines[newI] + "\n", added: true });
-            newI++;
-        } else if (newI >= newLines.length) {
-            result.push({ value: oldLines[oldI] + "\n", removed: true });
-            oldI++;
-        } else if (oldLines[oldI] === newLines[newI]) {
-            result.push({ value: oldLines[oldI] + "\n" });
-            oldI++;
-            newI++;
-        } else {
-            const oldNext = oldLines.indexOf(newLines[newI], oldI);
-            const newNext = newLines.indexOf(oldLines[oldI], newI);
-
-            if (oldNext === -1 && newNext === -1) {
-                result.push({ value: oldLines[oldI] + "\n", removed: true });
-                result.push({ value: newLines[newI] + "\n", added: true });
-                oldI++;
-                newI++;
-            } else if (
-                newNext !== -1 &&
-                (oldNext === -1 || newNext - newI < oldNext - oldI)
-            ) {
-                for (let i = newI; i < newNext; i++) {
-                    result.push({ value: newLines[i] + "\n", added: true });
-                }
-                newI = newNext;
-            } else {
-                for (let i = oldI; i < oldNext; i++) {
-                    result.push({ value: oldLines[i] + "\n", removed: true });
-                }
-                oldI = oldNext;
+function renderParts(parts: InnerPart[] | undefined, fallback: string) {
+    if (!parts || parts.length === 0) return fallback;
+    return parts.map((p, i) => (
+        <span
+            key={i}
+            className={
+                p.type === "add"
+                    ? styles.innerAdd
+                    : p.type === "del"
+                      ? styles.innerDel
+                      : undefined
             }
-        }
-    }
+        >
+            {p.text}
+        </span>
+    ));
+}
 
-    return result;
+function rowClass(type: DiffRow["type"], side: "left" | "right") {
+    if (type === "equal") return styles.rowEqual;
+    if (type === "change") return styles.rowChange;
+    if (type === "add") return side === "right" ? styles.rowAdd : styles.rowEmpty;
+    if (type === "del") return side === "left" ? styles.rowDel : styles.rowEmpty;
+    return "";
 }
 
 export default function DiffTool() {
-    const [oldText, setOldText] = useState(
-        'const foo = "bar";\nconsole.log(foo);',
-    );
-    const [newText, setNewText] = useState(
-        'const foo = "baz";\nconsole.log("changed");',
-    );
-    const [diffResult, setDiffResult] = useState<DiffPart[]>([]);
+    const [oldText, setOldText] = useState(DEFAULT_OLD);
+    const [newText, setNewText] = useState(DEFAULT_NEW);
+    const [granularity, setGranularity] = useState<DiffGranularity>("lines");
+    const [view, setView] = useState<DiffViewMode>("split");
+    const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
+    const [ignoreCase, setIgnoreCase] = useState(false);
+    const [live, setLive] = useState(true);
+    const [collapse, setCollapse] = useState(true);
+    const [expanded, setExpanded] = useState(false);
+    const oldFileRef = useRef<HTMLInputElement>(null);
+    const newFileRef = useRef<HTMLInputElement>(null);
     const { showToast } = useToast();
 
-    const oldInputSize = useInputSize({
-        warningThreshold: 1024 * 100, // 100KB
-        heavyThreshold: 1024 * 500, // 500KB
-        criticalThreshold: 1024 * 1024, // 1MB
-        maxSize: 10 * 1024 * 1024, // 10MB
-    });
-
-    const newInputSize = useInputSize({
-        warningThreshold: 1024 * 100, // 100KB
-        heavyThreshold: 1024 * 500, // 500KB
-        criticalThreshold: 1024 * 1024, // 1MB
-        maxSize: 10 * 1024 * 1024, // 10MB
-    });
-
-    const { execute: runDiffWorker, isReady: workerReady } = useWorker(
-        diffWorkerScript,
-        {
-            maxConcurrent: 1,
-            timeout: 60000,
-            onError: (err: any) => {
-                showToast("Diff computation error", "error");
-            },
-        },
+    const raw = useMemo(
+        () =>
+            computeTextDiff(oldText, newText, {
+                granularity,
+                ignoreWhitespace,
+                ignoreCase,
+            }),
+        [oldText, newText, granularity, ignoreWhitespace, ignoreCase],
     );
 
-    const handleComputeDiff = useCallback(async () => {
-        const totalSize = oldText.length + newText.length;
-        oldInputSize.startProcessing();
-        newInputSize.startProcessing();
+    const rows = useMemo(() => {
+        if (!collapse || expanded) return raw.rows;
+        return collapseUnchanged(raw.rows, 2);
+    }, [raw.rows, collapse, expanded]);
 
-        const shouldUseWorker = totalSize > 1024 * 100;
+    const [visible, setVisible] = useState(raw);
 
-        try {
-            let result;
+    useEffect(() => {
+        if (!live) return;
+        const t = setTimeout(() => {
+            setVisible(raw);
+            setExpanded(false);
+        }, 180);
+        return () => clearTimeout(t);
+    }, [raw, live]);
 
-            if (shouldUseWorker && workerReady) {
-                result = await runDiffWorker("diffLines", {
-                    oldText,
-                    newText,
-                });
-            } else {
-                result = computeDiffSync(oldText, newText);
-            }
+    const display = live ? { ...raw, rows } : { ...visible, rows: collapse && !expanded ? collapseUnchanged(visible.rows, 2) : visible.rows };
 
-            setDiffResult(result as DiffPart[]);
-            showToast("Diff computed successfully", "success");
-        } catch (error) {
-            showToast("Failed to compute diff", "error");
-        } finally {
-            oldInputSize.finishProcessing();
-            newInputSize.finishProcessing();
+    const findDifference = useCallback(() => {
+        setVisible(raw);
+        setExpanded(false);
+        const { added, removed, changed } = raw.stats;
+        if (added + removed + changed === 0) {
+            showToast("No differences", "success");
+        } else {
+            showToast(
+                `${added} added · ${removed} removed · ${changed} changed`,
+                "success",
+            );
         }
-    }, [
-        oldText,
-        newText,
-        runDiffWorker,
-        workerReady,
-        showToast,
-        oldInputSize,
-        newInputSize,
-    ]);
+    }, [raw, showToast]);
+
+    const swap = () => {
+        setOldText(newText);
+        setNewText(oldText);
+    };
+
+    const clearAll = () => {
+        setOldText("");
+        setNewText("");
+        showToast("Cleared", "success");
+    };
+
+    const loadFile = (side: "old" | "new", file: File | undefined) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const text = String(reader.result || "");
+            if (side === "old") setOldText(text);
+            else setNewText(text);
+            showToast(`Loaded ${file.name}`, "success");
+        };
+        reader.readAsText(file);
+    };
+
+    const prettyBoth = () => {
+        const a = tryPrettyJson(oldText);
+        const b = tryPrettyJson(newText);
+        if (!a || !b) {
+            showToast("Both sides must be valid JSON", "error");
+            return;
+        }
+        setOldText(a);
+        setNewText(b);
+        showToast("Pretty-printed JSON", "success");
+    };
+
+    const copyPatch = () => {
+        navigator.clipboard.writeText(display.patch);
+        showToast("Unified patch copied", "success");
+    };
 
     return (
         <div className={styles.container}>
-            <header
-                style={{
-                    marginTop: "1rem",
-                    marginBottom: "0.5rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                }}
-            >
-                <Split size={24} />
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Diff Checker</h1>
+            <header className={styles.header}>
+                <h1 className={styles.title}>
+                    <Split size={22} aria-hidden /> Diff Checker
+                </h1>
+                <div className={styles.stats} aria-live="polite">
+                    <span className={styles.statAdd}>
+                        <Plus size={12} /> {display.stats.added} added
+                    </span>
+                    <span className={styles.statDel}>
+                        <Minus size={12} /> {display.stats.removed} removed
+                    </span>
+                    <span className={styles.statChg}>
+                        {display.stats.changed} changed
+                    </span>
+                    <span className={styles.statEq}>
+                        <Equal size={12} /> {display.stats.unchanged} same
+                    </span>
+                </div>
             </header>
 
-            <div className={styles.inputs}>
-                <div className={styles.inputPane}>
-                    <div className={styles.paneHeader}>Original Text</div>
+            <div className={styles.toolbar} role="toolbar" aria-label="Diff options">
+                <div className={styles.seg} role="group" aria-label="Granularity">
+                    {(["lines", "words", "chars"] as DiffGranularity[]).map((g) => (
+                        <button
+                            key={g}
+                            type="button"
+                            className={granularity === g ? styles.segActive : ""}
+                            onClick={() => setGranularity(g)}
+                        >
+                            {g === "lines" ? "Lines" : g === "words" ? "Words" : "Chars"}
+                        </button>
+                    ))}
+                </div>
+
+                <div className={styles.seg} role="group" aria-label="View">
+                    <button
+                        type="button"
+                        className={view === "split" ? styles.segActive : ""}
+                        onClick={() => setView("split")}
+                        title="Side by side"
+                    >
+                        <Columns2 size={14} /> Split
+                    </button>
+                    <button
+                        type="button"
+                        className={view === "unified" ? styles.segActive : ""}
+                        onClick={() => setView("unified")}
+                        title="Unified"
+                    >
+                        <AlignJustify size={14} /> Unified
+                    </button>
+                </div>
+
+                <label className={styles.check}>
+                    <input
+                        type="checkbox"
+                        checked={ignoreWhitespace}
+                        onChange={(e) => setIgnoreWhitespace(e.target.checked)}
+                    />
+                    Ignore whitespace
+                </label>
+                <label className={styles.check}>
+                    <input
+                        type="checkbox"
+                        checked={ignoreCase}
+                        onChange={(e) => setIgnoreCase(e.target.checked)}
+                    />
+                    Ignore case
+                </label>
+                <label className={styles.check}>
+                    <input
+                        type="checkbox"
+                        checked={live}
+                        onChange={(e) => setLive(e.target.checked)}
+                    />
+                    Live
+                </label>
+                <label className={styles.check}>
+                    <input
+                        type="checkbox"
+                        checked={collapse}
+                        onChange={(e) => {
+                            setCollapse(e.target.checked);
+                            setExpanded(false);
+                        }}
+                    />
+                    Collapse unchanged
+                </label>
+
+                <div className={styles.toolbarSpacer} />
+
+                <button type="button" className={styles.toolBtn} onClick={swap} title="Swap sides">
+                    <ArrowLeftRight size={14} /> Swap
+                </button>
+                <button type="button" className={styles.toolBtn} onClick={prettyBoth} title="Pretty-print if JSON">
+                    <FileJson size={14} /> JSON
+                </button>
+                <button type="button" className={styles.toolBtn} onClick={copyPatch}>
+                    <Copy size={14} /> Patch
+                </button>
+                <button type="button" className={styles.toolBtn} onClick={clearAll}>
+                    <Trash2 size={14} /> Clear
+                </button>
+            </div>
+
+            <div className={styles.editors}>
+                <div className={styles.editorPane}>
+                    <div className={styles.paneHeader}>
+                        <span>Original</span>
+                        <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => oldFileRef.current?.click()}
+                            title="Upload file"
+                        >
+                            <Upload size={14} /> File
+                        </button>
+                        <input
+                            ref={oldFileRef}
+                            type="file"
+                            className={styles.hidden}
+                            onChange={(e) => {
+                                loadFile("old", e.target.files?.[0]);
+                                e.target.value = "";
+                            }}
+                        />
+                    </div>
                     <textarea
                         className={styles.textarea}
                         value={oldText}
-                        onChange={(e) => {
-                            setOldText(e.target.value);
-                            oldInputSize.setInput(e.target.value);
-                        }}
+                        onChange={(e) => setOldText(e.target.value)}
                         placeholder="Paste original text here..."
+                        spellCheck={false}
+                        aria-label="Original text"
                     />
-                    <SizeWarning inputSize={oldInputSize as any} />
                 </div>
-                <div className={styles.inputPane}>
-                    <div className={styles.paneHeader}>New Text</div>
+                <div className={styles.editorPane}>
+                    <div className={styles.paneHeader}>
+                        <span>Changed</span>
+                        <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => newFileRef.current?.click()}
+                            title="Upload file"
+                        >
+                            <Upload size={14} /> File
+                        </button>
+                        <input
+                            ref={newFileRef}
+                            type="file"
+                            className={styles.hidden}
+                            onChange={(e) => {
+                                loadFile("new", e.target.files?.[0]);
+                                e.target.value = "";
+                            }}
+                        />
+                    </div>
                     <textarea
                         className={styles.textarea}
                         value={newText}
-                        onChange={(e) => {
-                            setNewText(e.target.value);
-                            newInputSize.setInput(e.target.value);
-                        }}
+                        onChange={(e) => setNewText(e.target.value)}
                         placeholder="Paste new text here..."
+                        spellCheck={false}
+                        aria-label="Changed text"
                     />
-                    <SizeWarning inputSize={newInputSize as any} />
                 </div>
             </div>
 
-            {(oldInputSize.isProcessing || newInputSize.isProcessing) && (
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        padding: "0.75rem",
-                        background: "var(--accent-glow)",
-                        borderRadius: "8px",
-                        marginBottom: "1rem",
-                    }}
-                >
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Computing diff...</span>
-                </div>
+            {!live && (
+                <button type="button" className={styles.findBtn} onClick={findDifference}>
+                    Find difference
+                </button>
             )}
 
-            <button
-                onClick={handleComputeDiff}
-                style={{
-                    marginBottom: "1rem",
-                    width: "100%",
-                    padding: "0.75rem",
-                    background: "var(--accent-primary)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                }}
-            >
-                Compute Diff
-            </button>
-
-            <div className={styles.diffContainer}>
-                {diffResult.map((part, index) => {
-                    const colorClass = part.added
-                        ? styles.added
-                        : part.removed
-                            ? styles.removed
-                            : styles.neutral;
-                    return (
-                        <span key={index} className={`${styles.diffLine} ${colorClass}`}>
-                            {part.value}
-                        </span>
-                    );
-                })}
-            </div>
+            {view === "split" ? (
+                <div className={styles.splitView} role="table" aria-label="Side-by-side diff">
+                    <div className={styles.splitCol}>
+                        {display.rows.map((row, i) =>
+                            row.type === "collapse" ? (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    className={styles.collapse}
+                                    onClick={() => setExpanded(true)}
+                                >
+                                    ⋯ {row.hiddenCount} unchanged lines — click to expand
+                                </button>
+                            ) : (
+                                <div key={i} className={`${styles.splitRow} ${rowClass(row.type, "left")}`}>
+                                    <span className={styles.gutter}>{row.leftNum ?? ""}</span>
+                                    <span className={styles.sign}>
+                                        {row.type === "del" || row.type === "change" ? "−" : " "}
+                                    </span>
+                                    <span className={styles.code}>
+                                        {renderParts(row.leftParts, row.left)}
+                                    </span>
+                                </div>
+                            ),
+                        )}
+                    </div>
+                    <div className={styles.splitCol}>
+                        {display.rows.map((row, i) =>
+                            row.type === "collapse" ? (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    className={styles.collapse}
+                                    onClick={() => setExpanded(true)}
+                                >
+                                    ⋯ {row.hiddenCount} unchanged lines — click to expand
+                                </button>
+                            ) : (
+                                <div key={i} className={`${styles.splitRow} ${rowClass(row.type, "right")}`}>
+                                    <span className={styles.gutter}>{row.rightNum ?? ""}</span>
+                                    <span className={styles.sign}>
+                                        {row.type === "add" || row.type === "change" ? "+" : " "}
+                                    </span>
+                                    <span className={styles.code}>
+                                        {renderParts(row.rightParts, row.right)}
+                                    </span>
+                                </div>
+                            ),
+                        )}
+                    </div>
+                </div>
+            ) : (
+                <div className={styles.unifiedView} aria-label="Unified diff">
+                    {display.rows.map((row, i) => {
+                        if (row.type === "collapse") {
+                            return (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    className={styles.collapse}
+                                    onClick={() => setExpanded(true)}
+                                >
+                                    ⋯ {row.hiddenCount} unchanged lines — click to expand
+                                </button>
+                            );
+                        }
+                        if (row.type === "equal") {
+                            return (
+                                <div key={i} className={`${styles.uniRow} ${styles.rowEqual}`}>
+                                    <span className={styles.gutter}>{row.leftNum}</span>
+                                    <span className={styles.gutter}>{row.rightNum}</span>
+                                    <span className={styles.sign}> </span>
+                                    <span className={styles.code}>{row.left}</span>
+                                </div>
+                            );
+                        }
+                        return (
+                            <div key={i}>
+                                {(row.type === "del" || row.type === "change") && (
+                                    <div className={`${styles.uniRow} ${styles.rowDel}`}>
+                                        <span className={styles.gutter}>{row.leftNum}</span>
+                                        <span className={styles.gutter} />
+                                        <span className={styles.sign}>−</span>
+                                        <span className={styles.code}>
+                                            {renderParts(row.leftParts, row.left)}
+                                        </span>
+                                    </div>
+                                )}
+                                {(row.type === "add" || row.type === "change") && (
+                                    <div className={`${styles.uniRow} ${styles.rowAdd}`}>
+                                        <span className={styles.gutter} />
+                                        <span className={styles.gutter}>{row.rightNum}</span>
+                                        <span className={styles.sign}>+</span>
+                                        <span className={styles.code}>
+                                            {renderParts(row.rightParts, row.right)}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
