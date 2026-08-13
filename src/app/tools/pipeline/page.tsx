@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
     Plus,
     Trash2,
@@ -20,9 +20,11 @@ import {
     usePipelineExecution,
     usePipelineStorage,
     useCompatibleTools,
+    useUrlPipeline,
 } from "@/hooks/usePipeline";
 import { getToolAdapter, getExamplePipelines } from "@/utils/pipeline";
 import { tools } from "@/config/tools";
+import { useToast } from "@/components/Toast";
 import styles from "./page.module.css";
 
 interface ToolSelectorProps {
@@ -192,10 +194,9 @@ function ResultsPanel({ results, currentStep, error }: ResultsPanelProps) {
                                 <AlertCircle size={14} className={styles.errorIcon} />
                             )}
                         </div>
-                        <div className={styles.resultPreview}>
-                            {result.output?.substring(0, 100)}
-                            {result.output?.length > 100 && "..."}
-                        </div>
+                        <pre className={styles.resultPreview}>
+                            {result.output ?? result.error ?? ""}
+                        </pre>
                     </div>
                 ))}
             </div>
@@ -264,6 +265,20 @@ export default function PipelineBuilder() {
         loadAll,
     } = usePipelineStorage();
 
+    const { pipeline: sharedPipeline, error: shareError } = useUrlPipeline();
+    const { showToast } = useToast();
+
+    useEffect(() => {
+        if (sharedPipeline) {
+            updatePipeline(sharedPipeline);
+            showToast("Loaded pipeline from URL", "success");
+        } else if (shareError) {
+            showToast(shareError, "error");
+        }
+        // Only on first shared payload
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sharedPipeline, shareError]);
+
     const handleRunPipeline = useCallback(async () => {
         if (!inputValue.trim()) return;
         await execute(pipeline, inputValue);
@@ -276,10 +291,14 @@ export default function PipelineBuilder() {
     }, [save, saveToStorage, pipeline]);
 
     const handleShare = useCallback(() => {
+        if (pipeline.steps.length === 0) {
+            showToast("Add at least one step before sharing", "error");
+            return;
+        }
         const url = getShareUrl(pipeline);
         navigator.clipboard.writeText(url);
-        alert("Share URL copied to clipboard!");
-    }, [pipeline, getShareUrl]);
+        showToast("Share URL copied", "success");
+    }, [pipeline, getShareUrl, showToast]);
 
     const handleLoadExample = useCallback(
         (examplePipeline: any) => {

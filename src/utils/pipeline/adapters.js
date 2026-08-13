@@ -58,10 +58,23 @@ export const toolAdapters = {
     name: "Hash Generator",
     inputTypes: [IO_TYPES.TEXT],
     outputType: IO_TYPES.HASH,
-    modes: ["md5", "sha1", "sha256", "sha512"],
+    modes: ["sha1", "sha256", "sha512"],
     defaultMode: "sha256",
     transform: (input, options = {}) => {
-      const algorithm = options.algorithm || "sha256";
+      const raw = (options.algorithm || options.mode || "sha256").toLowerCase();
+      const algoMap = {
+        sha1: "SHA-1",
+        sha256: "SHA-256",
+        sha512: "SHA-512",
+      };
+      const algorithm = algoMap[raw];
+      if (!algorithm) {
+        return Promise.resolve({
+          output: null,
+          error: `Hash "${raw}" is not supported in the pipeline (use sha1, sha256, or sha512)`,
+          outputType: IO_TYPES.HASH,
+        });
+      }
       const msgBuffer = new TextEncoder().encode(input);
       const hashBuffer = crypto.subtle.digest(algorithm, msgBuffer);
       return hashBuffer
@@ -323,6 +336,88 @@ export const toolAdapters = {
       }
 
       return { output, outputType: IO_TYPES.TEXT };
+    },
+  },
+
+  "case-converter": {
+    id: "case-converter",
+    name: "Text Case Converter",
+    inputTypes: [IO_TYPES.TEXT],
+    outputType: IO_TYPES.TEXT,
+    modes: ["camel", "pascal", "snake", "kebab", "constant"],
+    defaultMode: "snake",
+    transform: (input, options = {}) => {
+      const mode = options.mode || "snake";
+      const words = String(input)
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/[_\-.]+/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w) => w.toLowerCase());
+
+      if (words.length === 0) {
+        return { output: input, outputType: IO_TYPES.TEXT };
+      }
+
+      let output = input;
+      switch (mode) {
+        case "camel":
+          output = words[0] + words.slice(1).map((w) => w[0].toUpperCase() + w.slice(1)).join("");
+          break;
+        case "pascal":
+          output = words.map((w) => w[0].toUpperCase() + w.slice(1)).join("");
+          break;
+        case "snake":
+          output = words.join("_");
+          break;
+        case "kebab":
+          output = words.join("-");
+          break;
+        case "constant":
+          output = words.join("_").toUpperCase();
+          break;
+        default:
+          output = words.join("_");
+      }
+      return { output, outputType: IO_TYPES.TEXT };
+    },
+  },
+
+  regex: {
+    id: "regex",
+    name: "Regex Extractor",
+    inputTypes: [IO_TYPES.TEXT],
+    outputType: IO_TYPES.TEXT,
+    modes: ["extract-emails", "extract-urls", "extract-numbers", "redact-emails"],
+    defaultMode: "extract-emails",
+    transform: (input, options = {}) => {
+      const mode = options.mode || "extract-emails";
+      const text = String(input);
+      try {
+        if (mode === "extract-emails") {
+          const matches = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || [];
+          return { output: matches.join("\n"), outputType: IO_TYPES.TEXT };
+        }
+        if (mode === "extract-urls") {
+          const matches = text.match(/https?:\/\/[^\s<>"']+/g) || [];
+          return { output: matches.join("\n"), outputType: IO_TYPES.TEXT };
+        }
+        if (mode === "extract-numbers") {
+          const matches = text.match(/-?\d+(?:\.\d+)?/g) || [];
+          return { output: matches.join("\n"), outputType: IO_TYPES.TEXT };
+        }
+        if (mode === "redact-emails") {
+          const output = text.replace(
+            /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
+            "[REDACTED]",
+          );
+          return { output, outputType: IO_TYPES.TEXT };
+        }
+        return { output: text, outputType: IO_TYPES.TEXT };
+      } catch (e) {
+        return { output: null, error: e.message, outputType: IO_TYPES.TEXT };
+      }
     },
   },
 };

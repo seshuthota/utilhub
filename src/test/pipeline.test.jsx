@@ -4,24 +4,36 @@ import PipelineTool from '../app/tools/pipeline/page';
 
 vi.mock('@/hooks/usePipeline', () => ({
     usePipeline: () => ({
-        pipeline: { steps: [] },
+        pipeline: { name: 'Untitled', description: '', steps: [] },
         addStep: vi.fn(),
         removeStep: vi.fn(),
         reorderSteps: vi.fn(),
         updateStep: vi.fn(),
+        updatePipeline: vi.fn(),
+        save: vi.fn(),
+        isDirty: false,
     }),
     usePipelineExecution: () => ({
         execute: vi.fn(),
         isExecuting: false,
         currentStep: null,
         results: [],
+        error: null,
+        finalOutput: null,
     }),
     usePipelineStorage: () => ({
-        savePipeline: vi.fn(),
-        loadPipeline: vi.fn(),
-        listPipelines: vi.fn().mockReturnValue([]),
+        pipelines: [],
+        save: vi.fn(),
+        remove: vi.fn(),
+        getShareUrl: vi.fn().mockReturnValue('https://example.com/tools/pipeline?p=abc'),
+        loadAll: vi.fn(),
     }),
     useCompatibleTools: () => [],
+    useUrlPipeline: () => ({ pipeline: null, error: null }),
+}));
+
+vi.mock('@/components/Toast', () => ({
+    useToast: () => ({ showToast: vi.fn() }),
 }));
 
 vi.mock('@/utils/pipeline', () => ({

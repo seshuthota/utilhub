@@ -13,10 +13,10 @@ function generateShortId() {
   );
 }
 
-// Base64 encode for URL
+// Base64 encode for URL (UTF-8 safe)
 function encodeToBase64(obj) {
   try {
-    return btoa(JSON.stringify(obj));
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   } catch {
     return "";
   }
@@ -25,9 +25,13 @@ function encodeToBase64(obj) {
 // Decode from URL
 function decodeFromBase64(str) {
   try {
-    return JSON.parse(atob(str));
+    return JSON.parse(decodeURIComponent(escape(atob(str))));
   } catch {
-    return null;
+    try {
+      return JSON.parse(atob(str));
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -138,7 +142,7 @@ export function generateShareUrl(pipeline, baseUrl = window.location.origin) {
   };
 
   const encoded = encodeToBase64(shareData);
-  return `${baseUrl}/pipeline?p=${encoded}`;
+  return `${baseUrl}/tools/pipeline?p=${encoded}`;
 }
 
 // Load pipeline from URL
@@ -148,7 +152,10 @@ export function loadFromUrl(urlParams) {
     if (!encoded) return null;
 
     const data = decodeFromBase64(encoded);
-    if (!data || data.v !== PIPELINE_VERSION) {
+    if (!data) {
+      throw new Error("Invalid pipeline data in URL");
+    }
+    if (data.v !== PIPELINE_VERSION) {
       console.warn("Pipeline URL version mismatch");
     }
 
@@ -223,14 +230,11 @@ export function getExamplePipelines() {
   return [
     createPipeline({
       name: "JSON Pipeline",
-      description: "Format and validate JSON, then hash it",
+      description: "Format JSON, minify, then SHA-256 hash",
       steps: [
-        createPipelineStep("json", { mode: "format", name: "Format JSON" }),
-        createPipelineStep("json", { mode: "minify", name: "Minify JSON" }),
-        createPipelineStep("hash", {
-          algorithm: "sha256",
-          name: "Generate Hash",
-        }),
+        createPipelineStep("json", { name: "Format JSON", options: { mode: "format" } }),
+        createPipelineStep("json", { name: "Minify JSON", options: { mode: "minify" } }),
+        createPipelineStep("hash", { name: "Generate Hash", options: { mode: "sha256" } }),
       ],
       inputType: "json",
       outputType: "hash",
@@ -238,14 +242,14 @@ export function getExamplePipelines() {
     }),
     createPipeline({
       name: "Config Converter",
-      description: "Convert JSON config to YAML and Base64 encode",
+      description: "JSON → YAML → Base64",
       steps: [
-        createPipelineStep("json", { mode: "format", name: "Format JSON" }),
+        createPipelineStep("json", { name: "Format JSON", options: { mode: "format" } }),
         createPipelineStep("yaml", {
-          mode: "convert-to-yaml",
           name: "Convert to YAML",
+          options: { mode: "convert-to-yaml" },
         }),
-        createPipelineStep("base64", { mode: "encode", name: "Base64 Encode" }),
+        createPipelineStep("base64", { name: "Base64 Encode", options: { mode: "encode" } }),
       ],
       inputType: "json",
       outputType: "base64",
@@ -253,13 +257,54 @@ export function getExamplePipelines() {
     }),
     createPipeline({
       name: "JWT Debugger",
-      description: "Decode JWT and pretty print",
+      description: "Decode JWT then pretty-print payload JSON",
       steps: [
-        createPipelineStep("jwt", { mode: "decode-all", name: "Decode JWT" }),
+        createPipelineStep("jwt", { name: "Decode JWT", options: { mode: "decode-payload" } }),
+        createPipelineStep("json", { name: "Format JSON", options: { mode: "format" } }),
       ],
       inputType: "jwt",
       outputType: "json",
       tags: ["jwt", "debugging", "auth"],
+    }),
+    createPipeline({
+      name: "Redact Emails",
+      description: "Find and redact email addresses in text",
+      steps: [
+        createPipelineStep("regex", {
+          name: "Redact emails",
+          options: { mode: "redact-emails" },
+        }),
+      ],
+      inputType: "text",
+      outputType: "text",
+      tags: ["regex", "privacy"],
+    }),
+    createPipeline({
+      name: "Extract URLs",
+      description: "Pull HTTP(S) URLs out of a blob of text",
+      steps: [
+        createPipelineStep("regex", {
+          name: "Extract URLs",
+          options: { mode: "extract-urls" },
+        }),
+      ],
+      inputType: "text",
+      outputType: "text",
+      tags: ["regex", "extract"],
+    }),
+    createPipeline({
+      name: "Normalize Identifiers",
+      description: "Trim then convert text to snake_case",
+      steps: [
+        createPipelineStep("text", { name: "Trim", options: { mode: "trim" } }),
+        createPipelineStep("case-converter", {
+          name: "Snake case",
+          options: { mode: "snake" },
+        }),
+      ],
+      inputType: "text",
+      outputType: "text",
+      tags: ["text", "case"],
     }),
   ];
 }
