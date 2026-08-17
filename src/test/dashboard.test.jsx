@@ -1,12 +1,12 @@
 
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import dashboard from '../app/page';
+import Home from '../app/page';
 
 // Mock dependencies
 vi.mock('@/config/tools', () => ({
   tools: [
-    { id: 'json-formatter', title: 'JSON Formatter', description: 'Format JSON', category: 'json' },
+    { id: 'json-formatter', title: 'JSON Formatter', description: 'Format JSON', category: 'data' },
     { id: 'base64', title: 'Base64', description: 'Encode/Decode', category: 'text' }
   ]
 }));
@@ -14,7 +14,8 @@ vi.mock('@/config/tools', () => ({
 vi.mock('@/components/FavoritesProvider', () => ({
   useFavorites: () => ({
     favorites: ['json-formatter'],
-    recentTools: ['base64']
+    recentTools: ['base64'],
+    addRecent: vi.fn(),
   })
 }));
 
@@ -25,30 +26,39 @@ vi.mock('@/components/common/ToolCard', () => {
 });
 
 describe('Dashboard', () => {
-  it('renders the hero section', () => {
-    render(dashboard());
-    expect(screen.getByText(/Developer Toolkit/i)).toBeInTheDocument();
+  it('does not render a marketing hero', () => {
+    render(<Home />);
+    expect(screen.queryByText(/Developer Toolkit/i)).not.toBeInTheDocument();
   });
 
-  it('renders favorites section when favorites exist', () => {
-    render(dashboard());
-    const section = screen.getByText('Favorites').closest('section');
+  it('renders favorites as a compact rail, not a card grid', () => {
+    render(<Home />);
+    const section = screen.getByLabelText('Favorites');
     expect(within(section).getByText('JSON Formatter')).toBeInTheDocument();
+    expect(within(section).queryByTestId('tool-card')).not.toBeInTheDocument();
   });
 
-  it('renders recent tools section', () => {
-    render(dashboard());
-    const section = screen.getByText('Recently Used').closest('section');
+  it('renders recent tools as a compact rail', () => {
+    render(<Home />);
+    const section = screen.getByLabelText('Recently Used');
     expect(within(section).getByText('Base64')).toBeInTheDocument();
+    expect(within(section).queryByTestId('tool-card')).not.toBeInTheDocument();
   });
 
-  it('renders all tools section', () => {
-    render(dashboard());
+  it('renders all tools in the catalog', () => {
+    render(<Home />);
     expect(screen.getByText('All Tools')).toBeInTheDocument();
-    // Should show both tools in the "All Tools" grid (plus the ones in fav/recent sections)
-    // Since we mock ToolCard to just render name, we can check for presence.
-    // The implementation renders all tools at the bottom.
-    const cards = screen.getAllByTestId('tool-card');
-    expect(cards.length).toBeGreaterThan(0);
+    const catalog = screen.getByLabelText('All Tools');
+    const cards = within(catalog).getAllByTestId('tool-card');
+    expect(cards).toHaveLength(2);
+  });
+
+  it('filters the catalog by category', () => {
+    render(<Home />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Text' }));
+    const catalog = screen.getByLabelText('All Tools');
+    const cards = within(catalog).getAllByTestId('tool-card');
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toHaveTextContent('Base64');
   });
 });

@@ -1,72 +1,183 @@
-/* Dashboard layout */
-.section {
-  margin-bottom: 3rem;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.sectionTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-  opacity: 0.9;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 4rem;
+  padding: 0.5rem 0 3rem;
 }
 
-.hero {
-  padding: 4rem 1rem 3rem;
-  text-align: center;
-  animation: fadeIn 0.8s ease-out;
+/* Compact jump rail — recents & favorites as chips, not card grids */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0 1rem 1.25rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
 }
 
-.heroTitle {
-  font-size: 3.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  margin-bottom: 1rem;
-  line-height: 1.1;
-  background: linear-gradient(to bottom right, var(--text-primary) 50%, var(--text-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.railGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
-.heroHighlight {
-  color: var(--accent-primary);
-  -webkit-text-fill-color: var(--accent-primary);
-  text-shadow: 0 0 30px var(--accent-glow);
-}
-
-.heroSubtitle {
-  font-size: 1.25rem;
+.railLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  width: 8.5rem;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-secondary);
-  margin-bottom: 2.5rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 16rem;
+  padding: 0.35rem 0.7rem 0.35rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.chip:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+  color: var(--accent-primary);
+}
+
+.chipFavorite {
+  border-color: color-mix(in srgb, var(--favorite-color) 35%, var(--border-color));
+}
+
+.catalog {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.catalogBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.15rem;
+  padding: 0 1rem;
+}
+
+.catalogHeading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.catalogTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.filter {
+  appearance: none;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.filter:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.filterActive {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--color-white);
+}
+
+.filterActive:hover {
+  color: var(--color-white);
+  border-color: var(--accent-primary);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
   padding: 0 1rem;
 }
 
 @media (max-width: 768px) {
-  .heroTitle {
-    font-size: 2.5rem;
+  .rail {
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.85rem;
   }
 
-  .hero {
-    padding: 2rem 1rem;
+  .railGroup {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .railLabel {
+    width: auto;
+  }
+
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 0.15rem;
+    scrollbar-width: thin;
+  }
+
+  .catalogBar {
+    padding: 0;
+  }
+
+  .grid {
+    padding: 0;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
