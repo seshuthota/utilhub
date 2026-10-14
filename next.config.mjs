@@ -98,7 +98,12 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-
+  async redirects() {
+    return [
+      // The old "API Tester" was merged into the API Client (its collections migrate on first load)
+      { source: "/tools/api-tester", destination: "/tools/curl-tester", permanent: true },
+    ];
+  },
 
   webpack: (config, { webpack }) => {
     config.plugins.push(

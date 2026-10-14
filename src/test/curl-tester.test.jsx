@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import CurlTester from '../app/tools/curl-tester/page';
 
 const showToast = vi.fn();
@@ -42,6 +42,8 @@ describe('CurlTester', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        // These tests exercise the (opt-in) hosted proxy path; the default is browser-direct.
+        localStorage.setItem('utilhub_curl_tester_send_mode', 'proxy');
         global.fetch = vi.fn().mockResolvedValue({
             status: 201,
             json: () => Promise.resolve({
@@ -74,6 +76,26 @@ describe('CurlTester', () => {
         expect(screen.getByText(/Headers/)).toBeInTheDocument();
         expect(screen.getByText(/Auth/)).toBeInTheDocument();
         expect(screen.getByText(/Body/)).toBeInTheDocument();
+    });
+
+    it('defaults to sending straight from the browser, not through the UtilHub proxy', async () => {
+        localStorage.removeItem('utilhub_curl_tester_send_mode');
+        global.fetch = vi.fn().mockResolvedValue(
+            new Response('{"id":1}', { status: 201, headers: { 'content-type': 'application/json' } }),
+        );
+        render(<CurlTester />);
+        expect(screen.getByLabelText('Send mode')).toHaveValue('browser');
+        expect(screen.queryByText(/Sent through UtilHub/)).not.toBeInTheDocument();
+        fireEvent.click(screen.getByText('Send'));
+        await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+        expect(global.fetch.mock.calls[0][0]).toBe('https://jsonplaceholder.typicode.com/posts');
+        expect(global.fetch.mock.calls.some(([url]) => url === '/api/tester/proxy')).toBe(false);
+    });
+
+    it('labels the UtilHub proxy when the user opts in', () => {
+        render(<CurlTester />);
+        expect(screen.getByLabelText('Send mode')).toHaveValue('proxy');
+        expect(screen.getByText(/Sent through UtilHub/)).toBeInTheDocument();
     });
 
     it('sends request to proxy endpoint with bodyMode', async () => {
@@ -285,7 +307,8 @@ describe('CurlTester', () => {
         expect(showToast).toHaveBeenCalledWith('Request saved', 'success');
 
         fireEvent.click(screen.getByTitle('Saved requests'));
-        expect(screen.getByText('My API call')).toBeInTheDocument();
+        const panel = screen.getByRole('complementary', { name: 'Collections' });
+        expect(within(panel).getByText('My API call')).toBeInTheDocument();
     });
 
     it('shows code snippets modal with curl content', () => {

@@ -16,6 +16,10 @@
  *
  * In API Client, set Send via → Local proxy (localhost:3927)
  * Works even when the UtilHub UI is opened from vercel.app (browser → localhost).
+ *
+ * Only trusted browser origins may use it (localhost + the hosted UtilHub app);
+ * otherwise any website you visit could relay requests into your network.
+ * Add more with UTILHUB_PROXY_ORIGINS="https://a.example,https://b.example".
  */
 
 import http from "node:http";
@@ -34,11 +38,36 @@ const { executeProxyRequest } = await import(pathToFileURL(corePath).href);
 const PORT = Number(process.env.UTILHUB_PROXY_PORT || 3927);
 const HOST = process.env.UTILHUB_PROXY_HOST || "127.0.0.1";
 
-function setCors(res) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+const EXTRA_ORIGINS = (process.env.UTILHUB_PROXY_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+const ALLOWED_ORIGINS = new Set(["https://utilhub-three.vercel.app", ...EXTRA_ORIGINS]);
+
+function isAllowedOrigin(origin) {
+    if (!origin) return true; // non-browser clients (curl, scripts) can't be driven by a web page
+    if (ALLOWED_ORIGINS.has(origin)) return true;
+    try {
+        const { protocol, hostname } = new URL(origin);
+        return (protocol === "http:" || protocol === "https:") &&
+            (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]");
+    } catch {
+        return false;
+    }
+}
+
+function setCors(req, res) {
+    const origin = req.headers.origin;
+    res.setHeader("Vary", "Origin");
+    if (!origin || !isAllowedOrigin(origin)) return;
+    res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Max-Age", "86400");
+    // Chrome Private Network Access: public site (vercel.app) → localhost needs this on preflight
+    if (req.headers["access-control-request-private-network"] === "true") {
+        res.setHeader("Access-Control-Allow-Private-Network", "true");
+    }
 }
 
 function readBody(req) {
@@ -51,7 +80,15 @@ function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-    setCors(res);
+    setCors(req, res);
+
+    if (!isAllowedOrigin(req.headers.origin)) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+            error: `Origin ${req.headers.origin} is not allowed. Set UTILHUB_PROXY_ORIGINS to permit it.`,
+        }));
+        return;
+    }
 
     if (req.method === "OPTIONS") {
         res.writeHead(204);
@@ -75,8 +112,13 @@ const server = http.createServer(async (req, res) => {
         try {
             const raw = await readBody(req);
             const payload = raw ? JSON.parse(raw) : {};
+            const controller = new AbortController();
+            res.on("close", () => {
+                if (!res.writableFinished) controller.abort();
+            });
             const { httpStatus, body } = await executeProxyRequest(payload, {
                 transport: "local-proxy",
+                signal: controller.signal,
             });
             res.writeHead(httpStatus, { "Content-Type": "application/json" });
             res.end(JSON.stringify(body));
@@ -99,6 +141,7 @@ server.listen(PORT, HOST, () => {
     console.log(`  Proxy POST:   http://${HOST}:${PORT}/proxy`);
     console.log("");
     console.log("  In API Client: Send via → Local proxy (localhost:3927)");
+    console.log(`  Allowed origins: localhost, ${[...ALLOWED_ORIGINS].join(", ")}`);
     console.log("  Keep this process running while you test.");
     console.log("");
 });

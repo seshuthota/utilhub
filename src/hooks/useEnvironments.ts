@@ -96,6 +96,14 @@ export function useEnvironments() {
         }
     };
 
+    /** Append several environments at once (e.g. from an import), with fresh ids. */
+    const importEnvironments = (incoming: Environment[]) => {
+        if (incoming.length === 0) return;
+        const added = incoming.map((e) => ({ ...e, id: crypto.randomUUID() }));
+        saveEnvs([...environments, ...added]);
+        if (!activeEnvId) saveActive(added[0].id);
+    };
+
     const getActiveEnvironment = () => {
         return environments.find((e) => e.id === activeEnvId) || null;
     };
@@ -108,27 +116,28 @@ export function useEnvironments() {
         updateEnvironment,
         deleteEnvironment,
         duplicateEnvironment,
+        importEnvironments,
         getActiveEnvironment,
     };
 }
 
+/**
+ * Replace `{{key}}` with the first enabled variable of that name, in a single pass
+ * (a value that itself contains `{{other}}` is not expanded again). Unknown
+ * placeholders are left as-is so callers can detect them.
+ */
 export function substituteVariables(text: string, variables: EnvVariable[]) {
     if (!text || !variables || variables.length === 0) return text;
 
-    let result = text;
-    // Sort by key length descending to prevent partial replacements (optional optimization)
-    const sortedVars = [...variables]
-        .filter((v) => v.enabled && v.key)
-        .sort((a, b) => b.key.length - a.key.length);
-
-    sortedVars.forEach((v) => {
-        // Replace {{key}} case-insensitively? Usually exact match is preferred.
-        // We'll use global replace for plain {{key}}
-        // Escaping key for regex is safer
-        const escapedKey = v.key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const regex = new RegExp(`\\{\\{${escapedKey}\\}\\}`, "g");
-        result = result.replace(regex, v.value);
+    const values = new Map<string, string>();
+    variables.forEach((v) => {
+        const key = v.key?.trim();
+        if (v.enabled && key && !values.has(key)) values.set(key, v.value ?? "");
     });
+    if (values.size === 0) return text;
 
-    return result;
+    return text.replace(/\{\{([^{}]+)\}\}/g, (match, name: string) => {
+        const value = values.get(name.trim());
+        return value === undefined ? match : value;
+    });
 }

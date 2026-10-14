@@ -39,6 +39,22 @@ export interface RequestState {
     formFields: FormField[];
 }
 
+export interface ResponseData {
+    status: number;
+    statusText: string;
+    time: number;
+    headers: Record<string, string>;
+    data: unknown;
+    size?: number;
+    contentType?: string;
+    encoding?: "text" | "base64";
+    /** Headers this client/proxy intentionally set on the upstream request */
+    requestHeadersSent?: Record<string, string>;
+    transport?: "proxy" | "browser" | "local-proxy";
+    /** Set when the stored copy (history) dropped or shortened the body */
+    truncated?: boolean;
+}
+
 export interface ProxyFormField {
     key: string;
     value?: string;
@@ -74,15 +90,53 @@ export function parseParamsFromUrl(url: string): KVItem[] {
     }
 }
 
+const TEMPLATE_RE = /\{\{[^{}]+\}\}/g;
+const ENCODED_TEMPLATE_RE = /%7B%7B(.+?)%7D%7D/gi;
+
+/** encodeURIComponent that leaves `{{var}}` placeholders intact for send-time resolution. */
+export function encodeQueryPart(text: string): string {
+    let out = "";
+    let last = 0;
+    for (const m of text.matchAll(TEMPLATE_RE)) {
+        out += encodeURIComponent(text.slice(last, m.index)) + m[0];
+        last = (m.index ?? 0) + m[0].length;
+    }
+    return out + encodeURIComponent(text.slice(last));
+}
+
 export function buildUrl(baseUrl: string, params: KVItem[]): string {
     const qIndex = baseUrl.indexOf("?");
     const base = qIndex === -1 ? baseUrl : baseUrl.slice(0, qIndex);
     const active = params.filter((p) => p.key && p.active !== false);
     if (active.length === 0) return base;
     const qs = active
-        .map((p) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+        .map((p) => `${encodeQueryPart(p.key)}=${encodeQueryPart(p.value)}`)
         .join("&");
     return `${base}?${qs}`;
+}
+
+/** Variable names referenced as `{{name}}` that `resolve` leaves untouched. */
+export function findUnresolvedVariables(request: RequestState, resolve: ResolveFn): string[] {
+    const texts = [
+        request.url.replace(ENCODED_TEMPLATE_RE, "{{$1}}"),
+        ...request.headers.filter((h) => h.active !== false).flatMap((h) => [h.key, h.value]),
+        request.auth.bearerToken, request.auth.basicUsername, request.auth.basicPassword,
+        request.auth.apiKeyName, request.auth.apiKeyValue,
+    ];
+    if (request.bodyMode === "json" || request.bodyMode === "raw") texts.push(request.body);
+    if (request.bodyMode === "urlencoded" || request.bodyMode === "multipart") {
+        request.formFields
+            .filter((f) => f.active !== false)
+            .forEach((f) => texts.push(f.key, f.type === "file" ? "" : f.value));
+    }
+    const missing = new Set<string>();
+    texts.forEach((t) => {
+        if (!t) return;
+        for (const m of t.matchAll(TEMPLATE_RE)) {
+            if (resolve(m[0]) === m[0]) missing.add(m[0].slice(2, -2).trim());
+        }
+    });
+    return [...missing];
 }
 
 export function migrateRequestState(raw: Partial<RequestState> & { body?: string }): RequestState {
@@ -264,9 +318,24 @@ export function buildRequestHeaders(
     return headers;
 }
 
+/**
+ * Resolve `{{var}}` in a URL. Path/host get the raw value (so a variable can hold a
+ * whole base URL); query-string placeholders get the value URL-encoded.
+ */
+export function resolveUrl(rawUrl: string, resolve: ResolveFn): string {
+    const url = rawUrl.trim().replace(ENCODED_TEMPLATE_RE, "{{$1}}");
+    const qIndex = url.indexOf("?");
+    if (qIndex === -1) return resolve(url);
+    const query = url.slice(qIndex + 1).replace(TEMPLATE_RE, (tok) => {
+        const value = resolve(tok);
+        return value === tok ? tok : encodeURIComponent(value);
+    });
+    return `${resolve(url.slice(0, qIndex))}?${query}`;
+}
+
 export function buildFinalUrl(request: RequestState, resolve: ResolveFn): string {
     // URL may already include query params from RequestBuilder sync.
-    let url = resolve(request.url.trim());
+    let url = resolveUrl(request.url, resolve);
 
     if (
         request.auth.type === "apikey" &&
@@ -412,6 +481,18 @@ export function buildProxyPayload(
     }
 
     return payload;
+}
+
+const SENSITIVE_HEADER_RE = /^(authorization|proxy-authorization|cookie|set-cookie)$|token|secret|api[-_]?key|password|session/i;
+
+export function isSensitiveHeader(name: string): boolean {
+    return SENSITIVE_HEADER_RE.test(name.trim());
+}
+
+/** True when the value is nothing but `{{var}}` placeholders (safe to share — no literal secret). */
+export function isTemplateOnly(value: string | undefined): boolean {
+    if (!value) return true;
+    return value.replace(TEMPLATE_RE, "").trim() === "";
 }
 
 export function formatBytes(bytes: number): string {

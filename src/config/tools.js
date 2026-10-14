@@ -267,16 +267,6 @@ export const tools = [
     category: "validation",
   },
   {
-    id: "api-tester",
-    title: "API Tester",
-    description: "Send HTTP requests and view responses.",
-    icon: LinkIcon,
-    href: "/tools/api-tester",
-    isClientSideOnly: true,
-    hasAiFeatures: false,
-    category: "networking",
-  },
-  {
     id: "css-lint",
     title: "CSS Linter",
     description: "Check CSS for errors and best practices.",

@@ -15,6 +15,23 @@ function loadHistory<T>(key: string): T[] {
     }
 }
 
+/** Persist, dropping the oldest entries if the storage quota is exceeded. Returns what was kept. */
+function persistHistory<T>(key: string, items: T[]): T[] {
+    let kept = items;
+    while (true) {
+        try {
+            localStorage.setItem(key, JSON.stringify(kept));
+            return kept;
+        } catch (e) {
+            if (kept.length <= 1) {
+                console.error("Failed to save history:", e);
+                return kept;
+            }
+            kept = kept.slice(0, Math.floor(kept.length / 2));
+        }
+    }
+}
+
 export function useHistory<T = any>(key: string, maxItems: number = 20) {
     const [history, setHistory] = useState<T[]>(() => loadHistory(key));
 
@@ -24,14 +41,7 @@ export function useHistory<T = any>(key: string, maxItems: number = 20) {
             const newItemJson = JSON.stringify(item);
             const filtered = prev.filter((i) => JSON.stringify(i) !== newItemJson);
 
-            const newHistory = [item, ...filtered].slice(0, maxItems);
-
-            try {
-                localStorage.setItem(key, JSON.stringify(newHistory));
-            } catch (e) {
-                console.error("Failed to save history:", e);
-            }
-            return newHistory;
+            return persistHistory(key, [item, ...filtered].slice(0, maxItems));
         });
     };
 

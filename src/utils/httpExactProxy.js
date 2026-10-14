@@ -5,10 +5,67 @@
 import http from "node:http";
 import https from "node:https";
 import { randomBytes } from "node:crypto";
+import dns from "node:dns";
+import net from "node:net";
 
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_TIMEOUT_MS = 120000;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+
+function ipv4ToInt(ip) {
+    return ip.split(".").reduce((acc, octet) => (acc << 8) + Number(octet), 0) >>> 0;
+}
+
+const PRIVATE_V4_RANGES = [
+    ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8],
+    ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.0.0.0", 24], ["192.168.0.0", 16],
+    ["198.18.0.0", 15], ["224.0.0.0", 4], ["240.0.0.0", 4],
+].map(([base, bits]) => [ipv4ToInt(base), bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0]);
+
+/** Loopback, private, link-local (incl. cloud metadata), CGNAT, multicast, reserved. */
+export function isPrivateAddress(address) {
+    let ip = String(address || "").toLowerCase();
+    if (ip.startsWith("[") && ip.endsWith("]")) ip = ip.slice(1, -1);
+    const mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (mapped) ip = mapped[1];
+    const family = net.isIP(ip);
+    if (family === 4) {
+        const n = ipv4ToInt(ip);
+        return PRIVATE_V4_RANGES.some(([base, mask]) => (n & mask) === (base & mask));
+    }
+    if (family === 6) {
+        return (
+            ip === "::" || ip === "::1" ||
+            /^f[cd]/.test(ip) ||            // fc00::/7 unique local
+            /^fe[89ab]/.test(ip) ||         // fe80::/10 link-local
+            /^ff/.test(ip)                  // multicast
+        );
+    }
+    return false;
+}
+
+/** dns.lookup wrapper that refuses private targets (checked after resolution, so DNS tricks don't bypass it). */
+function publicOnlyLookup(hostname, options, callback) {
+    dns.lookup(hostname, options, (err, address, family) => {
+        if (err) return callback(err);
+        const addresses = Array.isArray(address) ? address.map((a) => a.address) : [address];
+        if (addresses.some(isPrivateAddress)) {
+            return callback(blockedError(hostname));
+        }
+        callback(null, address, family);
+    });
+}
+
+function blockedError(host) {
+    return Object.assign(
+        new Error(
+            `Blocked request to private/internal address (${host}). ` +
+                "The hosted proxy only reaches public hosts — use Local proxy (npm run proxy:local) for localhost or internal APIs.",
+        ),
+        { name: "BlockedAddressError" },
+    );
+}
 
 function clampTimeout(value) {
     const n = Number(value);
@@ -170,8 +227,15 @@ function buildUpstreamBody(bodyMode, body, formFields, headers) {
     return { body: undefined, headers: nextHeaders };
 }
 
-function exactHeaderRequest(parsedUrl, { method, headers, body, timeoutMs }) {
+function exactHeaderRequest(
+    parsedUrl,
+    { method, headers, body, timeoutMs, blockPrivateNetworks, maxResponseBytes, signal },
+) {
     return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(Object.assign(new Error("Request aborted"), { name: "AbortError" }));
+            return;
+        }
         const isHttps = parsedUrl.protocol === "https:";
         const lib = isHttps ? https : http;
         const requestHeaders = { ...(headers || {}) };
@@ -195,10 +259,24 @@ function exactHeaderRequest(parsedUrl, { method, headers, body, timeoutMs }) {
                 method,
                 headers: requestHeaders,
                 agent: false,
+                ...(blockPrivateNetworks ? { lookup: publicOnlyLookup } : {}),
             },
             (res) => {
                 const chunks = [];
-                res.on("data", (chunk) => chunks.push(chunk));
+                let received = 0;
+                res.on("data", (chunk) => {
+                    received += chunk.length;
+                    if (received > maxResponseBytes) {
+                        req.destroy(
+                            Object.assign(
+                                new Error(`Response exceeds the ${(maxResponseBytes / 1024 / 1024).toFixed(1)} MB proxy limit`),
+                                { name: "ResponseTooLargeError" },
+                            ),
+                        );
+                        return;
+                    }
+                    chunks.push(chunk);
+                });
                 res.on("end", () => {
                     resolve({
                         status: res.statusCode || 0,
@@ -218,6 +296,11 @@ function exactHeaderRequest(parsedUrl, { method, headers, body, timeoutMs }) {
             );
         });
         req.on("error", reject);
+        signal?.addEventListener(
+            "abort",
+            () => req.destroy(Object.assign(new Error("Request aborted"), { name: "AbortError" })),
+            { once: true },
+        );
 
         if (body && method !== "GET" && method !== "HEAD") {
             req.write(body);
@@ -228,7 +311,7 @@ function exactHeaderRequest(parsedUrl, { method, headers, body, timeoutMs }) {
 
 /**
  * @param {object} payload - { url, method, headers, body, bodyMode, formFields, timeoutMs }
- * @param {{ transport?: string }} options
+ * @param {{ transport?: string, blockPrivateNetworks?: boolean, maxResponseBytes?: number, signal?: AbortSignal }} options
  * @returns {Promise<{ httpStatus: number, body: object }>}
  */
 export async function executeProxyRequest(payload, options = {}) {
@@ -256,6 +339,10 @@ export async function executeProxyRequest(payload, options = {}) {
 
     if (!["http:", "https:"].includes(parsedUrl.protocol)) {
         return { httpStatus: 400, body: { error: "Only http and https URLs are supported" } };
+    }
+
+    if (options.blockPrivateNetworks && (parsedUrl.hostname === "localhost" || isPrivateAddress(parsedUrl.hostname))) {
+        return { httpStatus: 403, body: { error: blockedError(parsedUrl.hostname).message } };
     }
 
     const timeout = clampTimeout(timeoutMs);
@@ -290,12 +377,27 @@ export async function executeProxyRequest(payload, options = {}) {
             headers,
             body: methodUpper === "GET" || methodUpper === "HEAD" ? undefined : upstreamBody,
             timeoutMs: timeout,
+            blockPrivateNetworks: Boolean(options.blockPrivateNetworks),
+            maxResponseBytes: options.maxResponseBytes || DEFAULT_MAX_RESPONSE_BYTES,
+            signal: options.signal,
         });
     } catch (err) {
         const endTime = performance.now();
         const name = err?.name || "";
         const message = err?.message || "Request failed";
 
+        if (name === "BlockedAddressError") {
+            return {
+                httpStatus: 403,
+                body: { error: message, time: Math.round(endTime - startTime), requestHeadersSent, transport },
+            };
+        }
+        if (name === "ResponseTooLargeError") {
+            return {
+                httpStatus: 502,
+                body: { error: message, time: Math.round(endTime - startTime), requestHeadersSent, transport },
+            };
+        }
         if (name === "TimeoutError" || name === "AbortError" || /aborted|timeout/i.test(message)) {
             return {
                 httpStatus: 408,

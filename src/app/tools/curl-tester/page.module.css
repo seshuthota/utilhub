@@ -245,3 +245,183 @@
     outline: none;
     border-color: var(--accent-primary);
 }
+
+.fieldLabel {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0.85rem 0 0.35rem;
+}
+
+.saveNameInput + .fieldLabel {
+    margin-top: 0.85rem;
+}
+
+.segmented {
+    display: inline-flex;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.segment,
+.segmentActive {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.segmentActive {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.optionList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.option:has(input:checked) {
+    border-color: var(--accent-primary);
+}
+
+.option span {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.option small {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.importRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.importTextarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 0.6rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    resize: vertical;
+}
+
+.importTextarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.importError {
+    margin-top: 0.6rem;
+    font-size: 0.8rem;
+    color: #ef4444;
+}
+
+.importSummary {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+
+.importSummary ul {
+    margin: 0.4rem 0 0 1.1rem;
+    color: #f59e0b;
+}
+
+.unresolvedBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 6px;
+}
+
+.unresolvedBanner code {
+    font-size: 0.75rem;
+}
+
+.linkBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-primary);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: inherit;
+}
+
+.savedBadge {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.saveSelect {
+    width: 100%;
+    padding: 0.6rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.proxyWarning {
+    font-size: 0.75rem;
+    color: #f59e0b;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.08);
+}

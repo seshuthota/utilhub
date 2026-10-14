@@ -1,25 +1,13 @@
 'use client';
 
 import { useState } from "react";
-import { Clock, Copy, Download, HardDrive } from "lucide-react";
+import { Clock, Copy, Download, Eye, EyeOff, HardDrive } from "lucide-react";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
-import { formatBytes } from "@/utils/apiClientRequest";
+import { formatBytes, isSensitiveHeader, type ResponseData } from "@/utils/apiClientRequest";
 import { downloadFile } from "@/utils/download";
 import styles from "./ResponseViewer.module.css";
 
-export interface ResponseData {
-    status: number;
-    statusText: string;
-    time: number;
-    headers: Record<string, string>;
-    data: unknown;
-    size?: number;
-    contentType?: string;
-    encoding?: "text" | "base64";
-    /** Headers this client/proxy intentionally set on the upstream request */
-    requestHeadersSent?: Record<string, string>;
-    transport?: "proxy" | "browser" | "local-proxy";
-}
+export type { ResponseData };
 
 interface ResponseViewerProps {
     response: ResponseData | null;
@@ -128,6 +116,7 @@ type Tab = "body" | "preview" | "headers" | "request";
 
 export default function ResponseViewer({ response, error, onCopyBody }: ResponseViewerProps) {
     const [activeTab, setActiveTab] = useState<Tab>("body");
+    const [revealSecrets, setRevealSecrets] = useState(false);
 
     if (error && !response) {
         return (
@@ -223,6 +212,12 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                 ))}
             </div>
 
+            {response.truncated && (
+                <div className={styles.requestHint}>
+                    Loaded from history — large or binary bodies are not stored in full. Send again to see the complete response.
+                </div>
+            )}
+
             {activeTab === "body" && (
                 <div className={styles.bodyContainer}>
                     <CodeMirrorEditor
@@ -241,17 +236,20 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                             className={styles.iframe}
                             srcDoc={typeof response.data === "string" ? response.data : bodyText}
                             title="Response preview"
-                            sandbox="allow-same-origin"
+                            sandbox=""
                         />
                     )}
                     {previewType === "svg" && (
-                        <div
-                            className={styles.svgPreview}
-                            dangerouslySetInnerHTML={{
-                                __html:
+                        // Rendered as an image so scripts/handlers inside the SVG never execute
+                        <div className={styles.svgPreview}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(
                                     typeof response.data === "string" ? response.data : bodyText,
-                            }}
-                        />
+                                )}`}
+                                alt="SVG response preview"
+                            />
+                        </div>
                     )}
                     {previewType === "image" && response.encoding === "base64" && typeof response.data === "string" && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -285,6 +283,18 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
             {activeTab === "request" && (
                 <div className={styles.headersContainer}>
                     <div className={styles.requestHint}>
+                        {sentHeaders.some(([key]) => isSensitiveHeader(key)) && (
+                            <button
+                                type="button"
+                                className={styles.copyBtn}
+                                style={{ float: "right", marginLeft: "0.5rem" }}
+                                onClick={() => setRevealSecrets((v) => !v)}
+                                aria-label={revealSecrets ? "Hide secret header values" : "Show secret header values"}
+                            >
+                                {revealSecrets ? <EyeOff size={14} aria-hidden /> : <Eye size={14} aria-hidden />}
+                                {revealSecrets ? "Hide secrets" : "Show secrets"}
+                            </button>
+                        )}
                         Headers we set on the upstream request
                         {response.transport === "proxy"
                             ? " (via hosted proxy). Host is added by the HTTP stack. If your API is on Vercel, the edge may still inject x-vercel-id on arrival — use Local proxy or allowlist that header."
@@ -298,7 +308,9 @@ export default function ResponseViewer({ response, error, onCopyBody }: Response
                         sentHeaders.map(([key, value]) => (
                             <div key={key} className={styles.headerRow}>
                                 <span className={styles.headerKey}>{key}:</span>
-                                <span className={styles.headerValue}>{String(value)}</span>
+                                <span className={styles.headerValue}>
+                                    {isSensitiveHeader(key) && !revealSecrets ? "••••••••" : String(value)}
+                                </span>
                             </div>
                         ))
                     )}

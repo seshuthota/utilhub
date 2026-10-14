@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
-    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code, Save, Square,
+    Play, Trash2, X, Loader2, Network, Braces, History as HistoryIcon, Code, Save, Square, FolderOpen, Link2,
 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { useHistory } from "@/hooks/useHistory";
@@ -10,56 +10,48 @@ import { useEnvironments, substituteVariables } from "@/hooks/useEnvironments";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import {
     type RequestState,
-    DEFAULT_TIMEOUT_MS,
-    buildProxyPayload,
-    buildBrowserFetchInit,
+    type ResponseData,
+    findUnresolvedVariables,
     migrateRequestState,
     stripFilePayloads,
     requestStateFromCurl,
 } from "@/utils/apiClientRequest";
+import {
+    type SendMode,
+    compactResponseForHistory,
+    sendRequest,
+} from "@/utils/apiClientSend";
+import {
+    type CollectionsState,
+    type SavedRequest,
+    loadCollections,
+    makeSavedRequest,
+    mergeCollections,
+    newId,
+    saveCollections,
+} from "@/utils/apiClientStore";
+import { type ImportResult, decodeShareHash, encodeShareHash } from "@/utils/apiClientInterop";
 import { generateSnippets, type SnippetLang } from "@/utils/codeSnippets";
 import RequestBuilder from "@/components/common/RequestBuilder";
-import ResponseViewer, { ResponseData } from "@/components/common/ResponseViewer";
+import ResponseViewer from "@/components/common/ResponseViewer";
 import HistorySidebar from "@/components/common/HistorySidebar";
-import EnvironmentManager from "../api-tester/EnvironmentManager";
 import CodeMirrorEditor from "@/components/common/CodeMirrorEditor";
+import EnvironmentManager from "./EnvironmentManager";
+import CollectionsSidebar from "./CollectionsSidebar";
+import ImportExportModal from "./ImportExportModal";
 import styles from "./page.module.css";
 
 const HISTORY_KEY = "utilhub_curl_tester_history";
-const COLLECTIONS_KEY = "utilhub_curl_tester_collections";
 const SEND_MODE_KEY = "utilhub_curl_tester_send_mode";
-const LOCAL_PROXY_DEFAULT = "http://127.0.0.1:3927/proxy";
-
-type SendMode = "proxy" | "browser" | "local";
+const NEW_FOLDER = "__new__";
 
 function loadSendMode(): SendMode {
     try {
         const v = localStorage.getItem(SEND_MODE_KEY);
         if (v === "proxy" || v === "browser" || v === "local") return v;
     } catch { /* ignore */ }
-    return "proxy";
-}
-
-function explainTransportError(sendMode: SendMode, message: string, responseText?: string): string {
-    const combined = `${message} ${responseText || ""}`.toLowerCase();
-    if (sendMode === "browser" && /failed to fetch|networkerror|cors/i.test(message)) {
-        return (
-            "CORS blocked this browser-direct request. Options: " +
-            "(1) Enable CORS on your API for this origin, or " +
-            "(2) Use Local proxy — run `npm run proxy:local` then Send via → Local proxy."
-        );
-    }
-    if (/x-vercel-id|vercel-id|header.*(not allowed|forbidden|restricted|not permitted)/i.test(combined)) {
-        return (
-            "Your API rejected a restricted header (often x-vercel-id). " +
-            "The hosted Proxy runs on Vercel, which can surface platform headers on Vercel-hosted APIs. " +
-            "Fix: run `npm run proxy:local` and choose Send via → Local proxy " +
-            "(requests leave from your machine, not Vercel). " +
-            "Or allowlist x-vercel-id on the API if it is deployed on Vercel " +
-            "(Vercel injects that header on all inbound traffic to Vercel apps)."
-        );
-    }
-    return message;
+    // Privacy-first default: requests leave from the user's own browser/network.
+    return "browser";
 }
 
 interface HistoryEntry {
@@ -69,30 +61,6 @@ interface HistoryEntry {
     status?: number;
     request: RequestState;
     response?: ResponseData;
-}
-
-interface SavedRequest {
-    id: string;
-    name: string;
-    timestamp: number;
-    request: RequestState;
-}
-
-function loadSaved(): SavedRequest[] {
-    try {
-        const val = localStorage.getItem(COLLECTIONS_KEY);
-        const items: SavedRequest[] = val ? JSON.parse(val) : [];
-        return items.map((item) => ({
-            ...item,
-            request: migrateRequestState(item.request || {}),
-        }));
-    } catch {
-        return [];
-    }
-}
-
-function saveSaved(items: SavedRequest[]) {
-    localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(items));
 }
 
 const EXAMPLE: RequestState = {
@@ -150,25 +118,53 @@ export default function CurlTester() {
     const [showEnvManager, setShowEnvManager] = useState(false);
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [saveName, setSaveName] = useState("");
-    const [savedRequests, setSavedRequests] = useState<SavedRequest[]>(() => loadSaved());
+    const [saveFolder, setSaveFolder] = useState<string>("");
+    const [newFolderName, setNewFolderName] = useState("");
+    const [collections, setCollections] = useState<CollectionsState>(() => loadCollections());
+    /** Saved request currently loaded in the editor (enables "Update" on save). */
+    const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
     const [showCollections, setShowCollections] = useState(false);
+    const [showImportExport, setShowImportExport] = useState(false);
     const [snippetLang, setSnippetLang] = useState<SnippetLang>("curl");
     /**
-     * proxy  = hosted Next route (CORS bypass; runs on Vercel in production)
-     * browser = direct from your browser (needs CORS on the API)
-     * local   = local Node proxy on :3927 (no Vercel hop; run `npm run proxy:local`)
+     * browser = direct from your browser (default; needs CORS on the API)
+     * local   = local Node proxy on :3927 (your machine; run `npm run proxy:local`)
+     * proxy   = UtilHub's hosted route — opt-in only, request passes through UtilHub servers
      */
-    const [sendMode, setSendMode] = useState<SendMode>("proxy");
+    const [sendMode, setSendMode] = useState<SendMode>("browser");
 
     useEffect(() => {
         setSendMode(loadSendMode());
     }, []);
+
+    // Open a request shared via link (#req=…); the hash never reaches any server.
+    useEffect(() => {
+        const shared = decodeShareHash(window.location.hash);
+        if (!shared) return;
+        setRequest(shared);
+        setActiveSavedId(null);
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        showToast("Loaded shared request", "info");
+    }, [showToast]);
 
     const activeEnv = env.getActiveEnvironment();
     const resolve = useCallback(
         (text: string) =>
             activeEnv ? substituteVariables(text, activeEnv.variables) : text,
         [activeEnv],
+    );
+
+    const unresolved = useMemo(() => findUnresolvedVariables(request, resolve), [request, resolve]);
+    const activeSaved = collections.requests.find((r) => r.id === activeSavedId) || null;
+
+    const updateCollections = useCallback(
+        (next: CollectionsState) => {
+            setCollections(next);
+            if (!saveCollections(next)) {
+                showToast("Could not save collections — browser storage is full", "error");
+            }
+        },
+        [showToast],
     );
 
     const handleSendModeChange = (mode: SendMode) => {
@@ -178,6 +174,12 @@ export default function CurlTester() {
         } catch { /* ignore */ }
         if (mode === "local") {
             showToast("Start local proxy with: npm run proxy:local", "success");
+        } else if (mode === "proxy") {
+            showToast(
+                "Requests will pass through UtilHub's server",
+                "info",
+                "Use Browser or your Local proxy to keep requests on your own network.",
+            );
         }
     };
 
@@ -196,128 +198,25 @@ export default function CurlTester() {
         setError(null);
 
         try {
-            let data: ResponseData & { error?: string };
+            const result = await sendRequest(request, resolve, sendMode, controller.signal);
+            if (controller.signal.aborted) return;
 
-            if (sendMode === "browser") {
-                const { url, init, headersSent } = buildBrowserFetchInit(request, resolve);
-                const start = performance.now();
-                const res = await fetch(url, { ...init, signal: controller.signal });
-                const end = performance.now();
-                if (controller.signal.aborted) return;
-
-                const contentType = res.headers.get("content-type") || "";
-                const buf = await res.arrayBuffer();
-                const size = buf.byteLength;
-                const responseHeaders: Record<string, string> = {};
-                res.headers.forEach((value, key) => {
-                    responseHeaders[key] = value;
-                });
-
-                let encoding: "text" | "base64" = "text";
-                let bodyData: unknown;
-                const isText =
-                    !contentType ||
-                    contentType.startsWith("text/") ||
-                    contentType.includes("json") ||
-                    contentType.includes("xml") ||
-                    contentType.includes("javascript") ||
-                    contentType.includes("html") ||
-                    contentType.includes("css");
-
-                if (isText) {
-                    const text = new TextDecoder("utf-8").decode(buf);
-                    try {
-                        bodyData = JSON.parse(text);
-                    } catch {
-                        bodyData = text;
-                    }
-                } else {
-                    encoding = "base64";
-                    const bytes = new Uint8Array(buf);
-                    let binary = "";
-                    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-                    bodyData = btoa(binary);
-                }
-
-                data = {
-                    status: res.status,
-                    statusText: res.statusText,
-                    headers: responseHeaders,
-                    data: bodyData,
-                    time: Math.round(end - start),
-                    size,
-                    contentType,
-                    encoding,
-                    requestHeadersSent: headersSent,
-                    transport: "browser",
-                };
-            } else {
-                const payload = buildProxyPayload(request, resolve, DEFAULT_TIMEOUT_MS);
-                const proxyUrl =
-                    sendMode === "local" ? LOCAL_PROXY_DEFAULT : "/api/tester/proxy";
-
-                let res: Response;
-                try {
-                    res = await fetch(proxyUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                        signal: controller.signal,
-                    });
-                } catch (fetchErr) {
-                    if (sendMode === "local") {
-                        throw new Error(
-                            "Could not reach local proxy at http://127.0.0.1:3927. " +
-                                "Run: npm run proxy:local",
-                        );
-                    }
-                    throw fetchErr;
-                }
-
-                data = await res.json();
-                if (controller.signal.aborted) return;
-
-                // Surface API body text for header-restriction detection
-                const bodyStr =
-                    typeof data.data === "string"
-                        ? data.data
-                        : data.data
-                          ? JSON.stringify(data.data)
-                          : data.error || "";
-
-                if (data.error && !data.status) {
-                    const msg = explainTransportError(sendMode, data.error, bodyStr);
-                    setError(msg);
-                    showToast(data.error, "error");
-                    return;
-                }
-                if (data.error && res.status >= 400 && !data.headers) {
-                    const msg = explainTransportError(sendMode, data.error, bodyStr);
-                    setError(msg);
-                    showToast(data.error, "error");
-                    return;
-                }
-
-                // Even on HTTP 4xx/5xx from upstream, show guidance if body mentions header rules
-                if (
-                    data.status >= 400 &&
-                    /x-vercel-id|header/i.test(bodyStr)
-                ) {
-                    const hint = explainTransportError(sendMode, bodyStr, bodyStr);
-                    if (hint !== bodyStr) {
-                        setError(hint);
-                    }
-                }
+            if (!result.response) {
+                setError(result.error || "Request failed");
+                showToast(result.rawError || result.error || "Request failed", "error");
+                return;
             }
 
+            const data = result.response;
             setResponse(data);
+            if (result.error) setError(result.error);
             addToHistory({
                 method: request.method,
                 url: request.url,
                 timestamp: Date.now(),
                 status: data.status,
                 request: stripFilePayloads(JSON.parse(JSON.stringify(request))),
-                response: data,
+                response: compactResponseForHistory(data),
             });
             if (data.status) {
                 showToast(`${data.status} in ${data.time}ms`, data.status < 400 ? "success" : "error");
@@ -329,9 +228,8 @@ export default function CurlTester() {
                 return;
             }
             const message = e instanceof Error ? e.message : "Request failed";
-            const explained = explainTransportError(sendMode, message);
-            setError(explained);
-            showToast(explained, "error");
+            setError(message);
+            showToast(message, "error");
         } finally {
             if (abortRef.current === controller) {
                 abortRef.current = null;
@@ -364,6 +262,7 @@ export default function CurlTester() {
             return;
         }
         setRequest(next);
+        setActiveSavedId(null);
         setShowCurlModal(false);
         showToast("cURL parsed successfully", "success");
     };
@@ -371,6 +270,7 @@ export default function CurlTester() {
     const handleCurlAutoImport = useCallback(
         (result: { ok: boolean; message?: string }) => {
             if (result.ok) {
+                setActiveSavedId(null);
                 showToast(result.message || "cURL imported", "success");
             } else {
                 showToast(result.message || "Failed to parse cURL", "error");
@@ -383,6 +283,7 @@ export default function CurlTester() {
         setRequest(EMPTY);
         setResponse(null);
         setError(null);
+        setActiveSavedId(null);
     };
 
     const copyResponseBody = () => {
@@ -403,7 +304,16 @@ export default function CurlTester() {
         setRequest(migrateRequestState(entry.request || {}));
         setResponse(entry.response || null);
         setError(null);
+        setActiveSavedId(null);
         setShowHistory(false);
+    };
+
+    const loadSaved = (item: SavedRequest) => {
+        setRequest(migrateRequestState(item.request || {}));
+        setResponse(null);
+        setError(null);
+        setActiveSavedId(item.id);
+        setShowCollections(false);
     };
 
     const formatTime = (ts: number) => {
@@ -416,31 +326,76 @@ export default function CurlTester() {
         return d.toLocaleDateString();
     };
 
+    const resolveSaveFolder = (state: CollectionsState): { state: CollectionsState; folderId: string | null } => {
+        if (saveFolder !== NEW_FOLDER) return { state, folderId: saveFolder || null };
+        const folder = { id: newId(), name: newFolderName.trim() || "New folder" };
+        return { state: { ...state, folders: [...state.folders, folder] }, folderId: folder.id };
+    };
+
     const handleSaveRequest = () => {
         if (!saveName.trim()) return;
-        const newItem: SavedRequest = {
-            id: crypto.randomUUID(),
-            name: saveName.trim(),
-            timestamp: Date.now(),
-            request: stripFilePayloads(JSON.parse(JSON.stringify(request))),
-        };
-        const next = [newItem, ...savedRequests];
-        setSavedRequests(next);
-        saveSaved(next);
+        const { state, folderId } = resolveSaveFolder(collections);
+        const item = makeSavedRequest(saveName.trim(), folderId, request);
+        updateCollections({ ...state, requests: [item, ...state.requests] });
+        setActiveSavedId(item.id);
         setShowSaveModal(false);
         setSaveName("");
         showToast("Request saved", "success");
     };
 
-    const deleteSaved = (id: string) => {
-        const next = savedRequests.filter((r) => r.id !== id);
-        setSavedRequests(next);
-        saveSaved(next);
+    const handleUpdateSaved = () => {
+        if (!activeSaved || !saveName.trim()) return;
+        const { state, folderId } = resolveSaveFolder(collections);
+        const updated = makeSavedRequest(saveName.trim(), folderId, request);
+        updateCollections({
+            ...state,
+            requests: state.requests.map((r) =>
+                r.id === activeSaved.id ? { ...updated, id: activeSaved.id } : r,
+            ),
+        });
+        setShowSaveModal(false);
+        showToast(`Updated “${saveName.trim()}”`, "success");
     };
 
     const openSaveModal = () => {
-        setSaveName(request.url.replace(/https?:\/\//, "").split(/[?#]/)[0] || "Untitled");
+        setSaveName(
+            activeSaved?.name ||
+                request.url.replace(/https?:\/\//, "").split(/[?#]/)[0] ||
+                "Untitled",
+        );
+        setSaveFolder(activeSaved?.folderId || "");
+        setNewFolderName("");
         setShowSaveModal(true);
+    };
+
+    useHotkeys("s", () => openSaveModal(), { meta: true });
+
+    const handleImport = (result: ImportResult) => {
+        updateCollections(mergeCollections(collections, result));
+        env.importEnvironments(result.environments);
+        setShowImportExport(false);
+        const parts = [
+            result.requests.length && `${result.requests.length} requests`,
+            result.environments.length && `${result.environments.length} environments`,
+        ].filter(Boolean);
+        showToast(`Imported ${parts.join(" and ") || "nothing"}`, "success");
+    };
+
+    const handleShare = async () => {
+        const { hash, redacted } = encodeShareHash(request);
+        const url = `${window.location.origin}${window.location.pathname}${hash}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast(
+                "Share link copied",
+                "success",
+                redacted > 0
+                    ? `${redacted} secret value${redacted === 1 ? " was" : "s were"} removed. {{variables}} are kept; environments are never shared.`
+                    : "Environment values are never included.",
+            );
+        } catch {
+            showToast("Could not copy link to clipboard", "error");
+        }
     };
 
     const snippets = generateSnippets(request, resolve);
@@ -458,12 +413,25 @@ export default function CurlTester() {
                     API Client
                 </h1>
                 <div className={styles.actions}>
+                    {activeSaved && (
+                        <span className={styles.savedBadge} title="Loaded from collections">
+                            {activeSaved.name}
+                        </span>
+                    )}
                     <button
                         className={styles.button}
                         onClick={() => { setShowSnippets(true); setSnippetLang("curl"); }}
                         title="View code snippets"
                     >
                         <Code size={16} /> Code
+                    </button>
+                    <button
+                        className={styles.button}
+                        onClick={handleShare}
+                        title="Copy a shareable link (secrets removed)"
+                        disabled={!request.url.trim()}
+                    >
+                        <Link2 size={16} /> Share
                     </button>
                     <button
                         className={styles.button}
@@ -484,7 +452,7 @@ export default function CurlTester() {
                         onClick={() => setShowCollections(true)}
                         title="Saved requests"
                     >
-                        <Braces size={16} /> Saved
+                        <FolderOpen size={16} /> Collections
                     </button>
                     {env.environments.length > 0 && (
                         <select
@@ -505,11 +473,11 @@ export default function CurlTester() {
                         onClick={() => setShowEnvManager(true)}
                         title="Manage environments"
                     >
-                        {env.activeEnvId ? env.environments.find(e => e.id === env.activeEnvId)?.name || "Env" : "Env"}
+                        {activeEnv?.name || "Env"}
                     </button>
                     <button
                         className={styles.button}
-                        onClick={() => setRequest(EXAMPLE)}
+                        onClick={() => { setRequest(EXAMPLE); setActiveSavedId(null); }}
                         title="Load example"
                     >
                         <Braces size={16} /> Example
@@ -527,11 +495,30 @@ export default function CurlTester() {
                     onImportCurl={handleImportCurl}
                     onCurlAutoImport={handleCurlAutoImport}
                 />
+                {unresolved.length > 0 && (
+                    <div className={styles.unresolvedBanner} role="status">
+                        <span>
+                            {activeEnv ? `Not defined in “${activeEnv.name}”:` : "No environment selected for:"}{" "}
+                            {unresolved.map((name) => (
+                                <code key={name}>{`{{${name}}}`} </code>
+                            ))}
+                            — sent literally.
+                        </span>
+                        <button className={styles.linkBtn} onClick={() => setShowEnvManager(true)}>
+                            Manage environments
+                        </button>
+                    </div>
+                )}
                 <div className={styles.sendRow}>
                     <span className={styles.shortcutHint}>Ctrl/⌘ + Enter</span>
+                    {sendMode === "proxy" && (
+                        <span className={styles.proxyWarning} role="note">
+                            Sent through UtilHub&apos;s server
+                        </span>
+                    )}
                     <label
                         className={styles.sendModeLabel}
-                        title="Proxy: hosted server (Vercel in prod). Browser: needs CORS. Local: run npm run proxy:local — no Vercel hop."
+                        title="Browser: straight from your browser (the API must allow CORS). Local proxy: your own machine via npm run proxy:local — no CORS limits, reaches localhost. UtilHub proxy: opt-in, passes through UtilHub's server (public hosts only)."
                     >
                         <span className={styles.sendModeText}>Send via</span>
                         <select
@@ -541,9 +528,9 @@ export default function CurlTester() {
                             aria-label="Send mode"
                             disabled={isLoading}
                         >
-                            <option value="proxy">Proxy (hosted)</option>
                             <option value="browser">Browser (direct)</option>
                             <option value="local">Local proxy (:3927)</option>
+                            <option value="proxy">UtilHub proxy (via our server)</option>
                         </select>
                     </label>
                     {isLoading ? (
@@ -620,6 +607,25 @@ export default function CurlTester() {
                 )}
             />
 
+            <CollectionsSidebar
+                isOpen={showCollections}
+                onClose={() => setShowCollections(false)}
+                collections={collections}
+                onChange={updateCollections}
+                onLoad={loadSaved}
+                activeRequestId={activeSavedId}
+                onImportExport={() => { setShowCollections(false); setShowImportExport(true); }}
+            />
+
+            {showImportExport && (
+                <ImportExportModal
+                    collections={collections}
+                    environments={env.environments}
+                    onImport={handleImport}
+                    onClose={() => setShowImportExport(false)}
+                />
+            )}
+
             {showSnippets && (
                 <div className={styles.modalOverlay} onClick={() => setShowSnippets(false)}>
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "720px" }}>
@@ -671,40 +677,6 @@ export default function CurlTester() {
                 </div>
             )}
 
-            <HistorySidebar
-                history={savedRequests}
-                isOpen={showCollections}
-                onClose={() => setShowCollections(false)}
-                onSelect={(item: SavedRequest) => {
-                    setRequest(migrateRequestState(item.request || {}));
-                    setResponse(null);
-                    setError(null);
-                    setShowCollections(false);
-                }}
-                onClear={() => { setSavedRequests([]); localStorage.removeItem(COLLECTIONS_KEY); }}
-                onDelete={(i) => deleteSaved(savedRequests[i].id)}
-                title="Saved Requests"
-                renderItem={(item: SavedRequest) => (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-                        <div style={{ fontSize: "0.85rem", color: "var(--text-primary)", fontWeight: 600 }}>
-                            {item.name}
-                        </div>
-                        <div style={{
-                            fontSize: "0.7rem",
-                            color: "var(--text-secondary)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                        }}>
-                            {item.request.method} {item.request.url}
-                        </div>
-                        <div style={{ fontSize: "0.65rem", color: "var(--text-secondary)" }}>
-                            {formatTime(item.timestamp)}
-                        </div>
-                    </div>
-                )}
-            />
-
             <EnvironmentManager
                 isOpen={showEnvManager}
                 onClose={() => setShowEnvManager(false)}
@@ -728,7 +700,9 @@ export default function CurlTester() {
                         </div>
                         <div className={styles.modalBody}>
                             <p className={styles.modalHint}>
-                                Give your request a name to save it for later.
+                                {activeSaved
+                                    ? `Editing “${activeSaved.name}”. Update it, or save a copy.`
+                                    : "Give your request a name to save it for later."}
                             </p>
                             <input
                                 className={styles.saveNameInput}
@@ -736,20 +710,64 @@ export default function CurlTester() {
                                 onChange={(e) => setSaveName(e.target.value)}
                                 placeholder="Request name"
                                 autoFocus
-                                onKeyDown={(e) => { if (e.key === "Enter") handleSaveRequest(); }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") (activeSaved ? handleUpdateSaved : handleSaveRequest)();
+                                }}
                             />
+                            <label className={styles.fieldLabel} htmlFor="save-folder">Folder</label>
+                            <select
+                                id="save-folder"
+                                className={styles.saveSelect}
+                                value={saveFolder}
+                                onChange={(e) => setSaveFolder(e.target.value)}
+                            >
+                                <option value="">(No folder)</option>
+                                {collections.folders.map((f) => (
+                                    <option key={f.id} value={f.id}>{f.name}</option>
+                                ))}
+                                <option value={NEW_FOLDER}>+ New folder…</option>
+                            </select>
+                            {saveFolder === NEW_FOLDER && (
+                                <input
+                                    className={styles.saveNameInput}
+                                    style={{ marginTop: "0.5rem" }}
+                                    value={newFolderName}
+                                    onChange={(e) => setNewFolderName(e.target.value)}
+                                    placeholder="New folder name"
+                                    aria-label="New folder name"
+                                />
+                            )}
                         </div>
                         <div className={styles.modalActions}>
                             <button className={styles.button} onClick={() => setShowSaveModal(false)}>
                                 Cancel
                             </button>
-                            <button
-                                className={styles.primaryBtn}
-                                onClick={handleSaveRequest}
-                                disabled={!saveName.trim()}
-                            >
-                                Save
-                            </button>
+                            {activeSaved ? (
+                                <>
+                                    <button
+                                        className={styles.button}
+                                        onClick={handleSaveRequest}
+                                        disabled={!saveName.trim()}
+                                    >
+                                        Save as new
+                                    </button>
+                                    <button
+                                        className={styles.primaryBtn}
+                                        onClick={handleUpdateSaved}
+                                        disabled={!saveName.trim()}
+                                    >
+                                        Update
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    className={styles.primaryBtn}
+                                    onClick={handleSaveRequest}
+                                    disabled={!saveName.trim()}
+                                >
+                                    Save
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
