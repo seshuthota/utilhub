@@ -21,7 +21,7 @@ function convert(value: string, mode: Mode): { output: string; error: string | n
 }
 
 export default function Base64Tool() {
-    const [input, setInput] = useUrlState('input', 'Hello UtilHub');
+    const [input, setInput] = useUrlState('input', 'Hello UtilHub', { sensitive: true });
     const [mode, setMode] = useState<Mode>('encode');
     const [output, setOutput] = useState('');
     const [error, setError] = useState<string | null>(null);

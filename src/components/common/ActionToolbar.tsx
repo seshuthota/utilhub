@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { detectType, DetectionResult } from "@/utils/detection";
 import { useToast } from "@/components/Toast";
+import { setHandoff } from "@/utils/handoff";
 import styles from "./ActionToolbar.module.css";
 
 interface Recommendation extends Partial<DetectionResult> {
@@ -131,8 +132,9 @@ export default function ActionToolbar({
     };
 
     const handleSendTo = (tool: Recommendation) => {
-        const url = `${tool.toolPath}?${tool.paramKey}=${encodeURIComponent(content)}`;
-        router.push(url);
+        // Content travels via sessionStorage, never the URL (history, logs, analytics).
+        setHandoff(tool.toolPath, tool.paramKey, content);
+        router.push(tool.toolPath);
         setIsOpen(false);
     };
 

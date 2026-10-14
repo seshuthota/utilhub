@@ -30,7 +30,7 @@ const LANGUAGES: LanguageConfig[] = [
 ];
 
 export default function Converter() {
-    const [input, setInput] = useUrlState("curl", "");
+    const [input, setInput] = useUrlState("curl", "", { sensitive: true });
     const [output, setOutput] = useState("");
     const [language, setLanguage] = useUrlState("lang", "python");
     const [error, setError] = useState<string | null>(null);

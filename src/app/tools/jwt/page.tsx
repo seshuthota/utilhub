@@ -44,7 +44,7 @@ const defaultPayload = {
 };
 
 export default function JwtTool() {
-    const [token, setToken] = useUrlState("token", "");
+    const [token, setToken] = useUrlState("token", "", { sensitive: true });
     const [mode, setMode] = useState<"decode" | "sign">("decode");
     const [headerInput, setHeaderInput] = useState(JSON.stringify(defaultHeader, null, 2));
     const [payloadInput, setPayloadInput] = useState(JSON.stringify(defaultPayload, null, 2));
@@ -244,6 +244,7 @@ export default function JwtTool() {
                                 className={styles.inputArea}
                                 placeholder="Paste your JWT here (eyJ...)"
                                 spellCheck={false}
+                                autoComplete="off"
                                 aria-label="JWT token"
                             />
                         </div>
@@ -271,6 +272,9 @@ export default function JwtTool() {
                                 placeholder="Enter HMAC secret to verify signature…"
                                 autoComplete="off"
                                 spellCheck={false}
+                                data-1p-ignore
+                                data-lpignore="true"
+                                data-bwignore
                                 aria-label="HMAC secret for verification"
                             />
                         </div>
@@ -466,6 +470,9 @@ export default function JwtTool() {
                                 placeholder="Enter secret to sign (HS256/384/512)…"
                                 autoComplete="off"
                                 spellCheck={false}
+                                data-1p-ignore
+                                data-lpignore="true"
+                                data-bwignore
                                 aria-label="HMAC secret for signing"
                             />
                         </div>

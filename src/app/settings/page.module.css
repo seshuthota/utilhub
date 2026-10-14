@@ -188,3 +188,67 @@
         padding: 0.5rem;
     }
 }
+.confirmRow {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.secondaryBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.secondaryBtn:hover {
+    background: var(--bg-hover);
+}
+
+.switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 24px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-hover);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.switch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.switchOn {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.switchKnob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    transition: transform 0.15s;
+}
+
+.switchOn .switchKnob {
+    transform: translateX(20px);
+}
+
+.description code {
+    font-size: 0.85em;
+}

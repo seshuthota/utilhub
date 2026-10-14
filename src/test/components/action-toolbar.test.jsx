@@ -82,7 +82,11 @@ describe('ActionToolbar Component', () => {
         // Click it
         fireEvent.click(base64Option);
         
-        expect(pushMock).toHaveBeenCalledWith('/tools/base64?input=hello');
+        // Content goes through sessionStorage, never the URL
+        expect(pushMock).toHaveBeenCalledWith('/tools/base64');
+        expect(JSON.parse(sessionStorage.getItem('utilhub_handoff'))).toEqual(
+            expect.objectContaining({ path: '/tools/base64', key: 'input', value: 'hello' }),
+        );
     });
 
     it('shows detected type recommendation', async () => {

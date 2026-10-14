@@ -29,31 +29,29 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
+    // The inline script in app/layout.js already applied the saved theme before paint;
+    // children always render (an empty server render hurt first paint and SEO).
     const [theme, setTheme] = useState("dark");
-    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setMounted(true);
-            const saved = localStorage.getItem("theme") || "dark";
-            setTheme(saved);
-            document.documentElement.setAttribute("data-theme", saved);
-        }, 0);
-        return () => clearTimeout(timer);
+        const applied = document.documentElement.getAttribute("data-theme");
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- sync with pre-paint theme script
+        if (applied && applied !== "dark") setTheme(applied);
     }, []);
-
-    const toggleTheme = () => {
-        const newTheme = theme === "dark" ? "light" : "dark";
-        setThemeMode(newTheme);
-    };
 
     const setThemeMode = (newTheme: string) => {
         setTheme(newTheme);
-        localStorage.setItem("theme", newTheme);
+        try {
+            localStorage.setItem("theme", newTheme);
+        } catch { /* storage unavailable */ }
         document.documentElement.setAttribute("data-theme", newTheme);
     };
 
-    if (!mounted) return null;
+    // Cycles through every theme (previously jumped back to dark from matrix/cyberpunk/dracula)
+    const toggleTheme = () => {
+        const index = THEMES.findIndex((t) => t.id === theme);
+        setThemeMode(THEMES[(index + 1) % THEMES.length].id);
+    };
 
     return (
         <ThemeContext.Provider

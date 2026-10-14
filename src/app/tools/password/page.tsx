@@ -70,6 +70,15 @@ export default function PasswordTool() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter password to analyze..."
                         className={styles.passwordInput}
+                        aria-label="Password to analyze"
+                        // Keep the audited password away from password managers and spellcheck services
+                        autoComplete="off"
+                        spellCheck={false}
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        data-1p-ignore
+                        data-lpignore="true"
+                        data-bwignore
                     />
                     <button
                         className={styles.eyeBtn}

@@ -1,25 +1,27 @@
 'use client';
 
-import { useTheme } from './ThemeProvider';
-import { Sun, Moon } from 'lucide-react';
+import { useTheme, THEMES } from './ThemeProvider';
+import { Sun, Moon, Palette } from 'lucide-react';
 import styles from './ThemeToggle.module.css';
 
 /**
- * Button to toggle between light and dark themes.
+ * Button that cycles through the available themes.
  * Uses the ThemeProvider context.
  */
 export default function ThemeToggle() {
     const { theme, toggleTheme } = useTheme();
+    const index = THEMES.findIndex((t) => t.id === theme);
+    const next = THEMES[(index + 1) % THEMES.length];
+    const Icon = theme === 'dark' ? Sun : theme === 'light' ? Moon : Palette;
 
     return (
         <button
             onClick={toggleTheme}
             className={styles.toggle}
-            aria-pressed={theme === 'dark'}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label={`Theme: ${THEMES[index]?.name ?? theme}. Switch to ${next.name}`}
+            title={`Switch to ${next.name}`}
         >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            <Icon size={18} aria-hidden />
         </button>
     );
 }

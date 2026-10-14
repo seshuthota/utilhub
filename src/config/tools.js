@@ -52,7 +52,7 @@ export const tools = [
     icon: GitGraph,
     href: "/tools/mermaid",
     isClientSideOnly: true,
-    hasAiFeatures: false,
+    hasAiFeatures: true,
     category: "visualization",
   },
   {
@@ -72,7 +72,7 @@ export const tools = [
     icon: Database,
     href: "/tools/sql",
     isClientSideOnly: true,
-    hasAiFeatures: false,
+    hasAiFeatures: true,
     category: "code",
   },
   {
@@ -152,7 +152,7 @@ export const tools = [
     icon: Type,
     href: "/tools/lorem",
     isClientSideOnly: true,
-    hasAiFeatures: false,
+    hasAiFeatures: true,
     category: "text",
   },
   {
@@ -233,7 +233,7 @@ export const tools = [
     icon: Braces,
     href: "/tools/json-schema",
     isClientSideOnly: true,
-    hasAiFeatures: false,
+    hasAiFeatures: true,
     category: "data",
   },
   {
@@ -446,6 +446,7 @@ export const tools = [
     href: "/tools/curl-tester",
     isClientSideOnly: false,
     hasAiFeatures: false,
+    usesNetwork: true,
     category: "networking",
   },
 ];

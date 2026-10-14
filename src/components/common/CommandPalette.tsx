@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, CSSProperties, KeyboardEvent } from "react
 import { useRouter } from "next/navigation";
 import { Search, X, Command, LucideIcon } from "lucide-react";
 import { tools } from "@/config/tools";
+import { setHandoff } from "@/utils/handoff";
 import styles from "./CommandPalette.module.css";
 // We import types dynamically or define simple interface for Tool since tools.js is JS
 import { DetectionResult } from "@/utils/detection"; // We migrated this earlier
@@ -107,12 +108,10 @@ export default function CommandPalette({ isOpen, onClose, className = '', style 
 
     const navigate = (href: string, inputData: string | null = null, paramKey: string = "input") => {
         if (inputData) {
-            // URL encode the input data if provided (for smart suggestions)
-            const url = `${href}?${paramKey}=${encodeURIComponent(inputData)}`;
-            router.push(url);
-        } else {
-            router.push(href);
+            // Pasted data (often a JWT or SQL) travels via sessionStorage, never the URL.
+            setHandoff(href, paramKey, inputData);
         }
+        router.push(href);
         onClose();
     };
 
