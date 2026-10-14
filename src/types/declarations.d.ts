@@ -52,13 +52,6 @@ declare module 'svgo/browser' {
     export function optimize(input: string, config?: any): { data: string; error?: string };
 }
 
-declare module 'marked' {
-    interface Marked {
-        parse(src: string): string | Promise<string>;
-    }
-    export const marked: Marked;
-}
-
 declare module 'papaparse' {
     interface ParseResult {
         data: any[];

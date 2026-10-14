@@ -12,8 +12,8 @@ import { yaml } from '@codemirror/lang-yaml';
 import { StreamLanguage } from '@codemirror/language';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { keymap } from '@codemirror/view';
-import { EditorView } from '@codemirror/view';
+import { keymap, EditorView } from '@codemirror/view';
+import type { Extension } from '@codemirror/state';
 
 interface CodeMirrorEditorProps {
     value: string;
@@ -25,6 +25,10 @@ interface CodeMirrorEditorProps {
     className?: string;
     style?: React.CSSProperties;
     height?: string;
+    /** Receives the CodeMirror view once created (toolbars, scroll sync). */
+    onCreateEditor?: (view: EditorView) => void;
+    /** Extra CodeMirror extensions (keymaps, listeners) appended after the defaults. */
+    extraExtensions?: Extension[];
 }
 
 export default function CodeMirrorEditor({
@@ -37,6 +41,8 @@ export default function CodeMirrorEditor({
     className = '',
     style = {},
     height = '100%',
+    onCreateEditor,
+    extraExtensions,
 }: CodeMirrorEditorProps) {
 
     // Map language string to CodeMirror extension
@@ -103,8 +109,10 @@ export default function CodeMirrorEditor({
             exts.push(EditorView.editable.of(false));
         }
 
+        if (extraExtensions) exts.push(...extraExtensions);
+
         return exts;
-    }, [language, onRun, readOnly]);
+    }, [language, onRun, readOnly, extraExtensions]);
 
     const handleChange = useCallback((val: string) => {
         onChange?.(val);
@@ -118,6 +126,7 @@ export default function CodeMirrorEditor({
                 theme={oneDark}
                 extensions={extensions}
                 onChange={handleChange}
+                onCreateEditor={onCreateEditor}
                 placeholder={placeholder}
                 editable={!readOnly}
                 basicSetup={{
