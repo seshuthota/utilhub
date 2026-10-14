@@ -5,39 +5,21 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  // Off: front-end-nav caching re-fetches every pushState/replaceState URL from a
+  // worker, which includes tool input kept in query strings.
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   swcMinify: true,
+  // Runtime caching is same-origin only. Cross-origin responses (e.g. API Client
+  // results), /api/ routes and RSC payloads are never cached. Note: each
+  // urlPattern is serialized into the generated sw.js, so it must be
+  // self-contained (no references to variables in this file).
   workboxOptions: {
     runtimeCaching: [
       {
-        urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-        handler: "StaleWhileRevalidate",
-        options: {
-          cacheName: "google-fonts-stylesheets",
-          expiration: {
-            maxEntries: 10,
-            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-          },
-        },
-      },
-      {
-        urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-        handler: "CacheFirst",
-        options: {
-          cacheName: "google-fonts-webfonts",
-          expiration: {
-            maxEntries: 30,
-            maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-          },
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,
+        urlPattern: ({ url, sameOrigin }) =>
+          sameOrigin && /\.(?:eot|otf|ttc|ttf|woff|woff2)$/i.test(url.pathname),
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "static-font-assets",
@@ -48,7 +30,8 @@ const withPWA = withPWAInit({
         },
       },
       {
-        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+        urlPattern: ({ url, sameOrigin }) =>
+          sameOrigin && /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i.test(url.pathname),
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "static-image-assets",
@@ -59,7 +42,19 @@ const withPWA = withPWAInit({
         },
       },
       {
-        urlPattern: /\.(?:js)$/i,
+        // Self-hosted WebAssembly (sql.js, dprint plugins, tree-sitter) for offline use
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && /\.wasm$/i.test(url.pathname),
+        handler: "CacheFirst",
+        options: {
+          cacheName: "static-wasm-assets",
+          expiration: {
+            maxEntries: 16,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+          },
+        },
+      },
+      {
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && /\.(?:js)$/i.test(url.pathname),
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "static-js-assets",
@@ -70,7 +65,7 @@ const withPWA = withPWAInit({
         },
       },
       {
-        urlPattern: /\.(?:css)$/i,
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && /\.(?:css)$/i.test(url.pathname),
         handler: "StaleWhileRevalidate",
         options: {
           cacheName: "static-style-assets",
@@ -81,7 +76,15 @@ const withPWA = withPWAInit({
         },
       },
       {
-        urlPattern: /.*/i,
+        // Same-origin pages only: skip API routes, RSC payloads, and any URL
+        // with a query string (which can carry tool input).
+        urlPattern: ({ url, request, sameOrigin }) =>
+          sameOrigin &&
+          request.method === "GET" &&
+          !url.pathname.startsWith("/api/") &&
+          url.search === "" &&
+          !request.headers.has("RSC") &&
+          !request.headers.has("Next-Router-State-Tree"),
         handler: "NetworkFirst",
         options: {
           cacheName: "others",
