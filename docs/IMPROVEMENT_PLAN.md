@@ -58,6 +58,17 @@ The audit found the app currently breaks this principle in several places, so re
 
 **Exit criteria:** zero tool input in URLs/analytics/server logs (verified in Network tab), no third-party runtime fetches, `npx vitest run` fully green, `npm audit --omit=dev` with no critical/high in shipped code.
 
+### Wave 0 status — done 2026-10-14 (branch `wave-0-privacy`)
+Done: fragment-based `useUrlState` with `sensitive` keys and sessionStorage handoff; scrubbed analytics + Settings opt-out/GPC; full "Clear data"; `no-referrer`; DOMPurify sanitizer and image-based SVG/Mermaid previews (Mermaid strict); Next 16.4 + no critical prod advisories; AI flags corrected + "Network" badge, badges shown on every tool page; per-tool titles; pre-paint theme script (shell now server-renders); self-hosted sql.js + dprint Wasm; same-origin Workbox caching; PWA icons; single SW registration; dead code/deps removed; test suite 512/512 green.
+
+Carried forward:
+- Hosted proxy route still lacks origin + rate checks (→ Wave 1).
+- Tool bodies render client-only (`ClientOnly` in `src/app/tools/layout.js`) because many pages touch browser globals at import/render; make each SSR-safe as it moves to `ToolShell` (→ Wave 1 / tool waves).
+- Content-Security-Policy: partial policy (`object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`) is feasible now; a strict script policy needs nonces (→ Wave 1).
+- JSON Schema's AI bar sends the user's full data + schema — say so in the UI (→ Wave 2).
+- Mermaid diagrams now render as `<img>`: check label clipping from fallback fonts in a real browser; `htmlLabels: false` if needed (→ Wave 8, verify at review).
+- 51 pre-existing ESLint findings in `src/` (mostly `react-hooks/set-state-in-effect`) — fix per tool as each is reworked.
+
 ## 4. Wave 1 — Shared foundations
 
 Built once, then every tool wave uses them. Adoption today is low (e.g. `ActionToolbar` 8/42 tools, `HistorySidebar` 2, file drop 3, `EmptyState` 0, 22 tools have no mobile CSS, almost no `aria-*`).
