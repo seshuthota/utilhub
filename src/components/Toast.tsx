@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return (
         <ToastContext.Provider value={{ showToast }}>
             {children}
-            <div className={styles.container}>
+            <div className={styles.container} role="status" aria-live="polite" aria-atomic="false">
                 {toasts.map(toast => (
                     <div key={toast.id} className={`${styles.toast} ${styles[toast.type]}`}>
                         <div>{toast.message}</div>

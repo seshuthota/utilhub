@@ -45,7 +45,7 @@ function labelFor(category) {
 }
 
 export default function Home() {
-  const { favorites, recentTools, addRecent } = useFavorites();
+  const { favorites, recentTools } = useFavorites();
   const [activeCategory, setActiveCategory] = useState('all');
 
   const favoriteTools = tools.filter((tool) => favorites.includes(tool.id));
@@ -88,7 +88,6 @@ export default function Home() {
                       key={tool.id}
                       href={tool.href || '#'}
                       className={styles.chip}
-                      onClick={() => addRecent?.(tool.id)}
                     >
                       {Icon ? <Icon size={15} aria-hidden /> : null}
                       <span>{tool.title}</span>
@@ -113,7 +112,6 @@ export default function Home() {
                       key={tool.id}
                       href={tool.href || '#'}
                       className={`${styles.chip} ${styles.chipFavorite}`}
-                      onClick={() => addRecent?.(tool.id)}
                     >
                       {Icon ? <Icon size={15} aria-hidden /> : null}
                       <span>{tool.title}</span>
