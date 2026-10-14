@@ -154,7 +154,7 @@ Each item lists confirmed problems first, then the target. Effort: S < 1 day, M 
 - **CSV**: file drop, Papa worker, virtualized sortable table, delimiter/header options, JSON→CSV, export to SQL/Markdown.
 
 ### Wave 11 — Smaller tools
-cURL converter (more targets, warnings panel, syntax highlighting for all output languages, "Open in API Client"); Docker (multi-service, compose→run); Markdown (code highlighting, synced scroll, TOC, Mermaid fences, export); Case converter (per-line, shared tokenizer); Lorem; Units/Validate merges per D4.
+cURL converter (more targets, warnings panel, syntax highlighting for all output languages, "Open in API Client"); Docker (multi-service, compose→run); Markdown (**done 2026-10-14**, branch `feat/markdown-viewer`: toolbar, export, drafts, share links, highlighting, scroll sync, frontmatter — remaining: Mermaid fences, TOC); Case converter (per-line, shared tokenizer); Lorem; Units/Validate merges per D4.
 
 ### Wave 12 — New tools (per D5)
 jq/JSONPath playground (jq-wasm) · X.509/PEM/CSR/SSH-key decoder · Graphviz DOT (@hpcc-js/wasm) · PDF extract/merge/split (pdf.js + pdf-lib) · Unicode/string inspector.
