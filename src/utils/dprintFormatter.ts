@@ -1,16 +1,18 @@
 /**
  * dprint Wasm Formatter Utility
- * Lazy-loads dprint Wasm plugins from CDN for fast code formatting
+ * Lazy-loads dprint Wasm plugins for fast code formatting.
  */
 
 import { createFromBuffer, type Formatter } from "@dprint/formatter";
 
-// Plugin URLs from dprint CDN
+// Self-hosted plugins (public/dprint/), downloaded once from plugins.dprint.dev
+// so formatting works offline and makes no third-party requests.
+// To upgrade, download the new version into public/dprint/ and update the path.
 const PLUGIN_URLS: Record<string, string> = {
-    typescript: "https://plugins.dprint.dev/typescript-0.93.3.wasm",
-    javascript: "https://plugins.dprint.dev/typescript-0.93.3.wasm",
-    json: "https://plugins.dprint.dev/json-0.19.4.wasm",
-    markdown: "https://plugins.dprint.dev/markdown-0.17.8.wasm",
+    typescript: "/dprint/typescript-0.93.3.wasm",
+    javascript: "/dprint/typescript-0.93.3.wasm",
+    json: "/dprint/json-0.19.4.wasm",
+    markdown: "/dprint/markdown-0.17.8.wasm",
 };
 
 // File extensions for each language
