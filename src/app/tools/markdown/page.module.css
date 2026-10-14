@@ -42,10 +42,15 @@
     transition: all 0.2s;
 }
 
-.button:hover {
+.button:hover:not(:disabled) {
     background: var(--bg-hover);
     color: var(--text-primary);
     border-color: var(--text-secondary);
+}
+
+.button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .viewToggle {

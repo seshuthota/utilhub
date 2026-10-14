@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import mermaid from 'mermaid';
 import { Download, Trash2 } from 'lucide-react';
 import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
@@ -8,16 +8,47 @@ import ShareButton from '@/components/common/ShareButton';
 import AiAssistBar from '@/components/common/AiAssistBar';
 import ActionToolbar from '@/components/common/ActionToolbar';
 import { useUrlState } from '@/hooks/useUrlState';
-import { sanitizeHtml } from '@/utils/sanitize';
+import SafeSvgPreview from '@/components/common/SafeSvgPreview';
 import { downloadFile } from '@/utils/download';
 import styles from '../markdown/page.module.css';
 
-// Initialize mermaid
-mermaid.initialize({
-    startOnLoad: true,
-    theme: 'dark', // or 'base' with overrides
-    securityLevel: 'loose',
-});
+type MermaidTheme = 'dark' | 'default';
+
+// 'strict' encodes HTML in labels and disables click/JS callbacks; diagram code
+// can come from shareable links or AI output.
+const MERMAID_BASE_CONFIG = {
+    startOnLoad: false,
+    securityLevel: 'strict',
+    suppressErrorRendering: true,
+} as const;
+
+let renderCounter = 0;
+
+function getAppMermaidTheme(): MermaidTheme {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark';
+}
+
+function subscribeToAppTheme(onChange: () => void) {
+    const observer = new MutationObserver(onChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+}
+
+/** Follows the app theme (data-theme on <html>) as a mermaid theme. */
+function useMermaidTheme(): MermaidTheme {
+    return useSyncExternalStore(subscribeToAppTheme, getAppMermaidTheme, () => 'dark');
+}
+
+function formatMermaidError(e: any): string {
+    const message = typeof e?.message === 'string' && e.message.trim()
+        ? e.message.trim()
+        : typeof e?.str === 'string' ? e.str : 'Invalid Mermaid syntax';
+    const line = e?.hash?.loc?.first_line ?? e?.hash?.line;
+    if (typeof line === 'number' && !/line\s+\d+/i.test(message)) {
+        return `Line ${line}: ${message}`;
+    }
+    return message;
+}
 
 const defaultChart = `graph TD
     A[Start] --> B{Is it working?}
@@ -30,6 +61,7 @@ export default function MermaidTool() {
     const [aiPrompt, setAiPrompt] = useState('');
     const [svg, setSvg] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const theme = useMermaidTheme();
 
     // Helper to fix common AI syntax errors (e.g. unquoted parens in labels)
     const repairMermaidSyntax = (code: string) => {
@@ -56,23 +88,42 @@ export default function MermaidTool() {
     };
 
     useEffect(() => {
+        let cancelled = false;
+
         const renderChart = async () => {
+            if (!code.trim()) {
+                setSvg('');
+                setError(null);
+                return;
+            }
+
+            // Fresh id per render; mermaid uses it as a DOM id and CSS selector
+            const id = `mermaid-render-${++renderCounter}`;
             try {
-                // Unique ID for the render
-                const { svg } = await mermaid.render('mermaid-svg', code);
-                setSvg(svg);
+                mermaid.initialize({ ...MERMAID_BASE_CONFIG, theme });
+                const { svg: rendered } = await mermaid.render(id, code);
+                if (cancelled) return;
+                setSvg(rendered);
                 setError(null);
             } catch (e: any) {
-                console.error("Mermaid error:", e);
-                setError("Invalid Syntax");
+                if (cancelled) return;
+                setError(formatMermaidError(e));
+            } finally {
+                // Remove temp/error nodes mermaid may leave in document.body
+                document.getElementById(id)?.remove();
+                document.getElementById(`d${id}`)?.remove();
             }
         };
 
         const timeout = setTimeout(renderChart, 500);
-        return () => clearTimeout(timeout);
-    }, [code]);
+        return () => {
+            cancelled = true;
+            clearTimeout(timeout);
+        };
+    }, [code, theme]);
 
     const handleDownload = () => {
+        if (!svg) return;
         downloadFile(svg, 'chart.svg', 'image/svg+xml');
     };
 
@@ -82,7 +133,12 @@ export default function MermaidTool() {
                 <h1 className={styles.title}>Mermaid Chart</h1>
                 <div className={styles.actions}>
                     <ShareButton />
-                    <button className={styles.button} onClick={handleDownload} title="Download SVG (Cmd/Ctrl + Enter)">
+                    <button
+                        className={styles.button}
+                        onClick={handleDownload}
+                        disabled={!svg}
+                        title="Download SVG (Cmd/Ctrl + Enter)"
+                    >
                         <Download size={16} /> Download
                     </button>
                     <button className={styles.button} onClick={() => setCode('')} title="Clear">
@@ -100,7 +156,11 @@ export default function MermaidTool() {
                 placeholder="e.g., 'a sequence diagram for user login', 'a flowchart for order processing'"
             />
 
-            {error && <div className={styles.errorAlert}>{error}</div>}
+            {error && (
+                <div className={styles.errorAlert} role="alert" style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, monospace)' }}>
+                    {error}
+                </div>
+            )}
 
             <div className={styles.editorContainer}>
                 <div className={styles.pane}>
@@ -127,8 +187,10 @@ export default function MermaidTool() {
                     <div
                         className={styles.preview}
                         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(svg) }}
-                    />
+                    >
+                        {/* Rendered as an <img> so nothing inside the SVG can execute */}
+                        <SafeSvgPreview svg={svg} alt="Mermaid diagram preview" background="none" />
+                    </div>
                 </div>
             </div>
 

@@ -5,7 +5,7 @@ import SvgOptimizer from '../app/tools/svg/page';
 // Mock svgo/browser
 vi.mock('svgo/browser', () => ({
     optimize: vi.fn((input, config) => {
-        if (input.includes('error')) throw new Error('Optimization failed');
+        if (input.includes('>error<')) throw new Error('Optimization failed');
         return { data: input.replace('<svg', '<svg optimized="true"') };
     }),
 }));
@@ -36,13 +36,17 @@ vi.mock('@/components/Toast', () => ({
     useToast: () => ({ showToast: vi.fn() })
 }));
 
-// Mock CodeEditor
-vi.mock('@/components/common/CodeEditor', () => ({
+vi.mock('@/components/common/ActionToolbar', () => ({
+    default: () => null,
+}));
+
+// Mock CodeMirrorEditor
+vi.mock('@/components/common/CodeMirrorEditor', () => ({
     default: ({ value, onChange, placeholder }) => (
         <textarea
             placeholder={placeholder}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => onChange && onChange(e.target.value)}
         />
     )
 }));
@@ -74,5 +78,28 @@ describe('SVG Optimizer', () => {
         await waitFor(() => {
             expect(screen.getByText(/Optimization failed/i)).toBeDefined();
         });
+    });
+
+    it('renders the preview as an <img>, never as inline SVG', async () => {
+        const malicious = [
+            '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">',
+            '<a xlink:href="javascript:alert(1)"><text>x</text></a>',
+            '<a><animate attributeName="href" to="javascript:alert(1)"/><text>y</text></a>',
+            '<image href="x" onerror="alert(1)"/>',
+            '</svg>',
+        ].join('');
+
+        const { container } = render(<SvgOptimizer />);
+        const input = screen.getByPlaceholderText(/Paste SVG code here/);
+        fireEvent.change(input, { target: { value: malicious } });
+
+        const img = await screen.findByAltText('Optimized SVG preview');
+        expect(img.tagName).toBe('IMG');
+        expect(img.getAttribute('src')).toMatch(/^(blob:|data:image\/svg\+xml)/);
+
+        // No live SVG (and so no handlers / javascript: links) anywhere in the DOM
+        expect(container.querySelector('svg:not([class*="lucide"])')).toBeNull();
+        expect(container.querySelector('[onload], [onerror]')).toBeNull();
+        expect(container.querySelector('a[href^="javascript:"], [*|href^="javascript:"]')).toBeNull();
     });
 });

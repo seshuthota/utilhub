@@ -136,4 +136,17 @@ describe('MarkdownTool', () => {
         expect(gutter).toHaveAttribute('aria-valuenow', '50');
         expect(split).toHaveAttribute('data-view', 'split');
     });
+
+    it('strips script vectors from the rendered preview', () => {
+        const { container } = render(<MarkdownTool />);
+        const editor = screen.getAllByTestId('code-editor')[0];
+        fireEvent.change(editor, {
+            target: {
+                value: '# Safe\n\n<img/src=x/onerror=alert(1)>\n\n<a href=javascript:alert(1)>link</a>\n\n<iframe srcdoc="<script>alert(1)</script>"></iframe>',
+            },
+        });
+        expect(screen.getByText('Safe')).toBeInTheDocument();
+        expect(container.querySelector('[onerror], iframe, script')).toBeNull();
+        expect(screen.getByText('link').getAttribute('href')).toBeNull();
+    });
 });
