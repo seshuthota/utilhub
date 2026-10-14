@@ -7,7 +7,7 @@ import { useUrlState } from '@/hooks/useUrlState';
 import { useToast } from '@/components/Toast';
 import CodeMirrorEditor from '@/components/common/CodeMirrorEditor';
 import ActionToolbar from '@/components/common/ActionToolbar';
-import { sanitizeHtml } from '@/utils/sanitize';
+import SafeSvgPreview from '@/components/common/SafeSvgPreview';
 import { downloadFile } from '@/utils/download';
 import styles from './page.module.css';
 
@@ -267,10 +267,8 @@ export default function SvgOptimizer() {
                                     <small>{error}</small>
                                 </div>
                             ) : (
-                                <div
-                                    className={styles.svgWrapper}
-                                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(output) }}
-                                />
+                                // Rendered as an <img> so scripts/handlers in the SVG never execute
+                                <SafeSvgPreview svg={output} alt="Optimized SVG preview" className={styles.svgWrapper} />
                             )}
                         </div>
                         <div className={styles.editorArea} style={{ flex: '0 0 30%', borderTop: '1px solid var(--border-color)' }}>
