@@ -37,7 +37,7 @@ vi.mock('@/components/Toast', () => ({
 }));
 
 // Mock CodeEditor
-vi.mock('@/components/common/CodeEditor', () => ({
+vi.mock('@/components/common/CodeMirrorEditor', () => ({
     default: ({ value, onChange, placeholder }) => (
         <textarea
             placeholder={placeholder}
