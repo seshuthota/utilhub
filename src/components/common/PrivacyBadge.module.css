@@ -56,3 +56,15 @@
     color: #7c3aed;
     border-color: rgba(124, 58, 237, 0.2);
 }
+/* Network - Blue/Info */
+.network {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+[data-theme="light"] .network {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.2);
+}

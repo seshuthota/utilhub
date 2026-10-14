@@ -1,0 +1,15 @@
+.badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    padding: 0 1rem;
+    margin: -0.5rem 0 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .badges {
+        justify-content: flex-start;
+        margin-top: 0;
+    }
+}

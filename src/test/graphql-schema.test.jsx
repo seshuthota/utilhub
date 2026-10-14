@@ -29,7 +29,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock CodeEditor
-vi.mock('@/components/common/CodeEditor', () => ({
+vi.mock('@/components/common/CodeMirrorEditor', () => ({
     default: ({ value, onChange, placeholder, readOnly }) => (
         <textarea
             data-testid={readOnly ? "output-editor" : "input-editor"}

@@ -79,9 +79,11 @@ export default function CommandPalette({ isOpen, onClose, className = '', style 
 
             if (e.key === "ArrowDown") {
                 e.preventDefault();
+                if (totalItems === 0) return;
                 setActiveIndex((prev) => (prev + 1) % totalItems);
             } else if (e.key === "ArrowUp") {
                 e.preventDefault();
+                if (totalItems === 0) return;
                 setActiveIndex((prev) => (prev - 1 + totalItems) % totalItems);
             } else if (e.key === "Enter") {
                 e.preventDefault();

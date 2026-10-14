@@ -1,25 +1,16 @@
-import { tools } from '@/config/tools';
+import ToolRouteInfo from '@/components/layout/ToolRouteInfo';
+import { DEFAULT_TOOLS_METADATA } from '@/config/toolMetadata';
 
-// Helper to generate metadata for each tool page
-export async function generateMetadata({ params }) {
-    const segments = params?.slug || [];
-    const toolSlug = segments[0] || '';
-
-    const tool = tools.find(t => t.href === `/tools/${toolSlug}`);
-
-    if (tool) {
-        return {
-            title: `${tool.title} | UtilHub`,
-            description: tool.description,
-        };
-    }
-
-    return {
-        title: 'Developer Tools | UtilHub',
-        description: 'A suite of developer utilities for your daily workflow.',
-    };
-}
+// Fallback metadata for /tools/*. Each tool folder has its own server
+// layout.js exporting the tool-specific title/description via
+// getToolMetadata(href), because tool pages are client components.
+export const metadata = DEFAULT_TOOLS_METADATA;
 
 export default function ToolsLayout({ children }) {
-    return <>{children}</>;
+    return (
+        <>
+            <ToolRouteInfo />
+            {children}
+        </>
+    );
 }

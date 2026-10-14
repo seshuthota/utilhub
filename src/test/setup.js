@@ -56,11 +56,28 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+// Must be a class: Vitest 4 mocks created with vi.fn().mockImplementation()
+// cannot be invoked with `new`.
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+// Mock IntersectionObserver (not provided by jsdom)
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {
+    this.root = null;
+    this.rootMargin = "";
+    this.thresholds = [];
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+};
 
 // Mock Next.js router
 vi.mock("next/navigation", () => ({

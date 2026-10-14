@@ -97,7 +97,8 @@ export default function SqliteTool() {
         const loadSqlJs = async () => {
             try {
                 const SQL = await initSqlJs({
-                    locateFile: (file) => `https://sql.js.org/dist/${file}`,
+                    // Self-hosted copy of node_modules/sql.js/dist/sql-wasm.wasm (keep in sync with the sql.js version)
+                    locateFile: (file) => `/sqljs/${file}`,
                 });
                 setSqlJs(SQL);
                 const newDb = new SQL.Database();

@@ -40,11 +40,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
     // Load from localStorage on mount
     useEffect(() => {
-        const savedFavorites = localStorage.getItem("utilhub-favorites");
-        const savedRecent = localStorage.getItem("utilhub-recent");
-        const savedStats = localStorage.getItem("utilhub-stats");
-
         const timer = setTimeout(() => {
+            // Read inside the callback so a recent recorded by a child on first
+            // render (ToolRouteInfo) is not overwritten by a stale snapshot.
+            const savedFavorites = localStorage.getItem("utilhub-favorites");
+            const savedRecent = localStorage.getItem("utilhub-recent");
+            const savedStats = localStorage.getItem("utilhub-stats");
             if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
             if (savedRecent) setRecentTools(JSON.parse(savedRecent));
             if (savedStats) setUsageStats(JSON.parse(savedStats));
@@ -63,23 +64,26 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const addRecent = useCallback((toolId: string) => {
-        // Update Recent
-        setRecentTools((prev) => {
-            const filtered = prev.filter((id) => id !== toolId);
-            const newRecent = [toolId, ...filtered].slice(0, 5); // Keep last 5
-            localStorage.setItem("utilhub-recent", JSON.stringify(newRecent));
-            return newRecent;
-        });
+        // Derive from localStorage (the source of truth) rather than state, so a
+        // visit recorded before the initial load finishes doesn't clobber history.
+        const readJson = <T,>(key: string, fallback: T): T => {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? (JSON.parse(raw) as T) : fallback;
+            } catch {
+                return fallback;
+            }
+        };
 
-        // Update Usage Stats
-        setUsageStats((prev) => {
-            const newStats = {
-                ...prev,
-                [toolId]: (prev[toolId] || 0) + 1,
-            };
-            localStorage.setItem("utilhub-stats", JSON.stringify(newStats));
-            return newStats;
-        });
+        const storedRecent = readJson<string[]>("utilhub-recent", []);
+        const newRecent = [toolId, ...storedRecent.filter((id) => id !== toolId)].slice(0, 5); // Keep last 5
+        localStorage.setItem("utilhub-recent", JSON.stringify(newRecent));
+        setRecentTools(newRecent);
+
+        const storedStats = readJson<Record<string, number>>("utilhub-stats", {});
+        const newStats = { ...storedStats, [toolId]: (storedStats[toolId] || 0) + 1 };
+        localStorage.setItem("utilhub-stats", JSON.stringify(newStats));
+        setUsageStats(newStats);
     }, []);
 
     const clearData = useCallback(() => {

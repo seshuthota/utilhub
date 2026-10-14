@@ -4,7 +4,6 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { ToastProvider } from '@/components/Toast';
 import { FavoritesProvider } from '@/components/FavoritesProvider';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration';
 
 import Header from "@/components/layout/Header";
 import Background from '@/components/layout/Background';
@@ -12,6 +11,7 @@ import Background from '@/components/layout/Background';
 import ShortcutsHelpModal from '@/components/common/ShortcutsHelpModal';
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import styles from './ClientLayout.module.css';
 
 interface ClientLayoutProps {
@@ -24,6 +24,7 @@ interface ClientLayoutProps {
  */
 export default function ClientLayout({ children }: ClientLayoutProps) {
     const [showShortcuts, setShowShortcuts] = useState(false);
+    const pathname = usePathname();
 
     // Global listener for Shift+?
     useHotkeys('?', () => setShowShortcuts(prev => !prev), { shift: true });
@@ -32,13 +33,13 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         <ThemeProvider>
             <ToastProvider>
                 <FavoritesProvider>
-                    <ServiceWorkerRegistration />
                     <>
                         <Background />
                         <Header />
                         <ShortcutsHelpModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
                         <main className={styles.main}>
-                            <ErrorBoundary>
+                            {/* Keyed by route so a crashed tool doesn't stick after navigating away */}
+                            <ErrorBoundary key={pathname}>
                                 {children}
                             </ErrorBoundary>
                         </main>

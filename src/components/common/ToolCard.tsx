@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Star, LucideIcon } from 'lucide-react';
 import { useFavorites } from '@/components/FavoritesProvider';
 import PrivacyBadge from './PrivacyBadge';
+import { getPrivacyVariants } from '@/config/toolMetadata';
 import styles from './ToolCard.module.css';
 import { CSSProperties } from 'react';
 
@@ -15,6 +16,7 @@ interface ToolCardProps {
     href: string;
     isClientSideOnly?: boolean;
     hasAiFeatures?: boolean;
+    usesNetwork?: boolean;
     className?: string;
     style?: CSSProperties;
 }
@@ -30,15 +32,14 @@ export default function ToolCard({
     href,
     isClientSideOnly = true,
     hasAiFeatures = false,
+    usesNetwork = false,
     className = '',
     style = {}
 }: ToolCardProps) {
-    const { isFavorite, toggleFavorite, addRecent } = useFavorites();
+    const { isFavorite, toggleFavorite } = useFavorites();
     const favorite = isFavorite(id);
-
-    const handleClick = () => {
-        addRecent(id);
-    };
+    // Recents are recorded when the tool route is visited (see ToolRouteInfo).
+    const privacyVariants = getPrivacyVariants({ isClientSideOnly, hasAiFeatures, usesNetwork });
 
     return (
         <div className={`${styles.card} ${className}`} style={style}>
@@ -46,7 +47,6 @@ export default function ToolCard({
             <Link
                 href={href}
                 className={styles.linkOverlay}
-                onClick={handleClick}
                 aria-label={`Open ${title}`}
             >
                 <span style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }}>
@@ -61,12 +61,9 @@ export default function ToolCard({
                 <div className={styles.headerActions}>
                     {/* Privacy Badges */}
                     <div className={styles.badges}>
-                        {isClientSideOnly && (
-                            <PrivacyBadge variant="client-side" compact />
-                        )}
-                        {hasAiFeatures && (
-                            <PrivacyBadge variant="ai-enabled" compact />
-                        )}
+                        {privacyVariants.map((variant) => (
+                            <PrivacyBadge key={variant} variant={variant} compact />
+                        ))}
                     </div>
                     <button
                         className={`${styles.favoriteBtn} ${favorite ? styles.active : ''}`}
