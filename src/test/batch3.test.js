@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import CryptoJS from 'crypto-js';
+import { md5, sha256 } from 'hash-wasm';
+import { toolAdapters } from '@/utils/pipeline/adapters';
 import { loremIpsum } from 'lorem-ipsum';
 import zxcvbn from 'zxcvbn';
 import { getUnixTime, fromUnixTime } from 'date-fns';
@@ -7,17 +8,26 @@ import { getUnixTime, fromUnixTime } from 'date-fns';
 describe('Batch 3 Logic Tests', () => {
 
     describe('Hash Generator', () => {
-        it('should generate correct MD5 hash', () => {
-            const input = 'hello';
-            const expected = '5d41402abc4b2a76b9719d911017c592';
-            expect(CryptoJS.MD5(input).toString()).toBe(expected);
+        // The Hash tool page uses hash-wasm; the pipeline adapter uses Web Crypto.
+        it('should generate correct MD5 hash (hash-wasm, as used by the Hash tool)', async () => {
+            expect(await md5('hello')).toBe('5d41402abc4b2a76b9719d911017c592');
         });
 
-        it('should generate correct SHA-256 hash', () => {
-            const input = 'hello';
+        it('should generate correct SHA-256 hash (hash-wasm, as used by the Hash tool)', async () => {
             // echo -n "hello" | shasum -a 256
-            const expected = '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824';
-            expect(CryptoJS.SHA256(input).toString()).toBe(expected);
+            expect(await sha256('hello')).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
+        });
+
+        it('should generate correct SHA-256 hash via the pipeline adapter', async () => {
+            const result = await toolAdapters.hash.transform('hello', { mode: 'sha256' });
+            expect(result.error).toBeUndefined();
+            expect(result.output).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
+        });
+
+        it('should reject unsupported algorithms in the pipeline adapter', async () => {
+            const result = await toolAdapters.hash.transform('hello', { mode: 'md5' });
+            expect(result.output).toBeNull();
+            expect(result.error).toMatch(/not supported/);
         });
     });
 

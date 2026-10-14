@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jwtDecode } from 'jwt-decode';
+import { decodeJwt } from '@/utils/jwt';
 import cronstrue from 'cronstrue';
 import cronParser from 'cron-parser';
 import Ajv from 'ajv';
@@ -9,9 +9,11 @@ describe('Batch 5 Logic Tests', () => {
     describe('JWT Decoder', () => {
         it('should decode a valid JWT', () => {
             const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-            const decoded = jwtDecode(token);
-            expect(decoded.name).toBe('John Doe');
-            expect(decoded.sub).toBe('1234567890');
+            const { header, payload, error } = decodeJwt(token);
+            expect(error).toBeNull();
+            expect(header.alg).toBe('HS256');
+            expect(payload.name).toBe('John Doe');
+            expect(payload.sub).toBe('1234567890');
         });
     });
 
