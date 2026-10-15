@@ -88,3 +88,13 @@ import styles from "./page.module.css";               // 3. Styles last
 - **`.nvmrc`** requires Node 22.22.0; `package.json` engines enforces `>=22.22.0`
 - **AI key handling** — `/api/ai` route auto-detects and strips duplicated API keys from paste errors
 - **CSS variables** for theming are in `src/app/globals.css`; all 5 themes use `data-theme` attribute
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
