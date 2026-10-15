@@ -257,6 +257,22 @@ export default function MarkdownTool() {
         setCode(value);
     }, []);
 
+    /**
+     * Replace the whole document. Goes through the editor as a normal transaction
+     * (so Ctrl/⌘+Z can undo it) rather than the `value` prop, which react-codemirror
+     * defers — and can drop — while it believes the user is typing.
+     */
+    const setDocument = useCallback((next: string) => {
+        const editor = editorViewRef.current;
+        if (editor) {
+            editor.dispatch({
+                changes: { from: 0, to: editor.state.doc.length, insert: next },
+                userEvent: 'input.replace',
+            });
+        }
+        handleEdit(next);
+    }, [handleEdit]);
+
     // Rendering is deferred so typing stays responsive on long documents
     const deferredCode = useDeferredValue(code);
     const { html, frontmatterError } = useMemo(() => {
@@ -279,12 +295,12 @@ export default function MarkdownTool() {
 
     const replaceDocument = useCallback((next: string) => {
         setUndoText(code.trim() ? code : null);
-        handleEdit(next);
-    }, [code, handleEdit]);
+        setDocument(next);
+    }, [code, setDocument]);
 
     const handleUndo = () => {
         if (undoText === null) return;
-        handleEdit(undoText);
+        setDocument(undoText);
         setUndoText(null);
     };
 
@@ -591,7 +607,7 @@ export default function MarkdownTool() {
                     <button
                         className={styles.linkButton}
                         onClick={() => {
-                            handleEdit(displacedDraft);
+                            setDocument(displacedDraft);
                             setDisplacedDraft(null);
                         }}
                     >

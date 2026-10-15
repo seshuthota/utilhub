@@ -2,7 +2,7 @@
  * Markdown formatting commands for the CodeMirror editor (toolbar + shortcuts).
  * Each returns true when it handled the action, matching CodeMirror's Command shape.
  */
-import { EditorSelection } from "@codemirror/state";
+import { EditorSelection, Prec } from "@codemirror/state";
 import { keymap, type EditorView } from "@codemirror/view";
 
 /** Toggle an inline marker (`**`, `_`, `` ` ``, `~~`) around each selection. */
@@ -124,9 +124,11 @@ export function insertCodeBlock(view: EditorView): boolean {
 
 export const TABLE_TEMPLATE = "| Column | Column |\n| ------ | ------ |\n| Cell   | Cell   |";
 
-export const markdownKeymap = keymap.of([
+// High precedence: CodeMirror's default keymap binds Mod-i (select parent syntax)
+// and would otherwise win over these formatting shortcuts.
+export const markdownKeymap = Prec.high(keymap.of([
     { key: "Mod-b", run: (v) => toggleWrap(v, "**", "bold text") },
     { key: "Mod-i", run: (v) => toggleWrap(v, "_", "italic text") },
     { key: "Mod-k", run: insertLink },
     { key: "Mod-e", run: (v) => toggleWrap(v, "`", "code") },
-]);
+]));
