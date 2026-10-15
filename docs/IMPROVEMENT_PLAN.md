@@ -67,6 +67,9 @@ Carried forward:
 - Content-Security-Policy: partial policy (`object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`) is feasible now; a strict script policy needs nonces (→ Wave 1).
 - JSON Schema's AI bar sends the user's full data + schema — say so in the UI (→ Wave 2).
 - Mermaid diagrams now render as `<img>`: check label clipping from fallback fonts in a real browser; `htmlLabels: false` if needed (→ Wave 8, verify at review).
+- `CodeMirrorEditor` always uses the One Dark theme, so editors stay dark in the light theme — make it follow `data-theme` (→ Wave 1).
+- react-codemirror defers `value` prop changes while it thinks the user is typing; any tool that replaces editor content programmatically (imports, examples, "Send to…", AI results) can show stale text. Add a `setDocument`-style API to `CodeMirrorEditor` and use it everywhere (→ Wave 1; Markdown already does this).
+- Tool page titles sit flush against the left edge — fix in `ToolShell` (→ Wave 1).
 - 51 pre-existing ESLint findings in `src/` (mostly `react-hooks/set-state-in-effect`) — fix per tool as each is reworked.
 
 ## 4. Wave 1 — Shared foundations
