@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from "react";
 import { Analytics, type BeforeSendEvent } from "@vercel/analytics/react";
 
 export const ANALYTICS_OPT_OUT_KEY = "utilhub-analytics-optout";
@@ -28,6 +29,18 @@ export function scrubAnalyticsEvent(event: BeforeSendEvent): BeforeSendEvent | n
     }
 }
 
+const subscribe = () => () => {};
+
+/**
+ * The analytics script itself is only loaded in production builds for users who
+ * haven't opted out (Settings or Global Privacy Control) — opting out means no
+ * script at all, not just dropped events. A Settings change applies on next load.
+ */
 export default function AnalyticsGate() {
-    return <Analytics beforeSend={scrubAnalyticsEvent} />;
+    const enabled = useSyncExternalStore(
+        subscribe,
+        () => process.env.NODE_ENV === "production" && !isAnalyticsOptedOut(),
+        () => false,
+    );
+    return enabled ? <Analytics beforeSend={scrubAnalyticsEvent} /> : null;
 }

@@ -43,7 +43,11 @@ export default function Settings() {
       else localStorage.removeItem(ANALYTICS_OPT_OUT_KEY);
     } catch { /* storage unavailable */ }
     setAnalyticsOff(next);
-    showToast(next ? "Analytics turned off" : "Analytics turned on", "success");
+    showToast(
+      next ? "Analytics turned off" : "Analytics turned on",
+      "success",
+      next ? "No analytics script will load from now on." : "Takes effect on the next page load.",
+    );
   };
 
   // Everything UtilHub stores starts with "utilhub"; theme and the analytics
