@@ -1,8 +1,9 @@
 /**
  * API Client import/export: UtilHub JSON, Postman Collection v2.x / environments,
- * `.http` files (VS Code REST Client / JetBrains), and template-only share links.
- * All formats keep `{{var}}` placeholders unresolved.
+ * OpenAPI 3.x / Swagger 2.0, `.http` files (VS Code REST Client / JetBrains), and
+ * template-only share links. All formats keep `{{var}}` placeholders unresolved.
  */
+import yaml from "js-yaml";
 import type { Environment, EnvVariable } from "@/hooks/useEnvironments";
 import {
     type AuthState,
@@ -23,6 +24,7 @@ import {
     type SavedRequest,
     newId,
 } from "@/utils/apiClientStore";
+import { importOpenApi, isOpenApiSpec } from "@/utils/openapiImport";
 
 export const UTILHUB_EXPORT_FORMAT = "utilhub-api-client";
 export const UTILHUB_EXPORT_VERSION = 1;
@@ -33,7 +35,9 @@ export interface ImportResult {
     environments: Environment[];
     /** Human-readable notes about things that could not be carried over. */
     warnings: string[];
-    source: "utilhub" | "postman-collection" | "postman-environment";
+    source: "utilhub" | "postman-collection" | "postman-environment" | "openapi";
+    /** Optional one-line description of what was recognized (e.g. "OpenAPI 3.0.3 · Petstore"). */
+    note?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -449,26 +453,52 @@ export function exportHttpFile(collections: CollectionsState): string {
 // Import detection
 // ---------------------------------------------------------------------------
 
+/** Parse an import document from JSON or YAML text. */
+function parseDocument(text: string): Record<string, unknown> {
+    const trimmed = text.replace(/^\uFEFF/, "").trim();
+    if (!trimmed) throw new Error("The file is empty.");
+
+    try {
+        const data = JSON.parse(trimmed);
+        if (data && typeof data === "object" && !Array.isArray(data)) return data as Record<string, unknown>;
+    } catch {
+        /* fall through to YAML */
+    }
+
+    // Only try YAML when the text isn't obviously JSON — avoids a second parse on every
+    // keystroke while a JSON document is still being pasted.
+    if (!/^(\{|\[)/.test(trimmed)) {
+        try {
+            const data = yaml.load(trimmed);
+            if (data && typeof data === "object" && !Array.isArray(data)) return data as Record<string, unknown>;
+        } catch {
+            /* fall through to the shared error */
+        }
+    }
+
+    throw new Error(
+        "File is not valid JSON or YAML. Supported: UtilHub export, Postman collection or environment, OpenAPI 3.x / Swagger 2.0.",
+    );
+}
+
 /** Parse any supported import file. Throws with a readable message on unknown input. */
 export function importAny(text: string): ImportResult {
-    let data: Record<string, unknown>;
-    try {
-        data = JSON.parse(text);
-    } catch {
-        throw new Error("File is not valid JSON. Supported: UtilHub export, Postman collection or environment.");
-    }
-    if (data?.format === UTILHUB_EXPORT_FORMAT) return importUtilHub(data);
-    const info = data?.info as { schema?: string } | undefined;
+    const data = parseDocument(text);
+    if (data.format === UTILHUB_EXPORT_FORMAT) return importUtilHub(data);
+    if (isOpenApiSpec(data)) return importOpenApi(data);
+    const info = data.info as { schema?: string } | undefined;
     if (info && Array.isArray(data.item)) {
         if (info.schema && !/collection\/v2/.test(info.schema)) {
             throw new Error("Only Postman Collection v2.0 / v2.1 is supported. Re-export from Postman as v2.1.");
         }
         return importPostmanCollection(data as Parameters<typeof importPostmanCollection>[0]);
     }
-    if (Array.isArray(data?.values)) {
+    if (Array.isArray(data.values)) {
         return importPostmanEnvironment(data as Parameters<typeof importPostmanEnvironment>[0]);
     }
-    throw new Error("Unrecognized file. Supported: UtilHub export, Postman collection (v2.x) or environment.");
+    throw new Error(
+        "Unrecognized file. Supported: UtilHub export, Postman collection (v2.x), Postman environment, OpenAPI 3.x / Swagger 2.0.",
+    );
 }
 
 // ---------------------------------------------------------------------------

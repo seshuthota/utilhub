@@ -139,7 +139,7 @@ describe('API Client — environments, sharing, collections', () => {
         fireEvent.click(screen.getByTitle('Saved requests'));
         fireEvent.click(screen.getByText('Import / Export'));
         fireEvent.click(screen.getByRole('tab', { name: 'Import' }));
-        fireEvent.change(screen.getByLabelText('Import JSON'), {
+        fireEvent.change(screen.getByLabelText('Import file contents'), {
             target: {
                 value: JSON.stringify({
                     info: { name: 'Petstore', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
@@ -156,6 +156,40 @@ describe('API Client — environments, sharing, collections', () => {
         const panel = screen.getByRole('complementary', { name: 'Collections' });
         expect(within(panel).getByText('List pets')).toBeInTheDocument();
         expect(screen.getByLabelText('Active environment')).toHaveDisplayValue('Petstore (collection variables)');
+    });
+
+    it('imports an OpenAPI spec through the Import / Export dialog', () => {
+        render(<CurlTester />);
+        fireEvent.click(screen.getByTitle('Saved requests'));
+        fireEvent.click(screen.getByText('Import / Export'));
+        fireEvent.click(screen.getByRole('tab', { name: 'Import' }));
+        fireEvent.change(screen.getByLabelText('Import file contents'), {
+            target: {
+                value: JSON.stringify({
+                    openapi: '3.0.3',
+                    info: { title: 'Pets' },
+                    servers: [{ url: 'https://pets.test/v1' }],
+                    paths: {
+                        '/pets': {
+                            get: {
+                                tags: ['pets'],
+                                summary: 'List pets',
+                                parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer', example: 10 } }],
+                            },
+                        },
+                    },
+                }),
+            },
+        });
+        expect(screen.getByText(/OpenAPI 3\.0\.3/)).toBeInTheDocument();
+        expect(screen.getByText(/1 folder, 1 request, 1 environment/)).toBeInTheDocument();
+        fireEvent.click(screen.getAllByRole('button').find((b) => b.textContent === 'Import'));
+        expect(showToast).toHaveBeenCalledWith('Imported 1 requests and 1 environments', 'success');
+
+        fireEvent.click(screen.getByTitle('Saved requests'));
+        const panel = screen.getByRole('complementary', { name: 'Collections' });
+        expect(within(panel).getByText('Pets / pets')).toBeInTheDocument();
+        expect(screen.getByLabelText('Active environment')).toHaveDisplayValue('Pets');
     });
 });
 

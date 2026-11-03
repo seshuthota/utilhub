@@ -134,29 +134,31 @@ export default function ImportExportModal({ collections, environments, onImport,
                     ) : (
                         <>
                             <p className={styles.modalHint}>
-                                Accepts a UtilHub export, a Postman collection (v2.0 / v2.1) or a Postman environment.
-                                Imported items are added alongside what you already have.
+                                Accepts a UtilHub export, a Postman collection (v2.0 / v2.1), a Postman environment,
+                                or an OpenAPI 3.x / Swagger 2.0 spec (JSON or YAML). Imported items are added alongside
+                                what you already have.
                             </p>
                             <div className={styles.importRow}>
                                 <button className={styles.button} onClick={() => fileRef.current?.click()}>
                                     <Upload size={16} /> Choose file…
                                 </button>
-                                <input ref={fileRef} type="file" accept=".json,application/json" hidden
+                                <input ref={fileRef} type="file" accept=".json,.yaml,.yml,application/json,application/yaml,text/yaml" hidden
                                     aria-label="Import file"
                                     onChange={(e) => handleFile(e.target.files?.[0])} />
-                                <span className={styles.modalHint} style={{ margin: 0 }}>or paste JSON below</span>
+                                <span className={styles.modalHint} style={{ margin: 0 }}>or paste JSON / YAML below</span>
                             </div>
                             <textarea
                                 className={styles.importTextarea}
                                 value={importText}
                                 onChange={(e) => parse(e.target.value)}
-                                placeholder='{"info": {"name": "My API", "schema": "…collection/v2.1.0…"}, "item": […]}'
-                                aria-label="Import JSON"
+                                placeholder={'{"openapi": "3.0.3", "info": {"title": "My API"}, "paths": {…}}\n\n# or YAML\nopenapi: 3.0.3\ninfo:\n  title: My API\npaths: {}'}
+                                aria-label="Import file contents"
                                 spellCheck={false}
                             />
                             {parseError && <div className={styles.importError}>{parseError}</div>}
                             {parsed && (
                                 <div className={styles.importSummary}>
+                                    {parsed.note && <p className={styles.modalHint}>{parsed.note}</p>}
                                     Ready to import <strong>{summarize(parsed)}</strong>.
                                     {parsed.warnings.length > 0 && (
                                         <ul>
